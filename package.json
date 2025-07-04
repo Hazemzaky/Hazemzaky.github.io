@@ -31,6 +31,7 @@
     "react-scripts": "^5.0.1",
     "recharts": "^3.0.2",
     "styled-components": "^6.1.19",
+    "supports-color": "^10.0.0",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
