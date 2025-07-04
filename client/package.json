@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@types/jwt-decode": "^2.2.1",
+    "jwt-decode": "^4.0.0"
+  },
+  "homepage": "https://Hazemzaky.github.io/Hazemzaky.github.io",
+  "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  }
+}
+
