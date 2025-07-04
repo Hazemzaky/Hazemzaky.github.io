@@ -1,19 +1,42 @@
-import React from 'react';
+import './custom.css';
+import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
 import App from './App';
-import reportWebVitals from './reportWebVitals';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider, CssBaseline, createTheme } from '@mui/material';
+import { ColorModeContext } from './components/NavBar';
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+const Main = () => {
+  const [mode, setMode] = useState<'light' | 'dark'>(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const colorMode = useMemo(() => ({
+    mode,
+    toggleColorMode: () => setMode(prev => (prev === 'light' ? 'dark' : 'light')),
+  }), [mode]);
+  const theme = useMemo(() => createTheme({
+    palette: { mode },
+    components: {
+      MuiGrid: {
+        defaultProps: {
+          // Removed invalid 'level' property
+        },
+      },
+    },
+  }), [mode]);
+  return (
+    <ColorModeContext.Provider value={colorMode}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ThemeProvider>
+    </ColorModeContext.Provider>
+  );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <Main />
   </React.StrictMode>
-);
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+); 
