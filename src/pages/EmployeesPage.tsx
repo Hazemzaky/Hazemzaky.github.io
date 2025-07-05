@@ -5,6 +5,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 interface Employee {
   _id: string;
@@ -60,7 +61,7 @@ const EmployeesPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/employees', {
+      const res = await axios.get(`${API_BASE}/api/employees`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (Array.isArray(res.data)) {
@@ -142,7 +143,7 @@ const EmployeesPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (editingId) {
-        await axios.put(`/api/employees/${editingId}`, {
+        await axios.put(`${API_BASE}/api/employees/${editingId}`, {
           ...form,
           salary: Number(form.salary),
           leaveBalance: Number(form.leaveBalance),
@@ -151,7 +152,7 @@ const EmployeesPage: React.FC = () => {
         });
         setSuccess('Employee updated successfully!');
       } else {
-        await axios.post('/api/employees', {
+        await axios.post(`${API_BASE}/api/employees`, {
           ...form,
           salary: Number(form.salary),
           leaveBalance: Number(form.leaveBalance),
@@ -171,7 +172,7 @@ const EmployeesPage: React.FC = () => {
   const handleDeactivate = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`/api/employees/${id}/deactivate`, {}, {
+      await axios.put(`${API_BASE}/api/employees/${id}/deactivate`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Employee deactivated!');

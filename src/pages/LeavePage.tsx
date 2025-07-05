@@ -5,6 +5,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 interface Leave {
   _id: string;
@@ -69,7 +70,7 @@ const LeavePage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/leave', {
+      const res = await axios.get(`${API_BASE}/api/leave`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (Array.isArray(res.data)) {
@@ -141,7 +142,7 @@ const LeavePage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/leave', {
+              await axios.post(`${API_BASE}/api/leave`, {
         ...form,
         days: Number(form.days),
         cost: Number(form.cost),

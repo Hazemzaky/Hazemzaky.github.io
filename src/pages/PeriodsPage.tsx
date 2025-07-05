@@ -3,6 +3,7 @@ import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Button, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert
 } from '@mui/material';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 interface Period {
   _id: string;
@@ -30,7 +31,7 @@ const PeriodsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/periods', {
+      const res = await axios.get(`${API_BASE}/api/periods`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (Array.isArray(res.data)) {
@@ -61,7 +62,7 @@ const PeriodsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/periods/close', {
+              await axios.post(`${API_BASE}/api/periods/close`, {
         period: selectedPeriod.period,
         closedBy: 'system',
       }, {

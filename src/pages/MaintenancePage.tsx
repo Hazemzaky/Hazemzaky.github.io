@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, Card, CardContent, MenuItem
 } from '@mui/material';
@@ -61,7 +62,7 @@ const MaintenancePage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get<Maintenance[]>('/api/maintenance');
+              const res = await axios.get<Maintenance[]>(`${API_BASE}/api/maintenance`);
       setMaintenance(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch maintenance records');
@@ -71,7 +72,7 @@ const MaintenancePage: React.FC = () => {
   };
   const fetchAssets = async () => {
     try {
-      const res = await axios.get('/api/assets');
+              const res = await axios.get(`${API_BASE}/api/assets`);
       setAssets(res.data as any[]);
     } catch {}
   };
@@ -109,14 +110,14 @@ const MaintenancePage: React.FC = () => {
     setError('');
     try {
       if (editingId) {
-        await axios.put(`/api/maintenance/${editingId}`, {
+                  await axios.put(`${API_BASE}/api/maintenance/${editingId}`, {
           ...form,
           cost: form.cost ? Number(form.cost) : undefined,
           downtimeHours: form.downtimeHours ? Number(form.downtimeHours) : undefined,
         });
         setSuccess('Maintenance updated!');
       } else {
-        await axios.post('/api/maintenance', {
+                  await axios.post(`${API_BASE}/api/maintenance`, {
           ...form,
           cost: form.cost ? Number(form.cost) : undefined,
           downtimeHours: form.downtimeHours ? Number(form.downtimeHours) : undefined,
@@ -132,7 +133,7 @@ const MaintenancePage: React.FC = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`/api/maintenance/${deleteId}`);
+              await axios.delete(`${API_BASE}/api/maintenance/${deleteId}`);
       setSuccess('Maintenance deleted!');
       fetchMaintenance();
     } catch (err: any) {

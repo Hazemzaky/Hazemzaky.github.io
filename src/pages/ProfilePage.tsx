@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Card, CardContent, Typography, CircularProgress, Alert, Avatar, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, IconButton } from '@mui/material';
 import axios from 'axios';
 import CloseIcon from '@mui/icons-material/Close';
+import API_BASE from '../apiBase';
 
 interface UserProfile {
   _id?: string;
@@ -78,7 +79,7 @@ const ProfilePage: React.FC = () => {
       setLoading(true);
       setError('');
       try {
-        const res = await axios.get<UserProfile>('/api/auth/me', {
+                  const res = await axios.get<UserProfile>(`${API_BASE}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setProfile(res.data);
@@ -101,9 +102,9 @@ const ProfilePage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       if (isAdmin) {
-        await axios.put(`/api/auth/${profile?._id}`, editForm, { headers: { Authorization: `Bearer ${token}` } });
+                  await axios.put(`${API_BASE}/api/auth/admin/user/${profile?._id}`, editForm, { headers: { Authorization: `Bearer ${token}` } });
       } else {
-        await axios.put('/api/auth/me', { address: editForm.address }, { headers: { Authorization: `Bearer ${token}` } });
+                  await axios.put(`${API_BASE}/api/auth/me`, { address: editForm.address }, { headers: { Authorization: `Bearer ${token}` } });
       }
       setSuccess('Profile updated');
       setEditMode(false);
@@ -120,7 +121,7 @@ const ProfilePage: React.FC = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.put('/api/auth/me', { password: pwForm.password }, { headers: { Authorization: `Bearer ${token}` } });
+              await axios.put(`${API_BASE}/api/auth/me`, { password: pwForm.password }, { headers: { Authorization: `Bearer ${token}` } });
       setSuccess('Password updated');
       setPwDialog(false);
       setPwForm({ password: '', confirm: '' });
@@ -136,7 +137,7 @@ const ProfilePage: React.FC = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`/api/auth/${profile?._id}/password`, { password: adminPwForm.password }, { headers: { Authorization: `Bearer ${token}` } });
+              await axios.put(`${API_BASE}/api/auth/admin/password/${profile?._id}`, { password: adminPwForm.password }, { headers: { Authorization: `Bearer ${token}` } });
       setSuccess('Password updated');
       setAdminPwDialog(false);
       setAdminPwForm({ password: '', confirm: '' });

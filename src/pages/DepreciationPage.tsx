@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, Card, CardContent, MenuItem
 } from '@mui/material';
@@ -52,7 +53,7 @@ const DepreciationPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get<Depreciation[]>('/api/depreciation');
+              const res = await axios.get<Depreciation[]>(`${API_BASE}/api/depreciation`);
       setDepreciation(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch depreciation records');
@@ -62,7 +63,7 @@ const DepreciationPage: React.FC = () => {
   };
   const fetchAssets = async () => {
     try {
-      const res = await axios.get('/api/assets');
+              const res = await axios.get(`${API_BASE}/api/assets`);
       setAssets(res.data as any[]);
     } catch {}
   };
@@ -96,13 +97,13 @@ const DepreciationPage: React.FC = () => {
     setError('');
     try {
       if (editingId) {
-        await axios.put(`/api/depreciation/${editingId}`, {
+                  await axios.put(`${API_BASE}/api/depreciation/${editingId}`, {
           ...form,
           amount: Number(form.amount),
         });
         setSuccess('Depreciation updated!');
       } else {
-        await axios.post('/api/depreciation', {
+                  await axios.post(`${API_BASE}/api/depreciation`, {
           ...form,
           amount: Number(form.amount),
         });
@@ -117,7 +118,7 @@ const DepreciationPage: React.FC = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`/api/depreciation/${deleteId}`);
+              await axios.delete(`${API_BASE}/api/depreciation/${deleteId}`);
       setSuccess('Depreciation deleted!');
       fetchDepreciation();
     } catch (err: any) {

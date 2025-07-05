@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
+import API_BASE from '../apiBase';
 
 interface InventoryTransaction {
   _id: string;
@@ -56,7 +57,7 @@ const InventoryTransactionsPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/api/inventory/transactions');
+      const res = await axios.get(`${API_BASE}/api/inventory/transactions`);
       if (Array.isArray(res.data)) {
         setTransactions(res.data);
       } else {
@@ -72,7 +73,7 @@ const InventoryTransactionsPage: React.FC = () => {
   };
   const fetchItems = async () => {
     try {
-      const res = await axios.get('/api/inventory/items');
+              const res = await axios.get(`${API_BASE}/api/inventory/items`);
       if (Array.isArray(res.data)) {
         setItems(res.data as any[]);
       } else {
@@ -145,7 +146,7 @@ const InventoryTransactionsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/inventory/transactions', {
+              await axios.post(`${API_BASE}/api/inventory/transactions`, {
         ...form,
         quantity: Number(form.quantity),
       }, {

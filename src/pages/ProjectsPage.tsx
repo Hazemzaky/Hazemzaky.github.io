@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert
 } from '@mui/material';
@@ -52,7 +53,7 @@ const ProjectsPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get<Project[]>('/api/projects');
+              const res = await axios.get<Project[]>(`${API_BASE}/api/projects`);
       setProjects(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch projects');
@@ -93,13 +94,13 @@ const ProjectsPage: React.FC = () => {
     setError('');
     try {
       if (editingId) {
-        await axios.put(`/api/projects/${editingId}`, {
+                  await axios.put(`${API_BASE}/api/projects/${editingId}`, {
           ...form,
           revenue: form.revenue ? Number(form.revenue) : undefined,
         });
         setSuccess('Project updated!');
       } else {
-        await axios.post('/api/projects', {
+                  await axios.post(`${API_BASE}/api/projects`, {
           ...form,
           revenue: form.revenue ? Number(form.revenue) : undefined,
         });
@@ -114,7 +115,7 @@ const ProjectsPage: React.FC = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`/api/projects/${deleteId}`);
+              await axios.delete(`${API_BASE}/api/projects/${deleteId}`);
       setSuccess('Project deleted!');
       fetchProjects();
     } catch (err: any) {
@@ -127,7 +128,7 @@ const ProjectsPage: React.FC = () => {
     setDetailsOpen(true);
     setDetails(null);
     try {
-      const res = await axios.get(`/api/projects/${id}/profitability`);
+              const res = await axios.get(`${API_BASE}/api/projects/${id}/profitability`);
       setDetails(res.data);
     } catch (err: any) {
       setDetails({ error: err.response?.data?.message || 'Failed to fetch details' });

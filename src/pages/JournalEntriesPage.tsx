@@ -6,6 +6,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 interface EntryLine {
   account: string | { _id: string; [key: string]: any };
@@ -68,7 +69,7 @@ const JournalEntriesPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/journal-entries', {
+      const res = await axios.get(`${API_BASE}/api/journal-entries`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (Array.isArray(res.data)) {
@@ -150,7 +151,7 @@ const JournalEntriesPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/journal-entries', {
+              await axios.post(`${API_BASE}/api/journal-entries`, {
         ...form,
         createdBy: 'system',
       }, {

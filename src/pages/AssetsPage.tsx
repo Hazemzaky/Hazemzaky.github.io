@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
+import API_BASE from '../apiBase';
 
 const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f', '#6d4c41', '#0288d1'];
 
@@ -139,7 +140,7 @@ const AssetsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/assets', {
+              await axios.post(`${API_BASE}/api/assets`, {
         ...form,
         purchaseValue: Number(form.purchaseValue),
         usefulLife: Number(form.usefulLife),

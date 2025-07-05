@@ -12,6 +12,7 @@ import Alert from '@mui/material/Alert';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f'];
 
@@ -50,14 +51,14 @@ const DashboardPage: React.FC = () => {
       setError('');
       try {
         const token = localStorage.getItem('token');
-        const [summaryRes, kpiRes] = await Promise.all([
-          axios.get<SummaryData>('/api/dashboard/summary', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get<KPIData>('/api/dashboard/kpis', {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        ]);
+                  const [summaryRes, kpiRes] = await Promise.all([
+            axios.get<SummaryData>(`${API_BASE}/api/dashboard/summary`, {
+              headers: { Authorization: `Bearer ${token}` },
+            }),
+            axios.get<KPIData>(`${API_BASE}/api/dashboard/kpis`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+          ]);
         setSummary(summaryRes.data);
         setKPIs(kpiRes.data);
       } catch (err: any) {

@@ -8,6 +8,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
+import API_BASE from '../apiBase';
 
 interface InventoryItem {
   _id: string;
@@ -68,7 +69,7 @@ const InventoryRegisterPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/api/inventory/items');
+      const res = await axios.get(`${API_BASE}/api/inventory/items`);
       if (Array.isArray(res.data)) {
         setItems(res.data);
       } else {
@@ -110,10 +111,10 @@ const InventoryRegisterPage: React.FC = () => {
     setError('');
     try {
       if (editing) {
-        await axios.put(`/api/inventory/items/${editing._id}`, { ...form, quantity: Number(form.quantity), minStock: Number(form.minStock), maxStock: Number(form.maxStock), cost: Number(form.cost) });
+        await axios.put(`${API_BASE}/api/inventory/items/${editing._id}`, { ...form, quantity: Number(form.quantity), minStock: Number(form.minStock), maxStock: Number(form.maxStock), cost: Number(form.cost) });
         setSuccess('Item updated!');
       } else {
-        await axios.post('/api/inventory/items', { ...form, quantity: Number(form.quantity), minStock: Number(form.minStock), maxStock: Number(form.maxStock), cost: Number(form.cost) });
+        await axios.post(`${API_BASE}/api/inventory/items`, { ...form, quantity: Number(form.quantity), minStock: Number(form.minStock), maxStock: Number(form.maxStock), cost: Number(form.cost) });
         setSuccess('Item added!');
       }
       fetchItems();
@@ -124,7 +125,7 @@ const InventoryRegisterPage: React.FC = () => {
   };
   const handleDelete = async (id: string) => {
     try {
-      await axios.delete(`/api/inventory/items/${id}`);
+      await axios.delete(`${API_BASE}/api/inventory/items/${id}`);
       setSuccess('Item deleted!');
       fetchItems();
     } catch (err: any) {

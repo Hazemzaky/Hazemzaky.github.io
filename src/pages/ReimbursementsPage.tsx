@@ -5,6 +5,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 interface Reimbursement {
   _id: string;
@@ -44,7 +45,7 @@ const ReimbursementsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/reimbursements', {
+      const res = await axios.get(`${API_BASE}/api/reimbursements`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (Array.isArray(res.data)) {
@@ -104,7 +105,7 @@ const ReimbursementsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/reimbursements', {
+              await axios.post(`${API_BASE}/api/reimbursements`, {
         ...form,
         amount: Number(form.amount),
       }, {

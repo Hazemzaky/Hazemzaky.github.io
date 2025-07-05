@@ -6,6 +6,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 
 interface Budget {
   _id: string;
@@ -125,7 +126,7 @@ const BudgetsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/budgets', {
+              await axios.post(`${API_BASE}/api/budgets`, {
         department: form.department,
         project: form.project,
         period: form.period,

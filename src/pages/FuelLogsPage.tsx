@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import API_BASE from '../apiBase';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Card, CardContent
 } from '@mui/material';
@@ -63,13 +64,13 @@ const FuelLogsPage: React.FC = () => {
   };
   const fetchProjects = async () => {
     try {
-      const res = await axios.get('/api/projects');
+              const res = await axios.get(`${API_BASE}/api/projects`);
       setProjects(res.data as any[]);
     } catch {}
   };
   const fetchDrivers = async () => {
     try {
-      const res = await axios.get('/api/employees');
+              const res = await axios.get(`${API_BASE}/api/employees`);
       setDrivers(res.data as any[]);
     } catch {}
   };
@@ -111,7 +112,7 @@ const FuelLogsPage: React.FC = () => {
         });
         setSuccess('Fuel log updated!');
       } else {
-        await axios.post('/api/fuel-logs', {
+        await axios.post(`${API_BASE}/api/fuel-logs`, {
           ...form,
           liters: Number(form.liters),
           cost: Number(form.cost),
@@ -127,7 +128,7 @@ const FuelLogsPage: React.FC = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`/api/fuel-logs/${deleteId}`);
+      await axios.delete(`${API_BASE}/api/fuel-logs/${deleteId}`);
       setSuccess('Fuel log deleted!');
       fetchFuelLogs();
     } catch (err: any) {

@@ -9,6 +9,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import API_BASE from '../apiBase';
 
 interface Invoice {
   _id: string;
@@ -58,7 +59,7 @@ const InvoicesPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get<Invoice[]>('/api/invoices', {
+      const res = await axios.get<Invoice[]>(`${API_BASE}/api/invoices`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setInvoices(res.data);
@@ -115,7 +116,7 @@ const InvoicesPage: React.FC = () => {
     setMarkingPaid(id);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`/api/invoices/${id}/status`, { status: 'paid' }, {
+      await axios.put(`${API_BASE}/api/invoices/${id}/status`, { status: 'paid' }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Invoice marked as paid!');
@@ -168,7 +169,7 @@ const InvoicesPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/invoices', {
+      await axios.post(`${API_BASE}/api/invoices`, {
         recipient: { name: form.recipientName, email: form.recipientEmail },
         dueDate: form.dueDate,
         lineItems: form.lineItems,
