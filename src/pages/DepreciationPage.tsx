@@ -1,344 +1,541 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../apiBase';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, Card, CardContent, MenuItem
+  Box, Button, Card, CardContent, Typography, Paper, TextField, MenuItem, Snackbar, Alert, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Grid, LinearProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
+import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
+
+interface Asset {
+  _id: string;
+  description: string;
+  type: string;
+  brand: string;
+  purchaseDate: string;
+  purchaseValue: number;
+  usefulLifeMonths: number;
+  salvageValue: number;
+  status: string;
+  chassisNumber?: string;
+  plateNumber?: string;
+  serialNumber?: string;
+  fleetNumber?: string;
+  serial?: string; // Added serial/document number
+}
 
 interface Depreciation {
   _id: string;
-  asset: { _id: string; name: string } | string;
+  asset: { _id: string; description: string } | string;
   date: string;
   amount: number;
   method: string;
   notes?: string;
 }
 
-const defaultForm = {
-  asset: '',
-  date: '',
-  amount: '',
-  method: '',
-  notes: '',
-};
-
-const DepreciationPage: React.FC = () => {
+const DepreciationDashboard: React.FC = () => {
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [depreciation, setDepreciation] = useState<Depreciation[]>([]);
-  const [assets, setAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>(defaultForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [filterAsset, setFilterAsset] = useState('');
-  const [filterMethod, setFilterMethod] = useState('');
-  const [filterFrom, setFilterFrom] = useState('');
-  const [filterTo, setFilterTo] = useState('');
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [assetDetailOpen, setAssetDetailOpen] = useState(false);
+  const [filterType, setFilterType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
-    fetchDepreciation();
-    fetchAssets();
+    fetchData();
   }, []);
 
-  const fetchDepreciation = async () => {
+  const fetchData = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get<Depreciation[]>('/api/depreciation');
-      setDepreciation(res.data);
+      const [assetsRes, depreciationRes] = await Promise.all([
+        api.get<Asset[]>('/assets'),
+        api.get<Depreciation[]>('/depreciation')
+      ]);
+      setAssets(assetsRes.data);
+      setDepreciation(depreciationRes.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch depreciation records');
+      setError(err.response?.data?.message || 'Failed to fetch data');
     } finally {
       setLoading(false);
     }
   };
-  const fetchAssets = async () => {
-    try {
-      const res = await axios.get('/api/assets');
-      setAssets(res.data as any[]);
-    } catch {}
+
+  // Calculate daily depreciation for an asset
+  const calculateDailyDepreciation = (asset: Asset) => {
+    if (!asset.purchaseValue || !asset.salvageValue || !asset.usefulLifeMonths) return 0;
+    const totalDepreciableValue = asset.purchaseValue - asset.salvageValue;
+    const usefulLifeDays = asset.usefulLifeMonths * 30; // Approximate days
+    return totalDepreciableValue / usefulLifeDays;
   };
 
-  const handleOpen = (d?: Depreciation) => {
-    if (d) {
-      setEditingId(d._id);
-      setForm({
-        asset: typeof d.asset === 'object' ? d.asset._id : d.asset || '',
-        date: d.date ? d.date.slice(0, 10) : '',
-        amount: d.amount.toString(),
-        method: d.method,
-        notes: d.notes || '',
-      });
-    } else {
-      setEditingId(null);
-      setForm(defaultForm);
-    }
-    setOpen(true);
-  };
-  const handleClose = () => {
-    setOpen(false);
-    setEditingId(null);
-    setForm(defaultForm);
-  };
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    try {
-      if (editingId) {
-        await axios.put(`/api/depreciation/${editingId}`, {
-          ...form,
-          amount: Number(form.amount),
-        });
-        setSuccess('Depreciation updated!');
-      } else {
-        await axios.post('/api/depreciation', {
-          ...form,
-          amount: Number(form.amount),
-        });
-        setSuccess('Depreciation created!');
-      }
-      fetchDepreciation();
-      handleClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save depreciation record');
-    }
-  };
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    try {
-      await axios.delete(`/api/depreciation/${deleteId}`);
-      setSuccess('Depreciation deleted!');
-      fetchDepreciation();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete depreciation record');
-    } finally {
-      setDeleteId(null);
-    }
+  // Calculate book value as of a specific date
+  const calculateBookValue = (asset: Asset, asOfDate?: Date) => {
+    if (!asset.purchaseDate || !asset.purchaseValue) return asset.purchaseValue || 0;
+    
+    const purchaseDate = new Date(asset.purchaseDate);
+    const targetDate = asOfDate || new Date();
+    
+    if (targetDate < purchaseDate) return asset.purchaseValue;
+    
+    const daysSincePurchase = Math.floor((targetDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+    const dailyDepreciation = calculateDailyDepreciation(asset);
+    const totalDepreciation = dailyDepreciation * daysSincePurchase;
+    
+    return Math.max(asset.salvageValue || 0, asset.purchaseValue - totalDepreciation);
   };
 
-  const columns = useMemo<ColumnDef<Depreciation>[]>(() => [
-    { header: 'Asset', accessorKey: 'asset', cell: info => typeof info.getValue() === 'object' ? (info.getValue() as any)?.name : info.getValue() },
-    { header: 'Date', accessorKey: 'date', cell: info => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : '-' },
-    { header: 'Amount', accessorKey: 'amount', cell: info => Number(info.getValue()).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) },
-    { header: 'Method', accessorKey: 'method' },
-    { header: 'Notes', accessorKey: 'notes' },
-    {
-      header: 'Actions',
-      cell: ({ row }) => (
-        <Box display="flex" gap={1}>
-          <IconButton color="primary" onClick={() => handleOpen(row.original)}><EditIcon /></IconButton>
-          <IconButton color="error" onClick={() => setDeleteId(row.original._id)}><DeleteIcon /></IconButton>
-        </Box>
-      ),
-    },
-  ], [assets]);
+  // Calculate depreciation percentage
+  const calculateDepreciationPercentage = (asset: Asset) => {
+    const bookValue = calculateBookValue(asset);
+    const totalDepreciableValue = asset.purchaseValue - asset.salvageValue;
+    return totalDepreciableValue > 0 ? ((asset.purchaseValue - bookValue) / totalDepreciableValue) * 100 : 0;
+  };
 
-  const table = useReactTable({
-    data: depreciation,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  // Calculate remaining useful life in months
+  const calculateRemainingLife = (asset: Asset) => {
+    const depreciationPercentage = calculateDepreciationPercentage(asset);
+    const usedLife = (depreciationPercentage / 100) * asset.usefulLifeMonths;
+    return Math.max(0, asset.usefulLifeMonths - usedLife);
+  };
 
-  // Filtered depreciation
-  const filteredDepreciation = useMemo(() => {
-    return depreciation.filter(d => {
-      if (filterAsset && (typeof d.asset === 'object' ? d.asset._id : d.asset) !== filterAsset) return false;
-      if (filterMethod && d.method !== filterMethod) return false;
-      if (filterFrom && new Date(d.date) < new Date(filterFrom)) return false;
-      if (filterTo && new Date(d.date) > new Date(filterTo)) return false;
+  // Filtered assets
+  const filteredAssets = useMemo(() => {
+    return assets.filter(a => {
+      if (filterType && a.type !== filterType) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      if (dateFrom && new Date(a.purchaseDate) < new Date(dateFrom)) return false;
+      if (dateTo && new Date(a.purchaseDate) > new Date(dateTo)) return false;
       return true;
     });
-  }, [depreciation, filterAsset, filterMethod, filterFrom, filterTo]);
+  }, [assets, filterType, filterStatus, dateFrom, dateTo]);
 
-  // Export CSV
+  // KPI Calculations
+  const kpis = useMemo(() => {
+    const totalAssets = filteredAssets.length;
+    const totalPurchaseValue = filteredAssets.reduce((sum, a) => sum + a.purchaseValue, 0);
+    const totalBookValue = filteredAssets.reduce((sum, a) => sum + calculateBookValue(a), 0);
+    const totalDepreciation = totalPurchaseValue - totalBookValue;
+    const averageDepreciationRate = totalPurchaseValue > 0 ? (totalDepreciation / totalPurchaseValue) * 100 : 0;
+    
+    const fullyDepreciated = filteredAssets.filter(a => calculateBookValue(a) <= a.salvageValue).length;
+    const partiallyDepreciated = filteredAssets.filter(a => {
+      const bookValue = calculateBookValue(a);
+      return bookValue > a.salvageValue && bookValue < a.purchaseValue;
+    }).length;
+    const notDepreciated = filteredAssets.filter(a => calculateBookValue(a) >= a.purchaseValue).length;
+
+    return {
+      totalAssets,
+      totalPurchaseValue,
+      totalBookValue,
+      totalDepreciation,
+      averageDepreciationRate,
+      fullyDepreciated,
+      partiallyDepreciated,
+      notDepreciated
+    };
+  }, [filteredAssets]);
+
+  // Chart data
+  const depreciationByType = useMemo(() => {
+    const map: Record<string, { purchaseValue: number; bookValue: number; depreciation: number }> = {};
+    filteredAssets.forEach(a => {
+      if (!map[a.type]) map[a.type] = { purchaseValue: 0, bookValue: 0, depreciation: 0 };
+      const bookValue = calculateBookValue(a);
+      map[a.type].purchaseValue += a.purchaseValue;
+      map[a.type].bookValue += bookValue;
+      map[a.type].depreciation += a.purchaseValue - bookValue;
+    });
+    return Object.entries(map).map(([type, data]) => ({ type, ...data }));
+  }, [filteredAssets]);
+
+  const depreciationTrend = useMemo(() => {
+    const months = 12;
+    const trend = [];
+    const today = new Date();
+    
+    for (let i = months - 1; i >= 0; i--) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthTotal = filteredAssets.reduce((sum, a) => {
+        const bookValue = calculateBookValue(a, date);
+        return sum + (a.purchaseValue - bookValue);
+      }, 0);
+      trend.push({
+        month: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        depreciation: monthTotal
+      });
+    }
+    return trend;
+  }, [filteredAssets]);
+
+  const assetLifecycleData = useMemo(() => {
+    return filteredAssets.map(a => ({
+      name: a.description,
+      purchaseValue: a.purchaseValue,
+      bookValue: calculateBookValue(a),
+      depreciationPercentage: calculateDepreciationPercentage(a),
+      remainingLife: calculateRemainingLife(a)
+    }));
+  }, [filteredAssets]);
+
+  // Export comprehensive CSV
   const handleExportCSV = () => {
-    const headers = ['Asset', 'Date', 'Amount', 'Method', 'Notes'];
-    const rows = filteredDepreciation.map(d => [
-      typeof d.asset === 'object' ? d.asset.name : d.asset,
-      d.date ? new Date(d.date).toLocaleDateString() : '',
-      d.amount,
-      d.method,
-      d.notes,
+    const exportDate = new Date();
+    const headers = [
+      'Asset Description', 'Serial Number', 'Type', 'Brand', 'Purchase Date', 'Purchase Value', 
+      'Book Value as of Export', 'Total Depreciation', 'Depreciation %', 
+      'Remaining Life (months)', 'Daily Depreciation', 'Status'
+    ];
+    const rows = filteredAssets.map(a => [
+      a.description,
+      a.serial || a.serialNumber || '-', // Serial/document number
+      a.type,
+      a.brand,
+      a.purchaseDate ? new Date(a.purchaseDate).toLocaleDateString() : '',
+      a.purchaseValue,
+      calculateBookValue(a, exportDate).toFixed(2),
+      (a.purchaseValue - calculateBookValue(a, exportDate)).toFixed(2),
+      calculateDepreciationPercentage(a).toFixed(2) + '%',
+      calculateRemainingLife(a).toFixed(1),
+      calculateDailyDepreciation(a).toFixed(2),
+      a.status
     ]);
     const csv = [headers, ...rows].map(r => r.map(x => `"${x}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csvWithHeader = addExportHeader(csv, 'Depreciation Dashboard');
+    const blob = new Blob([csvWithHeader], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'depreciation.csv';
+    a.download = getExportFileName('depreciation_dashboard');
     a.click();
     window.URL.revokeObjectURL(url);
   };
-  // Print
+
   const handlePrint = () => {
-    window.print();
+    const printHeader = addPrintHeader('Depreciation Dashboard');
+    const printContent = document.body.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Depreciation Dashboard Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              @media print {
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printHeader}
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
-  // Chart data
-  const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f', '#6d4c41', '#0288d1'];
-  const deprByAsset = useMemo(() => {
-    const map: Record<string, number> = {};
-    filteredDepreciation.forEach(d => {
-      const name = typeof d.asset === 'object' ? d.asset.name : d.asset;
-      if (!map[name]) map[name] = 0;
-      map[name] += d.amount ? Number(d.amount) : 0;
-    });
-    return Object.entries(map).map(([name, value]) => ({ name, value }));
-  }, [filteredDepreciation]);
-  const deprOverTime = useMemo(() => {
-    // Group by year
-    const map: Record<string, number> = {};
-    filteredDepreciation.forEach(d => {
-      const year = d.date ? new Date(d.date).getFullYear() : '';
-      if (!map[year]) map[year] = 0;
-      map[year] += d.amount ? Number(d.amount) : 0;
-    });
-    return Object.entries(map).map(([year, value]) => ({ year, value }));
-  }, [filteredDepreciation]);
+  const handleAssetDetail = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setAssetDetailOpen(true);
+  };
 
-  // Summary calculations
-  const totalDepreciation = depreciation.reduce((sum, d) => sum + Number(d.amount), 0);
+  const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f', '#6d4c41', '#0288d1'];
 
   return (
     <Box p={3}>
-      <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
+      <Typography variant="h4" gutterBottom>Depreciation Dashboard</Typography>
+
+      {/* KPI Cards */}
+      <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
+        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#1976d2', color: '#fff' }}>
           <CardContent>
-            <Typography variant="subtitle1">Total Depreciation Records</Typography>
-            <Typography variant="h5">{depreciation.length}</Typography>
+            <Typography variant="subtitle2">Total Assets</Typography>
+            <Typography variant="h4">{kpis.totalAssets}</Typography>
+            <Typography variant="caption">Depreciable Assets</Typography>
           </CardContent>
         </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
+        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#d32f2f', color: '#fff' }}>
           <CardContent>
-            <Typography variant="subtitle1">Total Depreciation</Typography>
-            <Typography variant="h5">{totalDepreciation.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+            <Typography variant="subtitle2">Total Purchase Value</Typography>
+            <Typography variant="h4">{kpis.totalPurchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+            <Typography variant="caption">Original Cost</Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#388e3c', color: '#fff' }}>
+          <CardContent>
+            <Typography variant="subtitle2">Total Book Value</Typography>
+            <Typography variant="h4">{kpis.totalBookValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+            <Typography variant="caption">Current Value</Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#fbc02d', color: '#fff' }}>
+          <CardContent>
+            <Typography variant="subtitle2">Total Depreciation</Typography>
+            <Typography variant="h4">{kpis.totalDepreciation.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+            <Typography variant="caption">{kpis.averageDepreciationRate.toFixed(1)}% of Purchase Value</Typography>
           </CardContent>
         </Card>
       </Box>
-      {/* Filters and export/print */}
-      <Box display="flex" gap={2} mb={2} flexWrap="wrap" alignItems="center">
-        <TextField select label="Asset" value={filterAsset} onChange={e => setFilterAsset(e.target.value)} sx={{ minWidth: 180 }}>
-          <MenuItem value="">All Assets</MenuItem>
-          {assets.map(a => <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>)}
+
+      {/* Asset Status Cards */}
+      <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
+        <Card sx={{ flex: '1 1 300px', minWidth: 300 }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="primary">Fully Depreciated</Typography>
+            <Typography variant="h5" color="error">{kpis.fullyDepreciated}</Typography>
+            <Typography variant="caption">Assets at salvage value</Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: '1 1 300px', minWidth: 300 }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="primary">Partially Depreciated</Typography>
+            <Typography variant="h5" color="warning.main">{kpis.partiallyDepreciated}</Typography>
+            <Typography variant="caption">Assets in depreciation period</Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: '1 1 300px', minWidth: 300 }}>
+          <CardContent>
+            <Typography variant="subtitle2" color="primary">Not Depreciated</Typography>
+            <Typography variant="h5" color="success.main">{kpis.notDepreciated}</Typography>
+            <Typography variant="caption">New or recently acquired</Typography>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Filters */}
+      <Box display="flex" gap={2} mb={3} flexWrap="wrap" alignItems="center">
+        <TextField 
+          select 
+          label="Asset Type" 
+          value={filterType} 
+          onChange={e => setFilterType(e.target.value)} 
+          sx={{ minWidth: 180 }}
+        >
+          <MenuItem value="">All Types</MenuItem>
+          {Array.from(new Set(assets.map(a => a.type))).map(t => (
+            <MenuItem key={t} value={t}>{t}</MenuItem>
+          ))}
         </TextField>
-        <TextField select label="Method" value={filterMethod} onChange={e => setFilterMethod(e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">All Methods</MenuItem>
-          <MenuItem value="straight-line">Straight-Line</MenuItem>
-          <MenuItem value="declining-balance">Declining-Balance</MenuItem>
+        <TextField 
+          select 
+          label="Status" 
+          value={filterStatus} 
+          onChange={e => setFilterStatus(e.target.value)} 
+          sx={{ minWidth: 180 }}
+        >
+          <MenuItem value="">All Statuses</MenuItem>
+          {Array.from(new Set(assets.map(a => a.status))).map(s => (
+            <MenuItem key={s} value={s}>{s}</MenuItem>
+          ))}
         </TextField>
-        <TextField label="From" type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
-        <TextField label="To" type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
+        <TextField 
+          label="From Date" 
+          type="date" 
+          value={dateFrom} 
+          onChange={e => setDateFrom(e.target.value)} 
+          sx={{ minWidth: 160 }} 
+          InputLabelProps={{ shrink: true }} 
+        />
+        <TextField 
+          label="To Date" 
+          type="date" 
+          value={dateTo} 
+          onChange={e => setDateTo(e.target.value)} 
+          sx={{ minWidth: 160 }} 
+          InputLabelProps={{ shrink: true }} 
+        />
         <Button variant="outlined" startIcon={<SaveAltIcon />} onClick={handleExportCSV}>Export CSV</Button>
         <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>Print</Button>
       </Box>
-      {/* Charts */}
-      <Box display="flex" gap={4} mb={3} flexWrap="wrap">
-        <Paper sx={{ p: 2, minWidth: 320, flex: 1 }}>
-          <Typography variant="subtitle1">Depreciation by Asset</Typography>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={deprByAsset} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                {deprByAsset.map((entry, idx) => <Cell key={entry.name} fill={COLORS[idx % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </Paper>
-        <Paper sx={{ p: 2, minWidth: 320, flex: 1 }}>
-          <Typography variant="subtitle1">Depreciation Over Time</Typography>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={deprOverTime} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <XAxis dataKey="year" />
+
+      {/* Charts Section */}
+      <Box display="flex" flexDirection="column" gap={3} mb={3}>
+        {/* Charts Row 1 */}
+        <Box display="flex" gap={3} flexWrap="wrap">
+          {/* Depreciation by Type */}
+          <Paper sx={{ p: 2, height: 300, flex: '1 1 400px', minWidth: 400 }}>
+            <Typography variant="h6" gutterBottom>Depreciation by Asset Type</Typography>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={depreciationByType}>
+                <XAxis dataKey="type" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="purchaseValue" fill="#1976d2" name="Purchase Value" />
+                <Bar dataKey="bookValue" fill="#388e3c" name="Book Value" />
+                <Bar dataKey="depreciation" fill="#d32f2f" name="Depreciation" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+
+          {/* Depreciation Trend */}
+          <Paper sx={{ p: 2, height: 300, flex: '1 1 400px', minWidth: 400 }}>
+            <Typography variant="h6" gutterBottom>Depreciation Trend (Last 12 Months)</Typography>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={depreciationTrend}>
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Area type="monotone" dataKey="depreciation" stroke="#1976d2" fill="#1976d2" fillOpacity={0.3} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Paper>
+        </Box>
+
+        {/* Asset Lifecycle */}
+        <Paper sx={{ p: 2, height: 400 }}>
+          <Typography variant="h6" gutterBottom>Asset Lifecycle Analysis</Typography>
+          <ResponsiveContainer width="100%" height={350}>
+            <ComposedChart data={assetLifecycleData.slice(0, 10)}>
+              <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="value" stroke="#1976d2" name="Depreciation" />
-            </LineChart>
+              <Bar dataKey="purchaseValue" fill="#1976d2" name="Purchase Value" />
+              <Bar dataKey="bookValue" fill="#388e3c" name="Book Value" />
+              <Line type="monotone" dataKey="depreciationPercentage" stroke="#d32f2f" name="Depreciation %" />
+            </ComposedChart>
           </ResponsiveContainer>
         </Paper>
       </Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Depreciation</Typography>
-        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpen()}>
-          Add Depreciation
-        </Button>
-      </Box>
+
+      {/* Assets Table */}
       <Paper sx={{ p: 2, overflowX: 'auto' }}>
+        <Typography variant="h6" gutterBottom>Asset Depreciation Details</Typography>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
+            <tr>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Asset</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Serial Number</th> {/* New column */}
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Type</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Purchase Value</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Book Value</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Depreciation</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Depreciation %</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Remaining Life</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Daily Depreciation</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Status</th>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Actions</th>
+            </tr>
           </thead>
           <tbody>
-            {table.getRowModel().rows
-              .filter(row => filteredDepreciation.includes(row.original))
-              .map(row => (
-                <tr key={row.id} style={{ background: row.index % 2 === 0 ? '#fafafa' : '#fff' }}>
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+            {filteredAssets.map((asset, idx) => {
+              const bookValue = calculateBookValue(asset);
+              const depreciationAmount = asset.purchaseValue - bookValue;
+              const depreciationPercentage = calculateDepreciationPercentage(asset);
+              const remainingLife = calculateRemainingLife(asset);
+              const dailyDepreciation = calculateDailyDepreciation(asset);
+              
+              let statusColor = 'success';
+              if (bookValue <= asset.salvageValue) statusColor = 'error';
+              else if (depreciationPercentage > 50) statusColor = 'warning';
+              
+              return (
+                <tr key={asset._id} style={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#1976d2', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => handleAssetDetail(asset)}>
+                    {asset.description}
+                  </td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.serial || asset.serialNumber || '-'}</td> {/* Serial Number */}
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.type}</td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.purchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{bookValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{depreciationAmount.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <Box sx={{ width: 60, height: 8, bgcolor: '#eee', borderRadius: 2, overflow: 'hidden' }}>
+                        <Box sx={{ width: `${depreciationPercentage}%`, height: 8, bgcolor: statusColor === 'error' ? '#d32f2f' : statusColor === 'warning' ? '#fbc02d' : '#1976d2' }} />
+                      </Box>
+                      <Typography variant="caption">{depreciationPercentage.toFixed(1)}%</Typography>
+                    </Box>
+                  </td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{remainingLife.toFixed(1)} months</td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{dailyDepreciation.toFixed(2)}</td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                    <Chip 
+                      label={bookValue <= asset.salvageValue ? 'Fully Depreciated' : depreciationPercentage > 50 ? 'Partially Depreciated' : 'Not Depreciated'} 
+                      color={statusColor as any} 
+                      size="small" 
+                    />
+                  </td>
+                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                    <Button size="small" variant="outlined" onClick={() => handleAssetDetail(asset)}>
+                      Details
+                    </Button>
+                  </td>
                 </tr>
-              ))}
+              );
+            })}
           </tbody>
         </table>
         {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       </Paper>
-      {/* Add/Edit Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingId ? 'Edit Depreciation' : 'Add Depreciation'}</DialogTitle>
+
+      {/* Asset Detail Dialog */}
+      <Dialog open={assetDetailOpen} onClose={() => setAssetDetailOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Asset Depreciation Details</DialogTitle>
         <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField select label="Asset" name="asset" value={form.asset} onChange={handleFormChange} required fullWidth>
-              <MenuItem value="">Select Asset</MenuItem>
-              {assets.map((a: any) => (
-                <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField label="Date" name="date" value={form.date} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-            <TextField label="Amount" name="amount" value={form.amount} onChange={handleFormChange} type="number" required fullWidth />
-            <TextField label="Method" name="method" value={form.method} onChange={handleFormChange} required fullWidth />
-            <TextField label="Notes" name="notes" value={form.notes} onChange={handleFormChange} fullWidth multiline minRows={2} />
-            {error && <Alert severity="error">{error}</Alert>}
-          </Box>
+          {selectedAsset && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom>{selectedAsset.description}</Typography>
+              <Box display="flex" gap={3} flexWrap="wrap">
+                <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                  <Typography variant="subtitle2">Asset Information</Typography>
+                  <Typography>Type: {selectedAsset.type}</Typography>
+                  <Typography>Brand: {selectedAsset.brand}</Typography>
+                  <Typography>Purchase Date: {selectedAsset.purchaseDate ? new Date(selectedAsset.purchaseDate).toLocaleDateString() : '-'}</Typography>
+                  <Typography>Useful Life: {selectedAsset.usefulLifeMonths} months</Typography>
+                  <Typography>Salvage Value: {selectedAsset.salvageValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                </Box>
+                <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                  <Typography variant="subtitle2">Depreciation Analysis</Typography>
+                  <Typography>Purchase Value: {selectedAsset.purchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography>Current Book Value: {calculateBookValue(selectedAsset).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography>Total Depreciation: {(selectedAsset.purchaseValue - calculateBookValue(selectedAsset)).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography>Depreciation %: {calculateDepreciationPercentage(selectedAsset).toFixed(1)}%</Typography>
+                  <Typography>Remaining Life: {calculateRemainingLife(selectedAsset).toFixed(1)} months</Typography>
+                  <Typography>Daily Depreciation: {calculateDailyDepreciation(selectedAsset).toFixed(2)}</Typography>
+                </Box>
+              </Box>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>Depreciation Progress</Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={calculateDepreciationPercentage(selectedAsset)} 
+                  sx={{ height: 10, borderRadius: 5 }}
+                  color={calculateBookValue(selectedAsset) <= selectedAsset.salvageValue ? 'error' : 'primary'}
+                />
+              </Box>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">{editingId ? 'Update' : 'Create'}</Button>
+          <Button onClick={() => setAssetDetailOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
-        <DialogTitle>Delete Depreciation</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete this depreciation record?</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
-        </DialogActions>
-      </Dialog>
+
       <Snackbar
         open={!!success}
         autoHideDuration={3000}
@@ -350,4 +547,4 @@ const DepreciationPage: React.FC = () => {
   );
 };
 
-export default DepreciationPage; 
+export default DepreciationDashboard; 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Button, TextField, Typography, Paper, Alert } from '@mui/material';
-import axios from 'axios';
+import api from '../apiBase';
 
 // Add the LoginResponse interface
 interface LoginResponse {
@@ -14,15 +14,13 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      // Use LoginResponse as the generic type for axios.post
-      const res = await axios.post<LoginResponse>(`${API_URL}/api/auth/login`, { email, password });
+      // Use the configured api instance instead of axios directly
+      const res = await api.post<LoginResponse>('/auth/login', { email, password });
       localStorage.setItem('token', res.data.token);
       // Optionally redirect or update app state here
       setLoading(false);

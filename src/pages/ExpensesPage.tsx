@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../apiBase';
 import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Alert, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, InputAdornment
 } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DialogContentText from '@mui/material/DialogContentText';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import API_BASE from '../apiBase';
 
 interface Expense {
   _id: string;
@@ -143,11 +142,8 @@ const ExpensesPage: React.FC = () => {
     const fetchExpenses = async () => {
       console.log('fetchExpenses function called');
       try {
-        const token = localStorage.getItem('token');
-        console.log('Token:', token ? 'Present' : 'Missing');
-        const res = await axios.get<Expense[]>(`${API_BASE}/api/expenses`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        console.log('Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+        const res = await api.get<Expense[]>('/expenses');
         console.log('API response:', res.data);
         if (Array.isArray(res.data)) {
           setExpenses(res.data);
@@ -166,10 +162,7 @@ const ExpensesPage: React.FC = () => {
     // Fetch periods
     const fetchPeriods = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get<Period[]>(`${API_BASE}/api/periods`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get<Period[]>('/periods');
         setPeriods(res.data);
       } catch {}
     };
@@ -244,7 +237,7 @@ const ExpensesPage: React.FC = () => {
       if (userId) {
         formData.append('user', userId);
       }
-      await axios.post(`${API_BASE}/api/expenses`, formData, {
+      await api.post('/expenses', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`,
@@ -252,7 +245,7 @@ const ExpensesPage: React.FC = () => {
       });
       // Refresh expenses
       setLoading(true);
-      const res = await axios.get<Expense[]>(`${API_BASE}/api/expenses`, {
+      const res = await api.get<Expense[]>('/expenses', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (Array.isArray(res.data)) {

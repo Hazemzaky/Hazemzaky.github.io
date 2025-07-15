@@ -11,7 +11,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis } from 'recharts';
-import axios from 'axios';
+import api from '../apiBase';
 
 const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f'];
 
@@ -49,14 +49,9 @@ const DashboardPage: React.FC = () => {
       setLoading(true);
       setError('');
       try {
-        const token = localStorage.getItem('token');
         const [summaryRes, kpiRes] = await Promise.all([
-          axios.get<SummaryData>('/api/dashboard/summary', {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get<KPIData>('/api/dashboard/kpis', {
-            headers: { Authorization: `Bearer ${token}` },
-          })
+          api.get<SummaryData>('/dashboard/summary'),
+          api.get<KPIData>('/dashboard/kpis')
         ]);
         setSummary(summaryRes.data);
         setKPIs(kpiRes.data);

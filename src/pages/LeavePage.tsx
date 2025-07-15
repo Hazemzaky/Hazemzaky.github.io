@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import axios from 'axios';
+import api from '../apiBase';
 
 interface Leave {
   _id: string;
@@ -18,6 +18,7 @@ interface Leave {
   approvedBy?: { _id: string; name: string };
   requestedAt: string;
   approvedAt?: string;
+  serial?: string; // Added serial field
 }
 
 interface Period {
@@ -68,10 +69,7 @@ const LeavePage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/leave', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/leave');
       if (Array.isArray(res.data)) {
         setLeaves(res.data);
       } else {
@@ -88,20 +86,14 @@ const LeavePage: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<{ _id: string; name: string }[]>('/api/employees', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<{ _id: string; name: string }[]>('/employees');
       setEmployees(res.data as { _id: string; name: string }[]);
     } catch {}
   };
 
   const fetchPeriods = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<Period[]>('/api/periods', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<Period[]>('/periods');
       setPeriods(res.data);
     } catch {}
   };
@@ -140,13 +132,10 @@ const LeavePage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/leave', {
+      await api.post('/leave', {
         ...form,
         days: Number(form.days),
         cost: Number(form.cost),
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Leave request created successfully!');
       fetchLeaves();
@@ -160,10 +149,7 @@ const LeavePage: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/leave/${id}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/leave/${id}/approve`, {});
       setSuccess('Leave approved!');
       fetchLeaves();
     } catch (err: any) {
@@ -173,10 +159,7 @@ const LeavePage: React.FC = () => {
 
   const handleReject = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/leave/${id}/reject`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/leave/${id}/reject`, {});
       setSuccess('Leave rejected!');
       fetchLeaves();
     } catch (err: any) {
@@ -226,6 +209,7 @@ const LeavePage: React.FC = () => {
             <Table stickyHeader>
               <TableHead>
                 <TableRow sx={{ background: '#f5f5f5' }}>
+                  <TableCell>Serial Number</TableCell>
                   <TableCell>Employee</TableCell>
                   <TableCell>Type</TableCell>
                   <TableCell>Start Date</TableCell>
@@ -239,6 +223,7 @@ const LeavePage: React.FC = () => {
               <TableBody>
                 {filteredLeaves.map((l, idx) => (
                   <TableRow key={l._id} sx={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
+                    <TableCell>{l.serial || '-'}</TableCell>
                     <TableCell>{l.employee?.name || '-'}</TableCell>
                     <TableCell>{l.type}</TableCell>
                     <TableCell>{new Date(l.startDate).toLocaleDateString()}</TableCell>

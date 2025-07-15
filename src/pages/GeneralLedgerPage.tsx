@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Card, CardContent, Snackbar, Alert, TextField, MenuItem, Button
 } from '@mui/material';
-import axios from 'axios';
+import api from '../apiBase';
 
 interface LedgerEntry {
   date: string;
@@ -33,10 +33,7 @@ const GeneralLedgerPage: React.FC = () => {
 
   const fetchAccounts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<Account[]>('/api/accounts', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<Account[]>('/accounts');
       // Explicitly type the response as Account[]
       setAccounts(res.data as Account[]);
     } catch (err: any) {
@@ -49,13 +46,9 @@ const GeneralLedgerPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
       const params: any = { accountId: selectedAccount };
       if (period) params.period = period;
-      const res = await axios.get<LedgerEntry[]>('/api/accounts/general-ledger', {
-        headers: { Authorization: `Bearer ${token}` },
-        params,
-      });
+      const res = await api.get<LedgerEntry[]>('/accounts/general-ledger', { params });
       // Explicitly type the response as LedgerEntry[]
       setLedger(res.data as LedgerEntry[]);
     } catch (err: any) {

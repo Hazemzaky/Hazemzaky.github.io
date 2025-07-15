@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../apiBase';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Card, CardContent
 } from '@mui/material';
@@ -9,6 +9,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
+import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
 
 interface FuelLog {
   _id: string;
@@ -53,7 +54,7 @@ const FuelLogsPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get<FuelLog[]>('/api/fuel-logs', { params: filterProject ? { project: filterProject } : {} });
+      const res = await api.get<FuelLog[]>('/fuel-logs', { params: filterProject ? { project: filterProject } : {} });
       setFuelLogs(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch fuel logs');
@@ -63,13 +64,13 @@ const FuelLogsPage: React.FC = () => {
   };
   const fetchProjects = async () => {
     try {
-      const res = await axios.get('/api/projects');
+      const res = await api.get('/projects');
       setProjects(res.data as any[]);
     } catch {}
   };
   const fetchDrivers = async () => {
     try {
-      const res = await axios.get('/api/employees');
+      const res = await api.get('/employees');
       setDrivers(res.data as any[]);
     } catch {}
   };
@@ -104,14 +105,14 @@ const FuelLogsPage: React.FC = () => {
     setError('');
     try {
       if (editingId) {
-        await axios.put(`/api/fuel-logs/${editingId}`, {
+        await api.put(`/fuel-logs/${editingId}`, {
           ...form,
           liters: Number(form.liters),
           cost: Number(form.cost),
         });
         setSuccess('Fuel log updated!');
       } else {
-        await axios.post('/api/fuel-logs', {
+        await api.post('/fuel-logs', {
           ...form,
           liters: Number(form.liters),
           cost: Number(form.cost),
@@ -127,7 +128,7 @@ const FuelLogsPage: React.FC = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`/api/fuel-logs/${deleteId}`);
+      await api.delete(`/fuel-logs/${deleteId}`);
       setSuccess('Fuel log deleted!');
       fetchFuelLogs();
     } catch (err: any) {
@@ -189,17 +190,44 @@ const FuelLogsPage: React.FC = () => {
       typeof log.project === 'object' ? log.project.name : log.project || '',
     ]);
     const csv = [headers, ...rows].map(r => r.map(x => `"${x}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csvWithHeader = addExportHeader(csv, 'Fuel Logs');
+    const blob = new Blob([csvWithHeader], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'fuel_logs.csv';
+    a.download = getExportFileName('fuel_logs');
     a.click();
     window.URL.revokeObjectURL(url);
   };
   // Print
   const handlePrint = () => {
-    window.print();
+    const printHeader = addPrintHeader('Fuel Logs');
+    const printContent = document.body.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Fuel Logs Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              @media print {
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printHeader}
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   return (

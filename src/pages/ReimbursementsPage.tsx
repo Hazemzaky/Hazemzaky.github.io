@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import axios from 'axios';
+import api from '../apiBase';
 
 interface Reimbursement {
   _id: string;
@@ -15,6 +15,7 @@ interface Reimbursement {
   status: string;
   approvedBy?: { _id: string; name: string };
   payroll?: string;
+  serial?: string;
 }
 
 const ReimbursementsPage: React.FC = () => {
@@ -43,10 +44,7 @@ const ReimbursementsPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/reimbursements', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/reimbursements');
       if (Array.isArray(res.data)) {
         setReimbursements(res.data);
       } else {
@@ -63,10 +61,7 @@ const ReimbursementsPage: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<{ _id: string; name: string }[]>('/api/employees', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<{ _id: string; name: string }[]>('/employees');
       setEmployees(res.data as { _id: string; name: string }[]);
     } catch {}
   };
@@ -103,12 +98,9 @@ const ReimbursementsPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/reimbursements', {
+      await api.post('/reimbursements', {
         ...form,
         amount: Number(form.amount),
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Reimbursement created successfully!');
       fetchReimbursements();
@@ -122,10 +114,7 @@ const ReimbursementsPage: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/reimbursements/${id}/approve`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/reimbursements/${id}/approve`, {});
       setSuccess('Reimbursement approved!');
       fetchReimbursements();
     } catch (err: any) {
@@ -135,10 +124,7 @@ const ReimbursementsPage: React.FC = () => {
 
   const handleReject = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/reimbursements/${id}/reject`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/reimbursements/${id}/reject`, {});
       setSuccess('Reimbursement rejected!');
       fetchReimbursements();
     } catch (err: any) {
@@ -192,6 +178,7 @@ const ReimbursementsPage: React.FC = () => {
                   <TableCell>Description</TableCell>
                   <TableCell>Date</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell>Serial Number</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -203,6 +190,7 @@ const ReimbursementsPage: React.FC = () => {
                     <TableCell>{r.description}</TableCell>
                     <TableCell>{new Date(r.date).toLocaleDateString()}</TableCell>
                     <TableCell>{r.status}</TableCell>
+                    <TableCell>{r.serial || '-'}</TableCell>
                     <TableCell>
                       {r.status === 'pending' && (
                         <>

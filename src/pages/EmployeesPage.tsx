@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import axios from 'axios';
+import api from '../apiBase';
 
 interface Employee {
   _id: string;
@@ -59,10 +59,7 @@ const EmployeesPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/employees', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/employees');
       if (Array.isArray(res.data)) {
         setEmployees(res.data);
       } else {
@@ -140,23 +137,18 @@ const EmployeesPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
       if (editingId) {
-        await axios.put(`/api/employees/${editingId}`, {
+        await api.put(`/employees/${editingId}`, {
           ...form,
           salary: Number(form.salary),
           leaveBalance: Number(form.leaveBalance),
-        }, {
-          headers: { Authorization: `Bearer ${token}` },
         });
         setSuccess('Employee updated successfully!');
       } else {
-        await axios.post('/api/employees', {
+        await api.post('/employees', {
           ...form,
           salary: Number(form.salary),
           leaveBalance: Number(form.leaveBalance),
-        }, {
-          headers: { Authorization: `Bearer ${token}` },
         });
         setSuccess('Employee created successfully!');
       }
@@ -170,10 +162,7 @@ const EmployeesPage: React.FC = () => {
   };
   const handleDeactivate = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/employees/${id}/deactivate`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.put(`/employees/${id}/deactivate`, {});
       setSuccess('Employee deactivated!');
       fetchEmployees();
     } catch (err: any) {

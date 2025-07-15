@@ -1,10 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import axios from 'axios';
+import api from '../apiBase';
 import {
-  Box, Button, Card, CardContent, Typography, Paper, TextField, MenuItem, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Card, CardContent
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
+import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
+import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
 
 interface InventoryTransaction {
   _id: string;
@@ -56,7 +61,7 @@ const InventoryTransactionsPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/api/inventory/transactions');
+      const res = await api.get('/inventory/transactions');
       if (Array.isArray(res.data)) {
         setTransactions(res.data);
       } else {
@@ -72,7 +77,7 @@ const InventoryTransactionsPage: React.FC = () => {
   };
   const fetchItems = async () => {
     try {
-      const res = await axios.get('/api/inventory/items');
+      const res = await api.get('/inventory/items');
       if (Array.isArray(res.data)) {
         setItems(res.data as any[]);
       } else {
@@ -101,23 +106,50 @@ const InventoryTransactionsPage: React.FC = () => {
       t.type,
       t.quantity,
       t.date ? new Date(t.date).toLocaleDateString() : '',
-      typeof t.relatedAsset === 'object' ? t.relatedAsset.name : t.relatedAsset,
-      typeof t.relatedMaintenance === 'object' ? t.relatedMaintenance.description : t.relatedMaintenance,
-      typeof t.user === 'object' ? t.user.email : t.user,
-      t.notes,
+      typeof t.relatedAsset === 'object' ? t.relatedAsset.name : t.relatedAsset || '',
+      typeof t.relatedMaintenance === 'object' ? t.relatedMaintenance.description : t.relatedMaintenance || '',
+      typeof t.user === 'object' ? t.user.email : t.user || '',
+      t.notes || '',
     ]);
-    const csv = [headers, ...rows].map(r => r.map(x => `"${x ?? ''}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csv = [headers, ...rows].map(r => r.map(x => `"${x}"`).join(',')).join('\n');
+    const csvWithHeader = addExportHeader(csv, 'Inventory Transactions');
+    const blob = new Blob([csvWithHeader], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'inventory_transactions.csv';
+    a.download = getExportFileName('inventory_transactions');
     a.click();
     window.URL.revokeObjectURL(url);
   };
   // Print
   const handlePrint = () => {
-    window.print();
+    const printHeader = addPrintHeader('Inventory Transactions');
+    const printContent = document.body.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Inventory Transactions Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              @media print {
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printHeader}
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   // Add Transaction handlers
@@ -145,7 +177,7 @@ const InventoryTransactionsPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/inventory/transactions', {
+      await api.post('/inventory/transactions', {
         ...form,
         quantity: Number(form.quantity),
       }, {

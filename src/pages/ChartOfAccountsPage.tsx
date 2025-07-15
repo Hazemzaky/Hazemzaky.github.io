@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import axios from 'axios';
+import api from '../apiBase';
 
 interface Account {
   _id: string;
@@ -41,10 +41,7 @@ const ChartOfAccountsPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/accounts', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/accounts');
       if (Array.isArray(res.data)) {
         setAccounts(res.data);
       } else {
@@ -101,16 +98,11 @@ const ChartOfAccountsPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
       if (editingId) {
-        await axios.put(`/api/accounts/${editingId}`, form, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.put(`/accounts/${editingId}`, form);
         setSuccess('Account updated successfully!');
       } else {
-        await axios.post('/api/accounts', form, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await api.post('/accounts', form);
         setSuccess('Account created successfully!');
       }
       fetchAccounts();
@@ -123,10 +115,7 @@ const ChartOfAccountsPage: React.FC = () => {
   };
   const handleDeactivate = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/accounts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/accounts/${id}`);
       setSuccess('Account deactivated!');
       fetchAccounts();
     } catch (err: any) {

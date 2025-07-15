@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Button, TextField, Typography, Paper, Alert, MenuItem } from '@mui/material';
-import axios from 'axios';
+import api from '../apiBase';
 
 const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -16,7 +16,7 @@ const RegisterPage: React.FC = () => {
     setSuccess('');
     setLoading(true);
     try {
-      await axios.post('/api/auth/register', { email, password, role });
+      await api.post('/auth/register', { email, password, role });
       setSuccess('Registration successful! Please log in.');
       setLoading(false);
       setTimeout(() => {

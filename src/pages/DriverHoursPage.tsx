@@ -1,13 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState, useMemo } from 'react';
+import api from '../apiBase';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Card, CardContent
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SaveAlt from '@mui/icons-material/SaveAlt';
+import Print from '@mui/icons-material/Print';
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
-import { SaveAlt, Print } from '@mui/icons-material';
+import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
 
 interface DriverHour {
   _id: string;
@@ -16,6 +18,12 @@ interface DriverHour {
   date: string;
   hours: number;
   cost: number;
+}
+
+interface Employee {
+  _id: string;
+  name: string;
+  email: string;
 }
 
 const defaultForm = {
@@ -50,7 +58,7 @@ const DriverHoursPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get<DriverHour[]>('/api/driver-hours', { params: filterProject ? { project: filterProject } : {} });
+      const res = await api.get<DriverHour[]>('/driver-hours', { params: filterProject ? { project: filterProject } : {} });
       setDriverHours(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch driver hours');
@@ -60,15 +68,13 @@ const DriverHoursPage: React.FC = () => {
   };
   const fetchProjects = async () => {
     try {
-      const res = await axios.get('/api/projects');
+      const res = await api.get('/projects');
       setProjects(res.data as any[]);
     } catch {}
   };
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get<Employee[]>('/api/employees', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<Employee[]>('/employees');
       setEmployees(res.data as Employee[]);
     } catch {}
   };
@@ -102,14 +108,14 @@ const DriverHoursPage: React.FC = () => {
     setError('');
     try {
       if (editingId) {
-        await axios.put(`/api/driver-hours/${editingId}`, {
+        await api.put(`/driver-hours/${editingId}`, {
           ...form,
           hours: Number(form.hours),
           cost: Number(form.cost),
         });
         setSuccess('Driver hour updated!');
       } else {
-        await axios.post('/api/driver-hours', {
+        await api.post('/driver-hours', {
           ...form,
           hours: Number(form.hours),
           cost: Number(form.cost),
@@ -125,7 +131,7 @@ const DriverHoursPage: React.FC = () => {
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`/api/driver-hours/${deleteId}`);
+      await api.delete(`/driver-hours/${deleteId}`);
       setSuccess('Driver hour deleted!');
       fetchDriverHours();
     } catch (err: any) {
@@ -177,25 +183,52 @@ const DriverHoursPage: React.FC = () => {
   // Export CSV
   const handleExportCSV = () => {
     const headers = ['Employee', 'Project', 'Date', 'Hours', 'Cost'];
-    const rows = filteredEntries.map(entry => [
-      typeof entry.employee === 'object' ? entry.employee.name : entry.employee || '',
-      typeof entry.project === 'object' ? entry.project.name : entry.project || '',
-      entry.date ? new Date(entry.date).toLocaleDateString() : '',
-      entry.hours,
-      entry.cost,
+    const rows = filteredEntries.map(dh => [
+      typeof dh.employee === 'object' ? dh.employee.name : dh.employee,
+      typeof dh.project === 'object' ? dh.project.name : dh.project,
+      dh.date ? new Date(dh.date).toLocaleDateString() : '',
+      dh.hours,
+      dh.cost,
     ]);
     const csv = [headers, ...rows].map(r => r.map(x => `"${x}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csvWithHeader = addExportHeader(csv, 'Driver Hours');
+    const blob = new Blob([csvWithHeader], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'driver_hours.csv';
+    a.download = getExportFileName('driver_hours');
     a.click();
     window.URL.revokeObjectURL(url);
   };
   // Print
   const handlePrint = () => {
-    window.print();
+    const printHeader = addPrintHeader('Driver Hours');
+    const printContent = document.body.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Driver Hours Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              @media print {
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printHeader}
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   return (

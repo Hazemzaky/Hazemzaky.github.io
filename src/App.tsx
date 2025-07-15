@@ -28,6 +28,12 @@ import InventoryRegisterPage from './pages/InventoryRegisterPage';
 import InventoryTransactionsPage from './pages/InventoryTransactionsPage';
 import ProfilePage from './pages/ProfilePage';
 import DebugAuthPage from './pages/DebugAuthPage';
+import HSEPage from './pages/HSEPage';
+import AdminPage from './pages/AdminPage';
+import ProcurementPage from './pages/ProcurementPage';
+import TariffPage from './pages/TariffPage';
+import FoodAllowancePage from './pages/FoodAllowancePage';
+import ClientsPage from './pages/ClientsPage';
 import './custom.css';
 
 const App: React.FC = () => {
@@ -74,6 +80,12 @@ const App: React.FC = () => {
         <Route path="/inventory/transactions" element={<InventoryTransactionsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/debug-auth" element={<DebugAuthPage />} />
+        <Route path="/hse" element={<HSEPage />} />
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/procurement" element={<ProcurementPage />} />
+        <Route path="/tariffs" element={<TariffPage />} />
+        <Route path="/food-allowance" element={<FoodAllowancePage />} />
+        <Route path="/clients" element={<ClientsPage />} />
         <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
       </Routes>
     </>

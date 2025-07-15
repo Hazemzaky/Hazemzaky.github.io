@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Card, CardContent, Snackbar, Alert
 } from '@mui/material';
-import axios from 'axios';
+import api from '../apiBase';
 
 interface Balance {
   account: string;
@@ -30,10 +30,7 @@ const TrialBalancePage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/accounts/trial-balance', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/accounts/trial-balance');
       const data = res.data;
       if (
         data &&

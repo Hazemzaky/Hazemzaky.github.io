@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import axios from 'axios';
+import api from '../apiBase';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -19,6 +19,7 @@ interface Invoice {
   lineItems: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
   uploadedBy?: any;
   fileUrl?: string;
+  serial?: string; // Added serial field
 }
 
 type SortKey = 'dueDate' | 'totalAmount' | 'status' | '';
@@ -57,10 +58,7 @@ const InvoicesPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<Invoice[]>('/api/invoices', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<Invoice[]>('/invoices');
       setInvoices(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch invoices');
@@ -114,10 +112,7 @@ const InvoicesPage: React.FC = () => {
   const handleMarkPaid = async (id: string) => {
     setMarkingPaid(id);
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/invoices/${id}/status`, { status: 'paid' }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.put(`/invoices/${id}/status`, { status: 'paid' });
       setSuccess('Invoice marked as paid!');
       fetchInvoices();
     } catch (err: any) {
@@ -167,13 +162,10 @@ const InvoicesPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/invoices', {
+      await api.post('/invoices', {
         recipient: { name: form.recipientName, email: form.recipientEmail },
         dueDate: form.dueDate,
         lineItems: form.lineItems,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Invoice created successfully!');
       fetchInvoices();
@@ -235,6 +227,7 @@ const InvoicesPage: React.FC = () => {
               <TableHead>
                 <TableRow sx={{ background: '#f5f5f5' }}>
                   <TableCell>Invoice #</TableCell>
+                  <TableCell>Serial Number</TableCell>
                   <TableCell>Recipient</TableCell>
                   <TableCell>
                     <span style={{ cursor: 'pointer', fontWeight: 700 }} onClick={() => handleSort('dueDate')}>
@@ -254,6 +247,7 @@ const InvoicesPage: React.FC = () => {
                 {filteredInvoices.map((inv, idx) => (
                   <TableRow key={inv._id} sx={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <TableCell>{inv._id.slice(-6).toUpperCase()}</TableCell>
+                    <TableCell>{inv.serial || '-'}</TableCell>
                     <TableCell>
                       <Typography fontWeight={600}>{inv.recipient?.name}</Typography>
                       <Typography variant="body2" color="text.secondary">{inv.recipient?.email}</Typography>

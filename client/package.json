@@ -1,12 +1,13 @@
 {
   "dependencies": {
     "@types/jwt-decode": "^2.2.1",
-    "jwt-decode": "^4.0.0"
+    "jwt-decode": "^4.0.0",
+    "react-scripts": "^5.0.1"
   },
   "homepage": "https://Hazemzaky.github.io/Hazemzaky.github.io",
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
-  }
+  },
+  "proxy": "http://localhost:5000"
 }
-

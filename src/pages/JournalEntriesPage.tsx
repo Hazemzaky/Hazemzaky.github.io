@@ -5,7 +5,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AddIcon from '@mui/icons-material/Add';
-import axios from 'axios';
+import api from '../apiBase';
 
 interface EntryLine {
   account: string | { _id: string; [key: string]: any };
@@ -21,6 +21,7 @@ interface Entry {
   status: string;
   reference?: string;
   lines: EntryLine[];
+  serial?: string; // Added serial field
 }
 
 interface Period {
@@ -67,10 +68,7 @@ const JournalEntriesPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/api/journal-entries', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/journal-entries');
       if (Array.isArray(res.data)) {
         setEntries(res.data);
       } else {
@@ -87,20 +85,14 @@ const JournalEntriesPage: React.FC = () => {
 
   const fetchAccounts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<{ _id: string; name: string }[]>('/api/accounts', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<{ _id: string; name: string }[]>('/accounts');
       setAccounts(res.data as { _id: string; name: string }[]);
     } catch {}
   };
 
   const fetchPeriods = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<Period[]>('/api/periods', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<Period[]>('/periods');
       setPeriods(res.data);
     } catch {}
   };
@@ -149,12 +141,9 @@ const JournalEntriesPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/journal-entries', {
+      await api.post('/journal-entries', {
         ...form,
         createdBy: 'system',
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Journal entry created!');
       fetchEntries();
@@ -191,6 +180,7 @@ const JournalEntriesPage: React.FC = () => {
                   <TableCell>Period</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Reference</TableCell>
+                  <TableCell>Serial Number</TableCell> {/* Added Serial Number column */}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -207,9 +197,10 @@ const JournalEntriesPage: React.FC = () => {
                       <TableCell>{e.period}</TableCell>
                       <TableCell>{e.status}</TableCell>
                       <TableCell>{e.reference || '-'}</TableCell>
+                      <TableCell>{e.serial || '-'}</TableCell> {/* Display serial number */}
                     </TableRow>
                     <TableRow>
-                      <TableCell colSpan={6} sx={{ p: 0, border: 0 }}>
+                      <TableCell colSpan={7} sx={{ p: 0, border: 0 }}> {/* Updated colSpan */}
                         <Collapse in={expanded === e._id} timeout="auto" unmountOnExit>
                           <Box sx={{ m: 2 }}>
                             <Typography variant="subtitle1" fontWeight={600}>Lines</Typography>

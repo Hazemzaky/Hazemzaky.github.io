@@ -4,8 +4,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
-import axios from 'axios';
-import API_BASE from '../apiBase';
+import api from '../apiBase';
 
 interface Payroll {
   _id: string;
@@ -19,6 +18,7 @@ interface Payroll {
   netPay: number;
   status: string;
   runDate: string;
+  serial?: string; // Added serial field
 }
 
 interface Period {
@@ -89,10 +89,7 @@ const PayrollPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE}/api/payrolls`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/payrolls');
       if (Array.isArray(res.data)) {
         setPayrolls(res.data);
       } else {
@@ -109,10 +106,7 @@ const PayrollPage: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<{ _id: string; name: string }[]>(`${API_BASE}/api/employees`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<{ _id: string; name: string }[]>('/employees');
       if (Array.isArray(res.data)) {
         setEmployees(res.data as { _id: string; name: string }[]);
       } else {
@@ -124,10 +118,7 @@ const PayrollPage: React.FC = () => {
 
   const fetchPeriods = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<Period[]>(`${API_BASE}/api/periods`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get<Period[]>('/periods');
       if (Array.isArray(res.data)) {
         setPeriods(res.data);
       } else {
@@ -160,8 +151,7 @@ const PayrollPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE}/api/payroll`, {
+      await api.post('/payroll', {
         ...form,
         baseSalary: Number(form.baseSalary),
         benefits: Number(form.benefits),
@@ -169,8 +159,6 @@ const PayrollPage: React.FC = () => {
         reimbursements: Number(form.reimbursements),
         deductions: Number(form.deductions),
         netPay: Number(form.netPay),
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
       });
       setSuccess('Payroll created successfully!');
       fetchPayrolls();
@@ -238,6 +226,7 @@ const PayrollPage: React.FC = () => {
                   <TableCell>Net Pay</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Run Date</TableCell>
+                  <TableCell>Serial Number</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -253,6 +242,7 @@ const PayrollPage: React.FC = () => {
                     <TableCell>{p.netPay.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
                     <TableCell>{p.status}</TableCell>
                     <TableCell>{new Date(p.runDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{p.serial || '-'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

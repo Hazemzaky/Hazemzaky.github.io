@@ -1,44 +1,87 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
+import api from '../apiBase';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, Card, CardContent, MenuItem
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, Card, CardContent, MenuItem, Chip
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
+import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
+
+interface Asset {
+  _id: string;
+  description: string;
+  plateNumber?: string;
+  serialNumber?: string;
+  fleetNumber?: string;
+  chassisNumber?: string;
+  brand?: string;
+}
+
+interface InventoryItem {
+  _id: string;
+  description: string;
+  rop?: string;
+  quantity: number;
+  uom: string;
+  purchaseCost?: number;
+  type: string;
+  location?: string;
+  supplier?: string;
+}
+
+interface MaintenancePart {
+  item: string;
+  itemName: string;
+  quantity: number;
+  cost: number;
+  availableQuantity?: number;
+  withdrawnQuantity?: number;
+}
 
 interface Maintenance {
   _id: string;
-  asset: { _id: string; name: string } | string;
-  type: string;
+  asset: Asset | string;
   description: string;
+  type: string;
   scheduledDate: string;
+  scheduledTime: string;
   completedDate?: string;
-  cost?: number;
-  status: string;
-  downtimeHours?: number;
+  completedTime?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  totalCost: number;
+  totalMaintenanceTime: number; // in hours
+  parts: MaintenancePart[];
   notes?: string;
+  createdBy?: string;
+  completedBy?: string;
+  serial?: string; // Added serial/document number
 }
 
 const defaultForm = {
   asset: '',
-  type: 'preventive',
   description: '',
+  type: 'preventive',
   scheduledDate: '',
+  scheduledTime: '',
   completedDate: '',
-  cost: '',
+  completedTime: '',
   status: 'scheduled',
-  downtimeHours: '',
+  parts: [] as MaintenancePart[],
   notes: '',
 };
 
 const MaintenancePage: React.FC = () => {
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
-  const [assets, setAssets] = useState<any[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -51,17 +94,26 @@ const MaintenancePage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
+  const [assetSearchType, setAssetSearchType] = useState<'plateNumber' | 'serialNumber' | 'fleetNumber' | 'chassisNumber'>('plateNumber');
+  const [assetSearchValue, setAssetSearchValue] = useState('');
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [partForm, setPartForm] = useState({ item: '', quantity: '' });
+  const [showPartForm, setShowPartForm] = useState(false);
+  const [needsParts, setNeedsParts] = useState<'yes' | 'no'>('no');
+  const [inventorySearchType, setInventorySearchType] = useState<'description' | 'type' | 'location' | 'all'>('all');
+  const [inventorySearchValue, setInventorySearchValue] = useState('');
 
   useEffect(() => {
     fetchMaintenance();
     fetchAssets();
+    fetchInventoryItems();
   }, []);
 
   const fetchMaintenance = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get<Maintenance[]>('/api/maintenance');
+      const res = await api.get<Maintenance[]>('/maintenance');
       setMaintenance(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch maintenance records');
@@ -69,98 +121,329 @@ const MaintenancePage: React.FC = () => {
       setLoading(false);
     }
   };
+
   const fetchAssets = async () => {
     try {
-      const res = await axios.get('/api/assets');
-      setAssets(res.data as any[]);
+      const res = await api.get('/assets');
+      setAssets(res.data as Asset[]);
     } catch {}
   };
+
+  const fetchInventoryItems = async () => {
+    try {
+      const res = await api.get('/inventory/items');
+      setInventoryItems(res.data as InventoryItem[]);
+    } catch {}
+  };
+
+  // Filter assets based on search
+  const filteredAssets = useMemo(() => {
+    if (!assetSearchValue.trim()) return assets;
+    const searchValue = assetSearchValue.trim().toLowerCase();
+    
+    return assets.filter(asset => {
+      switch (assetSearchType) {
+        case 'plateNumber':
+          return asset.plateNumber?.toLowerCase().includes(searchValue);
+        case 'serialNumber':
+          return asset.serialNumber?.toLowerCase().includes(searchValue);
+        case 'fleetNumber':
+          return asset.fleetNumber?.toLowerCase().includes(searchValue);
+        case 'chassisNumber':
+          return asset.chassisNumber?.toLowerCase().includes(searchValue);
+        default:
+          return false;
+      }
+    });
+  }, [assets, assetSearchType, assetSearchValue]);
+
+  // Filter inventory items based on search
+  const filteredInventoryItems = useMemo(() => {
+    if (!inventorySearchValue.trim()) return inventoryItems;
+    const searchValue = inventorySearchValue.trim().toLowerCase();
+    
+    return inventoryItems.filter(item => {
+      switch (inventorySearchType) {
+        case 'description':
+          return item.description.toLowerCase().includes(searchValue);
+        case 'type':
+          return item.type.toLowerCase().includes(searchValue);
+        case 'location':
+          return item.location?.toLowerCase().includes(searchValue);
+        case 'all':
+        default:
+          return (
+            item.description.toLowerCase().includes(searchValue) ||
+            item.type.toLowerCase().includes(searchValue) ||
+            item.location?.toLowerCase().includes(searchValue) ||
+            item.supplier?.toLowerCase().includes(searchValue)
+          );
+      }
+    });
+  }, [inventoryItems, inventorySearchType, inventorySearchValue]);
 
   const handleOpen = (m?: Maintenance) => {
     if (m) {
       setEditingId(m._id);
       setForm({
         asset: typeof m.asset === 'object' ? m.asset._id : m.asset || '',
-        type: m.type,
         description: m.description,
+        type: m.type,
         scheduledDate: m.scheduledDate ? m.scheduledDate.slice(0, 10) : '',
+        scheduledTime: m.scheduledTime || '',
         completedDate: m.completedDate ? m.completedDate.slice(0, 10) : '',
-        cost: m.cost?.toString() || '',
+        completedTime: m.completedTime || '',
         status: m.status,
-        downtimeHours: m.downtimeHours?.toString() || '',
+        parts: m.parts || [],
         notes: m.notes || '',
+        serial: m.serial || '', // Ensure serial is included in form
       });
+      setSelectedAsset(typeof m.asset === 'object' ? m.asset : null);
     } else {
       setEditingId(null);
       setForm(defaultForm);
+      setSelectedAsset(null);
     }
     setOpen(true);
   };
+
   const handleClose = () => {
     setOpen(false);
     setEditingId(null);
     setForm(defaultForm);
+    setSelectedAsset(null);
+    setShowPartForm(false);
+    setPartForm({ item: '', quantity: '' });
   };
+
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+  const handleAssetSelect = (assetId: string) => {
+    const asset = assets.find(a => a._id === assetId);
+    setSelectedAsset(asset || null);
+    setForm({ ...form, asset: assetId });
+  };
+
+  const handleAddPart = () => {
+    setShowPartForm(true);
+  };
+
+  const handlePartFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPartForm({ ...partForm, [e.target.name]: e.target.value });
+  };
+
+  const handleAddPartToJob = () => {
+    if (!partForm.item || !partForm.quantity) return;
+    
+    const selectedItem = inventoryItems.find(item => item._id === partForm.item);
+    if (!selectedItem) return;
+
+    const quantity = Number(partForm.quantity);
+    const availableQuantity = selectedItem.quantity;
+    
+    if (quantity > availableQuantity) {
+      setError(`Insufficient stock. Available: ${availableQuantity} ${selectedItem.uom}`);
+      return;
+    }
+
+    const cost = (selectedItem.purchaseCost || 0) * quantity;
+
+    const newPart: MaintenancePart = {
+      item: selectedItem._id,
+      itemName: selectedItem.description,
+      quantity,
+      cost,
+      availableQuantity,
+      withdrawnQuantity: quantity,
+    };
+
+    setForm({
+      ...form,
+      parts: [...form.parts, newPart]
+    });
+
+    setPartForm({ item: '', quantity: '' });
+    setShowPartForm(false);
+  };
+
+  const handleRemovePart = (index: number) => {
+    const updatedParts = form.parts.filter((_: MaintenancePart, i: number) => i !== index);
+    setForm({ ...form, parts: updatedParts });
+  };
+
+  const calculateTotalCost = (parts: MaintenancePart[]) => {
+    return parts.reduce((sum, part) => sum + part.cost, 0);
+  };
+
+  const calculateTotalTime = (scheduledDate: string, scheduledTime: string, completedDate?: string, completedTime?: string) => {
+    if (!completedDate || !completedTime) return 0;
+    
+    const scheduled = new Date(`${scheduledDate}T${scheduledTime}`);
+    const completed = new Date(`${completedDate}T${completedTime}`);
+    
+    const diffMs = completed.getTime() - scheduled.getTime();
+    return Math.max(0, diffMs / (1000 * 60 * 60)); // Convert to hours
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
+      const totalCost = calculateTotalCost(form.parts);
+      const totalTime = calculateTotalTime(form.scheduledDate, form.scheduledTime, form.completedDate, form.completedTime);
+
+      const submitData = {
+        ...form,
+        totalCost,
+        totalMaintenanceTime: totalTime,
+        scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime}`,
+        completedDateTime: form.completedDate && form.completedTime ? `${form.completedDate}T${form.completedTime}` : undefined,
+      };
+
       if (editingId) {
-        await axios.put(`/api/maintenance/${editingId}`, {
-          ...form,
-          cost: form.cost ? Number(form.cost) : undefined,
-          downtimeHours: form.downtimeHours ? Number(form.downtimeHours) : undefined,
-        });
-        setSuccess('Maintenance updated!');
+        await api.put(`/maintenance/${editingId}`, submitData);
+        setSuccess('Job Card updated!');
       } else {
-        await axios.post('/api/maintenance', {
-          ...form,
-          cost: form.cost ? Number(form.cost) : undefined,
-          downtimeHours: form.downtimeHours ? Number(form.downtimeHours) : undefined,
-        });
-        setSuccess('Maintenance created!');
+        await api.post('/maintenance', submitData);
+        setSuccess('Job Card created!');
       }
+      
+      // If maintenance is completed, deduct inventory
+      if (form.status === 'completed' && form.parts.length > 0) {
+        try {
+          await api.post('/inventory/transactions', {
+            type: 'outbound',
+            maintenanceId: editingId || 'new',
+            parts: form.parts.map((part: MaintenancePart) => ({
+              item: part.item,
+              quantity: part.quantity,
+              notes: `Withdrawn for maintenance: ${form.description}`
+            }))
+          });
+        } catch (err: any) {
+          console.error('Failed to update inventory:', err);
+        }
+      }
+      
       fetchMaintenance();
       handleClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save maintenance record');
+      setError(err.response?.data?.message || 'Failed to save job card');
     }
   };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      await axios.delete(`/api/maintenance/${deleteId}`);
-      setSuccess('Maintenance deleted!');
+      await api.delete(`/maintenance/${deleteId}`);
+      setSuccess('Job Card deleted!');
       fetchMaintenance();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to delete maintenance record');
+      setError(err.response?.data?.message || 'Failed to delete job card');
     } finally {
       setDeleteId(null);
     }
   };
 
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      await api.patch(`/maintenance/${id}/status`, { status: newStatus });
+      setSuccess(`Job Card ${newStatus}!`);
+      fetchMaintenance();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update status');
+    }
+  };
+
   const columns = useMemo<ColumnDef<Maintenance>[]>(() => [
-    { header: 'Asset', accessorKey: 'asset', cell: info => typeof info.getValue() === 'object' ? (info.getValue() as any)?.name : info.getValue() },
-    { header: 'Type', accessorKey: 'type' },
+    { 
+      header: 'Asset', 
+      accessorKey: 'asset', 
+      cell: info => {
+        const asset = typeof info.getValue() === 'object' ? info.getValue() as Asset : null;
+        return asset ? `${asset.description} (${asset.plateNumber || asset.serialNumber || asset.fleetNumber || asset.chassisNumber || 'No ID'})` : info.getValue();
+      }
+    },
+    { 
+      header: 'Serial Number', 
+      accessorKey: 'serial',
+      cell: info => info.getValue() || '-' // Serial/document number
+    },
     { header: 'Description', accessorKey: 'description' },
-    { header: 'Scheduled Date', accessorKey: 'scheduledDate', cell: info => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : '-' },
-    { header: 'Completed Date', accessorKey: 'completedDate', cell: info => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : '-' },
-    { header: 'Cost', accessorKey: 'cost', cell: info => info.getValue() ? Number(info.getValue()).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '-' },
-    { header: 'Status', accessorKey: 'status' },
-    { header: 'Downtime (hrs)', accessorKey: 'downtimeHours' },
+    { header: 'Type', accessorKey: 'type' },
+    { 
+      header: 'Scheduled', 
+      accessorKey: 'scheduledDate', 
+      cell: info => {
+        const maintenance = info.row.original;
+        return `${new Date(maintenance.scheduledDate).toLocaleDateString()} ${maintenance.scheduledTime}`;
+      }
+    },
+    { 
+      header: 'Completed', 
+      accessorKey: 'completedDate', 
+      cell: info => {
+        const maintenance = info.row.original;
+        return maintenance.completedDate ? `${new Date(maintenance.completedDate).toLocaleDateString()} ${maintenance.completedTime}` : '-';
+      }
+    },
+    { 
+      header: 'Total Cost', 
+      accessorKey: 'totalCost', 
+      cell: info => Number(info.getValue()).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })
+    },
+    { 
+      header: 'Total Time (hrs)', 
+      accessorKey: 'totalMaintenanceTime', 
+      cell: info => Number(info.getValue()).toFixed(1)
+    },
+    { 
+      header: 'Status', 
+      accessorKey: 'status',
+      cell: info => {
+        const status = info.getValue() as string;
+        const color = status === 'completed' ? 'success' : status === 'in_progress' ? 'warning' : status === 'cancelled' ? 'error' : 'default';
+        return <Chip label={status.replace('_', ' ')} color={color} size="small" />;
+      }
+    },
     {
       header: 'Actions',
-      cell: ({ row }) => (
-        <Box display="flex" gap={1}>
-          <IconButton color="primary" onClick={() => handleOpen(row.original)}><EditIcon /></IconButton>
-          <IconButton color="error" onClick={() => setDeleteId(row.original._id)}><DeleteIcon /></IconButton>
-        </Box>
-      ),
+      cell: ({ row }) => {
+        const maintenance = row.original;
+        const canEdit = maintenance.status === 'scheduled' || maintenance.status === 'in_progress';
+        
+        return (
+          <Box display="flex" gap={1}>
+            {canEdit && (
+              <IconButton color="primary" onClick={() => handleOpen(maintenance)}>
+                <EditIcon />
+              </IconButton>
+            )}
+            {maintenance.status === 'scheduled' && (
+              <IconButton color="warning" onClick={() => handleStatusChange(maintenance._id, 'in_progress')}>
+                <CheckCircleIcon />
+              </IconButton>
+            )}
+            {maintenance.status === 'in_progress' && (
+              <IconButton color="success" onClick={() => handleStatusChange(maintenance._id, 'completed')}>
+                <CheckCircleIcon />
+              </IconButton>
+            )}
+            {maintenance.status === 'scheduled' && (
+              <IconButton color="error" onClick={() => handleStatusChange(maintenance._id, 'cancelled')}>
+                <CancelIcon />
+              </IconButton>
+            )}
+            <IconButton color="error" onClick={() => setDeleteId(maintenance._id)}>
+              <DeleteIcon />
+            </IconButton>
+          </Box>
+        );
+      },
     },
-  ], [assets]);
+  ], [assets, handleStatusChange]);
 
   const table = useReactTable({
     data: maintenance,
@@ -182,73 +465,82 @@ const MaintenancePage: React.FC = () => {
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ['Asset', 'Type', 'Description', 'Scheduled Date', 'Completed Date', 'Cost', 'Status', 'Downtime (hrs)'];
+    const headers = ['Asset', 'Serial Number', 'Description', 'Type', 'Scheduled Date', 'Scheduled Time', 'Completed Date', 'Completed Time', 'Total Cost', 'Total Time (hrs)', 'Status', 'Parts Used'];
     const rows = filteredMaintenance.map(m => [
-      typeof m.asset === 'object' ? m.asset.name : m.asset,
-      m.type,
+      typeof m.asset === 'object' ? m.asset.description : m.asset,
+      m.serial || '-', // Serial/document number
       m.description,
+      m.type,
       m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString() : '',
+      m.scheduledTime,
       m.completedDate ? new Date(m.completedDate).toLocaleDateString() : '',
-      m.cost,
+      m.completedTime,
+      m.totalCost,
+      m.totalMaintenanceTime,
       m.status,
-      m.downtimeHours,
+      m.parts.map(p => `${p.itemName} (${p.quantity})`).join(', ')
     ]);
     const csv = [headers, ...rows].map(r => r.map(x => `"${x}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const csvWithHeader = addExportHeader(csv, 'Maintenance Job Cards');
+    const blob = new Blob([csvWithHeader], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'maintenance.csv';
+    a.download = getExportFileName('maintenance_job_cards');
     a.click();
     window.URL.revokeObjectURL(url);
   };
+
   // Print
   const handlePrint = () => {
-    window.print();
+    const printHeader = addPrintHeader('Maintenance Job Cards');
+    const printContent = document.body.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Maintenance Job Cards Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              @media print {
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printHeader}
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
-  // Chart data
-  const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f', '#6d4c41', '#0288d1'];
-  const costDowntimeData = useMemo(() => {
-    // Group by month
-    const map: Record<string, { cost: number; downtime: number }> = {};
-    filteredMaintenance.forEach(m => {
-      const d = m.completedDate || m.scheduledDate;
-      if (!d) return;
-      const key = new Date(d).toISOString().slice(0, 7);
-      if (!map[key]) map[key] = { cost: 0, downtime: 0 };
-      map[key].cost += m.cost ? Number(m.cost) : 0;
-      map[key].downtime += m.downtimeHours ? Number(m.downtimeHours) : 0;
-    });
-    return Object.entries(map).map(([month, v]) => ({ month, ...v }));
-  }, [filteredMaintenance]);
-  const typeData = useMemo(() => {
-    const map: Record<string, number> = {};
-    filteredMaintenance.forEach(m => { map[m.type] = (map[m.type] || 0) + 1; });
-    return Object.entries(map).map(([type, count]) => ({ name: type, value: count }));
-  }, [filteredMaintenance]);
-  const statusData = useMemo(() => {
-    const map: Record<string, number> = {};
-    filteredMaintenance.forEach(m => { map[m.status] = (map[m.status] || 0) + 1; });
-    return Object.entries(map).map(([status, count]) => ({ name: status, value: count }));
-  }, [filteredMaintenance]);
-
   // Summary calculations
-  const totalCost = maintenance.reduce((sum, m) => sum + (m.cost ? Number(m.cost) : 0), 0);
-  const totalDowntime = maintenance.reduce((sum, m) => sum + (m.downtimeHours ? Number(m.downtimeHours) : 0), 0);
+  const totalCost = maintenance.reduce((sum, m) => sum + m.totalCost, 0);
+  const totalTime = maintenance.reduce((sum, m) => sum + m.totalMaintenanceTime, 0);
+  const avgCostPerJob = maintenance.length ? totalCost / maintenance.length : 0;
 
   return (
     <Box p={3}>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Maintenance</Typography>
+        <Typography variant="h4">Maintenance Job Cards</Typography>
         <Button variant="contained" color="primary" onClick={() => handleOpen()}>
-          Add Maintenance
+          Add Job Card
         </Button>
       </Box>
+      
+      {/* Summary Cards */}
       <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
         <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
           <CardContent>
-            <Typography variant="subtitle1">Total Maintenance Events</Typography>
+            <Typography variant="subtitle1">Total Job Cards</Typography>
             <Typography variant="h5">{maintenance.length}</Typography>
           </CardContent>
         </Card>
@@ -260,16 +552,23 @@ const MaintenancePage: React.FC = () => {
         </Card>
         <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
           <CardContent>
-            <Typography variant="subtitle1">Total Downtime (hrs)</Typography>
-            <Typography variant="h5">{totalDowntime}</Typography>
+            <Typography variant="subtitle1">Total Time (hrs)</Typography>
+            <Typography variant="h5">{totalTime.toFixed(1)}</Typography>
+          </CardContent>
+        </Card>
+        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
+          <CardContent>
+            <Typography variant="subtitle1">Avg. Cost per Job</Typography>
+            <Typography variant="h5">{avgCostPerJob.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
           </CardContent>
         </Card>
       </Box>
-      {/* Filters and export/print */}
+
+      {/* Filters */}
       <Box display="flex" gap={2} mb={2} flexWrap="wrap" alignItems="center">
         <TextField select label="Asset" value={filterAsset} onChange={e => setFilterAsset(e.target.value)} sx={{ minWidth: 180 }}>
           <MenuItem value="">All Assets</MenuItem>
-          {assets.map(a => <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>)}
+          {assets.map(a => <MenuItem key={a._id} value={a._id}>{a.description}</MenuItem>)}
         </TextField>
         <TextField select label="Type" value={filterType} onChange={e => setFilterType(e.target.value)} sx={{ minWidth: 140 }}>
           <MenuItem value="">All Types</MenuItem>
@@ -288,47 +587,8 @@ const MaintenancePage: React.FC = () => {
         <Button variant="outlined" startIcon={<SaveAltIcon />} onClick={handleExportCSV}>Export CSV</Button>
         <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>Print</Button>
       </Box>
-      {/* Charts */}
-      <Box display="flex" gap={4} mb={3} flexWrap="wrap">
-        <Paper sx={{ p: 2, minWidth: 320, flex: 1 }}>
-          <Typography variant="subtitle1">Cost & Downtime Over Time</Typography>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={costDowntimeData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="cost" fill="#1976d2" name="Cost" />
-              <Bar dataKey="downtime" fill="#d32f2f" name="Downtime (hrs)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Paper>
-        <Paper sx={{ p: 2, minWidth: 320, flex: 1 }}>
-          <Typography variant="subtitle1">Maintenance by Type</Typography>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={typeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                {typeData.map((entry, idx) => <Cell key={entry.name} fill={COLORS[idx % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </Paper>
-        <Paper sx={{ p: 2, minWidth: 320, flex: 1 }}>
-          <Typography variant="subtitle1">Maintenance by Status</Typography>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                {statusData.map((entry, idx) => <Cell key={entry.name} fill={COLORS[idx % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </Paper>
-      </Box>
-      {/* Table */}
+
+      {/* Job Cards Table */}
       <Paper sx={{ p: 2, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -359,32 +619,220 @@ const MaintenancePage: React.FC = () => {
         {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       </Paper>
-      {/* Add/Edit Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingId ? 'Edit Maintenance' : 'Add Maintenance'}</DialogTitle>
+
+      {/* Add/Edit Job Card Dialog */}
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <DialogTitle>{editingId ? 'Edit Job Card' : 'Add Job Card'}</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField select label="Asset" name="asset" value={form.asset} onChange={handleFormChange} required fullWidth>
-              <MenuItem value="">Select Asset</MenuItem>
-              {assets.map((a: any) => (
-                <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>
-              ))}
-            </TextField>
-            <TextField label="Type" name="type" value={form.type} onChange={handleFormChange} required fullWidth select>
+            {/* Asset Selection */}
+            <Typography variant="h6">Asset Selection</Typography>
+            <Box display="flex" gap={2} alignItems="center">
+              <TextField 
+                select 
+                label="Search by" 
+                value={assetSearchType} 
+                onChange={e => setAssetSearchType(e.target.value as any)} 
+                sx={{ minWidth: 150 }}
+              >
+                <MenuItem value="plateNumber">Plate Number</MenuItem>
+                <MenuItem value="serialNumber">Serial Number</MenuItem>
+                <MenuItem value="fleetNumber">Fleet Number</MenuItem>
+                <MenuItem value="chassisNumber">Chassis Number</MenuItem>
+              </TextField>
+              <TextField 
+                label="Search Value" 
+                value={assetSearchValue} 
+                onChange={e => setAssetSearchValue(e.target.value)} 
+                sx={{ flex: 1 }}
+                placeholder={`Enter ${assetSearchType.replace(/([A-Z])/g, ' $1').toLowerCase()}`}
+              />
+            </Box>
+            {assetSearchValue && (
+              <TextField 
+                select 
+                label="Select Asset" 
+                name="asset" 
+                value={form.asset} 
+                onChange={e => handleAssetSelect(e.target.value)} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Asset</MenuItem>
+                {filteredAssets.map(asset => (
+                  <MenuItem key={asset._id} value={asset._id}>
+                    {asset.description} - {asset.plateNumber || asset.serialNumber || asset.fleetNumber || asset.chassisNumber || 'No ID'}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
+            {/* Job Details */}
+            <Typography variant="h6">Job Details</Typography>
+            <TextField label="Description" name="description" value={form.description} onChange={handleFormChange} required fullWidth />
+            <TextField select label="Type" name="type" value={form.type} onChange={handleFormChange} required fullWidth>
               <MenuItem value="preventive">Preventive</MenuItem>
               <MenuItem value="corrective">Corrective</MenuItem>
             </TextField>
-            <TextField label="Description" name="description" value={form.description} onChange={handleFormChange} required fullWidth />
-            <TextField label="Scheduled Date" name="scheduledDate" value={form.scheduledDate} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-            <TextField label="Completed Date" name="completedDate" value={form.completedDate} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-            <TextField label="Cost" name="cost" value={form.cost} onChange={handleFormChange} type="number" fullWidth />
-            <TextField label="Status" name="status" value={form.status} onChange={handleFormChange} required fullWidth select>
-              <MenuItem value="scheduled">Scheduled</MenuItem>
-              <MenuItem value="in_progress">In Progress</MenuItem>
-              <MenuItem value="completed">Completed</MenuItem>
-              <MenuItem value="cancelled">Cancelled</MenuItem>
-            </TextField>
-            <TextField label="Downtime (hrs)" name="downtimeHours" value={form.downtimeHours} onChange={handleFormChange} type="number" fullWidth />
+
+            {/* Schedule */}
+            <Typography variant="h6">Schedule</Typography>
+            <Box display="flex" gap={2}>
+              <TextField 
+                label="Scheduled Date" 
+                name="scheduledDate" 
+                value={form.scheduledDate} 
+                onChange={handleFormChange} 
+                type="date" 
+                InputLabelProps={{ shrink: true }} 
+                required 
+                fullWidth 
+              />
+              <TextField 
+                label="Scheduled Time" 
+                name="scheduledTime" 
+                value={form.scheduledTime} 
+                onChange={handleFormChange} 
+                type="time" 
+                InputLabelProps={{ shrink: true }} 
+                required 
+                fullWidth 
+              />
+            </Box>
+
+            {/* Completion (only for completed jobs) */}
+            {(form.status === 'completed' || form.status === 'in_progress') && (
+              <>
+                <Typography variant="h6">Completion</Typography>
+                <Box display="flex" gap={2}>
+                  <TextField 
+                    label="Completed Date" 
+                    name="completedDate" 
+                    value={form.completedDate} 
+                    onChange={handleFormChange} 
+                    type="date" 
+                    InputLabelProps={{ shrink: true }} 
+                    fullWidth 
+                  />
+                  <TextField 
+                    label="Completed Time" 
+                    name="completedTime" 
+                    value={form.completedTime} 
+                    onChange={handleFormChange} 
+                    type="time" 
+                    InputLabelProps={{ shrink: true }} 
+                    fullWidth 
+                  />
+                </Box>
+              </>
+            )}
+
+            {/* Parts Selection */}
+            <Typography variant="h6">Parts Required</Typography>
+            {selectedAsset && (
+              <>
+                <TextField 
+                  select 
+                  label="Will you need parts from inventory?" 
+                  value={needsParts} 
+                  onChange={e => setNeedsParts(e.target.value as 'yes' | 'no')} 
+                  fullWidth
+                >
+                  <MenuItem value="no">No</MenuItem>
+                  <MenuItem value="yes">Yes</MenuItem>
+                </TextField>
+
+                {needsParts === 'yes' && (
+                  <>
+                    <Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>Search Inventory</Typography>
+                    <Box display="flex" gap={2} alignItems="center">
+                      <TextField 
+                        select 
+                        label="Search by" 
+                        value={inventorySearchType} 
+                        onChange={e => setInventorySearchType(e.target.value as any)} 
+                        sx={{ minWidth: 150 }}
+                      >
+                        <MenuItem value="all">All Items</MenuItem>
+                        <MenuItem value="description">Description</MenuItem>
+                        <MenuItem value="type">Type</MenuItem>
+                        <MenuItem value="location">Location</MenuItem>
+                      </TextField>
+                      <TextField 
+                        label="Search Value" 
+                        value={inventorySearchValue} 
+                        onChange={e => setInventorySearchValue(e.target.value)} 
+                        sx={{ flex: 1 }}
+                        placeholder={`Enter ${inventorySearchType === 'all' ? 'any item detail' : inventorySearchType}`}
+                      />
+                    </Box>
+
+                    <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2">Selected Parts</Typography>
+                      <Button startIcon={<AddIcon />} onClick={handleAddPart} variant="outlined" size="small">
+                        Add Part
+                      </Button>
+                    </Box>
+                    
+                    {form.parts.map((part: MaintenancePart, index: number) => (
+                      <Box key={index} display="flex" gap={2} alignItems="center" sx={{ p: 1, border: '1px solid #ddd', borderRadius: 1, mt: 1 }}>
+                        <Typography sx={{ flex: 1 }}>{part.itemName}</Typography>
+                        <Typography>Qty: {part.quantity}</Typography>
+                        <Typography>Available: {part.availableQuantity || 0}</Typography>
+                        <Typography>Cost: {part.cost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                        <IconButton size="small" color="error" onClick={() => handleRemovePart(index)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    ))}
+
+                    {showPartForm && (
+                      <Box sx={{ p: 2, border: '1px solid #ddd', borderRadius: 1, mt: 1 }}>
+                        <Typography variant="subtitle2" gutterBottom>Add Part from Inventory</Typography>
+                        <Box display="flex" gap={2}>
+                          <TextField 
+                            select 
+                            label="Part" 
+                            name="item" 
+                            value={partForm.item} 
+                            onChange={handlePartFormChange} 
+                            fullWidth 
+                          >
+                            <MenuItem value="">Select Part</MenuItem>
+                            {filteredInventoryItems.map(item => (
+                              <MenuItem key={item._id} value={item._id}>
+                                {item.description} - Stock: {item.quantity} {item.uom} - {item.type}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                          <TextField 
+                            label="Quantity" 
+                            name="quantity" 
+                            value={partForm.quantity} 
+                            onChange={handlePartFormChange} 
+                            type="number" 
+                            fullWidth 
+                          />
+                        </Box>
+                        <Box display="flex" gap={1} sx={{ mt: 1 }}>
+                          <Button size="small" onClick={handleAddPartToJob} variant="contained">
+                            Add
+                          </Button>
+                          <Button size="small" onClick={() => setShowPartForm(false)}>
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
+                    )}
+
+                    <Typography variant="subtitle2" sx={{ mt: 1 }}>
+                      Total Cost: {calculateTotalCost(form.parts).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                    </Typography>
+                  </>
+                )}
+              </>
+            )}
+
             <TextField label="Notes" name="notes" value={form.notes} onChange={handleFormChange} fullWidth multiline minRows={2} />
             {error && <Alert severity="error">{error}</Alert>}
           </Box>
@@ -394,17 +842,19 @@ const MaintenancePage: React.FC = () => {
           <Button onClick={handleSubmit} variant="contained" color="primary">{editingId ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
-        <DialogTitle>Delete Maintenance</DialogTitle>
+        <DialogTitle>Delete Job Card</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this maintenance record?</Typography>
+          <Typography>Are you sure you want to delete this job card?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteId(null)}>Cancel</Button>
           <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
+
       <Snackbar
         open={!!success}
         autoHideDuration={3000}
