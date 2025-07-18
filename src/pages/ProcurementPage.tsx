@@ -31,7 +31,6 @@ const ProcurementPage: React.FC = () => {
     itemDescription: '',
     quantity: '',
     priority: 'medium',
-    budgetCode: '',
     department: '',
     attachments: [] as File[],
   });
@@ -95,6 +94,7 @@ const ProcurementPage: React.FC = () => {
     status: 'pending',
     paymentDate: '',
     matchedGRN: '',
+    serial: '',
   });
   const [invoiceSubmitting, setInvoiceSubmitting] = useState(false);
   const [invoiceDialog, setInvoiceDialog] = useState<{ open: boolean; invoice: any }>({ open: false, invoice: null });
@@ -321,7 +321,7 @@ const ProcurementPage: React.FC = () => {
       });
       if (res.status !== 201) throw new Error('Failed to create PR');
       setSnackbar({ open: true, message: 'Purchase Request created', severity: 'success' });
-      setForm({ itemDescription: '', quantity: '', priority: 'medium', budgetCode: '', department: '', attachments: [] });
+      setForm({ itemDescription: '', quantity: '', priority: 'medium', department: '', attachments: [] });
       fetchPRs();
     } catch (e) {
       setSnackbar({ open: true, message: 'Failed to create PR', severity: 'error' });
@@ -481,28 +481,22 @@ const ProcurementPage: React.FC = () => {
     e.preventDefault();
     setInvoiceSubmitting(true);
     try {
-      // File upload placeholder
-      let invoiceFile = '';
-      if (invoiceForm.invoiceFile) {
-        invoiceFile = invoiceForm.invoiceFile.name;
-      }
-      const res = await api.post('/procurement-invoices', {
+      const formData: any = {
         purchaseOrder: invoiceForm.purchaseOrder,
-        invoiceFile,
-        amount: Number(invoiceForm.amount),
+        amount: invoiceForm.amount,
         status: invoiceForm.status,
-        paymentDate: invoiceForm.paymentDate || undefined,
-        matchedGRN: invoiceForm.matchedGRN || undefined,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+        paymentDate: invoiceForm.paymentDate,
+        matchedGRN: invoiceForm.matchedGRN,
+        serial: invoiceForm.serial,
+      };
+      if (invoiceForm.invoiceFile) {
+        formData.invoiceFile = invoiceForm.invoiceFile;
+      }
+      const res = await api.post('/procurement-invoices', formData);
       if (res.status !== 201) throw new Error('Failed to create invoice');
       setSnackbar({ open: true, message: 'Procurement Invoice created', severity: 'success' });
-      setInvoiceForm({ purchaseOrder: '', invoiceFile: undefined, amount: '', status: 'pending', paymentDate: '', matchedGRN: '' });
       fetchInvoices();
+      setInvoiceForm({ purchaseOrder: '', invoiceFile: undefined, amount: '', status: 'pending', paymentDate: '', matchedGRN: '', serial: '' });
     } catch (e) {
       setSnackbar({ open: true, message: 'Failed to create invoice', severity: 'error' });
     } finally {
@@ -676,7 +670,6 @@ const ProcurementPage: React.FC = () => {
                     {priorities.map((p) => <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>)}
                   </Select>
                 </FormControl>
-                <TextField label="Budget Code" name="budgetCode" value={form.budgetCode} onChange={handleFormChange} required sx={{ width: 180 }} />
                 <TextField label="Department" name="department" value={form.department} onChange={handleFormChange} required sx={{ width: 180 }} />
                 <Button variant="contained" component="label">
                   Attach Files
@@ -697,7 +690,6 @@ const ProcurementPage: React.FC = () => {
                       <TableCell>Description</TableCell>
                       <TableCell>Qty</TableCell>
                       <TableCell>Priority</TableCell>
-                      <TableCell>Budget Code</TableCell>
                       <TableCell>Department</TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Requester</TableCell>
@@ -711,7 +703,6 @@ const ProcurementPage: React.FC = () => {
                         <TableCell>{pr.itemDescription}</TableCell>
                         <TableCell>{pr.quantity}</TableCell>
                         <TableCell>{pr.priority}</TableCell>
-                        <TableCell>{pr.budgetCode}</TableCell>
                         <TableCell>{pr.department}</TableCell>
                         <TableCell>{pr.status}</TableCell>
                         <TableCell>{pr.requester?.email || pr.requester}</TableCell>
@@ -1123,6 +1114,7 @@ const ProcurementPage: React.FC = () => {
                   <input type="file" name="invoiceFile" hidden onChange={handleInvoiceFormChange} />
                 </Button>
                 <TextField label="Amount" name="amount" type="number" value={invoiceForm.amount} onChange={handleInvoiceFormChange} required sx={{ width: 180 }} />
+                <TextField label="Serial Number" name="serial" value={invoiceForm.serial} onChange={handleInvoiceFormChange} required sx={{ width: 220 }} />
                 <FormControl sx={{ minWidth: 180 }}>
                   <InputLabel>Status</InputLabel>
                   <Select label="Status" name="status" value={invoiceForm.status} onChange={handleInvoiceSelectChange} required>

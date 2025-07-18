@@ -63,6 +63,7 @@ interface Maintenance {
   createdBy?: string;
   completedBy?: string;
   serial?: string; // Added serial/document number
+  cancellationReason?: string;
 }
 
 const defaultForm = {
@@ -102,6 +103,10 @@ const MaintenancePage: React.FC = () => {
   const [needsParts, setNeedsParts] = useState<'yes' | 'no'>('no');
   const [inventorySearchType, setInventorySearchType] = useState<'description' | 'type' | 'location' | 'all'>('all');
   const [inventorySearchValue, setInventorySearchValue] = useState('');
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
+  const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+  const [serialSearch, setSerialSearch] = useState('');
 
   useEffect(() => {
     fetchMaintenance();
@@ -197,6 +202,7 @@ const MaintenancePage: React.FC = () => {
         parts: m.parts || [],
         notes: m.notes || '',
         serial: m.serial || '', // Ensure serial is included in form
+        cancellationReason: m.cancellationReason || '', // Ensure cancellationReason is included in form
       });
       setSelectedAsset(typeof m.asset === 'object' ? m.asset : null);
     } else {
@@ -214,6 +220,9 @@ const MaintenancePage: React.FC = () => {
     setSelectedAsset(null);
     setShowPartForm(false);
     setPartForm({ item: '', quantity: '' });
+    setCancellationReason('');
+    setShowCancelReasonModal(false);
+    setPendingCancelId(null);
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -348,12 +357,31 @@ const MaintenancePage: React.FC = () => {
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+    if (newStatus === 'cancelled') {
+      setPendingCancelId(id);
+      setShowCancelReasonModal(true);
+      return;
+    }
     try {
       await api.patch(`/maintenance/${id}/status`, { status: newStatus });
       setSuccess(`Job Card ${newStatus}!`);
       fetchMaintenance();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update status');
+    }
+  };
+
+  const handleCancelReasonSubmit = async () => {
+    if (!cancellationReason.trim()) return;
+    try {
+      await api.patch(`/maintenance/${pendingCancelId}/status`, { status: 'cancelled', cancellationReason });
+      setSuccess('Job Card cancelled!');
+      setShowCancelReasonModal(false);
+      setPendingCancelId(null);
+      setCancellationReason('');
+      fetchMaintenance();
+    } catch (err: any) {
+      setError('Failed to cancel job card');
     }
   };
 
@@ -436,6 +464,11 @@ const MaintenancePage: React.FC = () => {
                 <CancelIcon />
               </IconButton>
             )}
+            {maintenance.status === 'in_progress' && (
+              <IconButton color="error" onClick={() => handleStatusChange(maintenance._id, 'cancelled')}>
+                <CancelIcon />
+              </IconButton>
+            )}
             <IconButton color="error" onClick={() => setDeleteId(maintenance._id)}>
               <DeleteIcon />
             </IconButton>
@@ -454,6 +487,7 @@ const MaintenancePage: React.FC = () => {
   // Filtered maintenance
   const filteredMaintenance = useMemo(() => {
     return maintenance.filter(m => {
+      if (serialSearch && !(m.serial || '').toLowerCase().includes(serialSearch.trim().toLowerCase())) return false;
       if (filterAsset && (typeof m.asset === 'object' ? m.asset._id : m.asset) !== filterAsset) return false;
       if (filterType && m.type !== filterType) return false;
       if (filterStatus && m.status !== filterStatus) return false;
@@ -461,7 +495,7 @@ const MaintenancePage: React.FC = () => {
       if (filterTo && new Date(m.scheduledDate) > new Date(filterTo)) return false;
       return true;
     });
-  }, [maintenance, filterAsset, filterType, filterStatus, filterFrom, filterTo]);
+  }, [maintenance, serialSearch, filterAsset, filterType, filterStatus, filterFrom, filterTo]);
 
   // Export CSV
   const handleExportCSV = () => {
@@ -529,6 +563,14 @@ const MaintenancePage: React.FC = () => {
 
   return (
     <Box p={3}>
+      <Box display="flex" gap={2} mb={2} alignItems="center">
+        <TextField
+          label="Search by Job Card Serial Number"
+          value={serialSearch}
+          onChange={e => setSerialSearch(e.target.value)}
+          sx={{ minWidth: 260 }}
+        />
+      </Box>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
         <Typography variant="h4">Maintenance Job Cards</Typography>
         <Button variant="contained" color="primary" onClick={() => handleOpen()}>
@@ -624,6 +666,19 @@ const MaintenancePage: React.FC = () => {
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>{editingId ? 'Edit Job Card' : 'Add Job Card'}</DialogTitle>
         <DialogContent>
+          {/* Show Serial Number if present */}
+          {form.serial && (
+            <Box mb={2}>
+              <TextField
+                label="Job Card Serial Number"
+                value={form.serial}
+                InputProps={{ readOnly: true }}
+                fullWidth
+                variant="outlined"
+                sx={{ mb: 2 }}
+              />
+            </Box>
+          )}
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             {/* Asset Selection */}
             <Typography variant="h6">Asset Selection</Typography>
@@ -854,6 +909,39 @@ const MaintenancePage: React.FC = () => {
           <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add Cancel Reason Modal */}
+      <Dialog open={showCancelReasonModal} onClose={() => setShowCancelReasonModal(false)}>
+        <DialogTitle>Please Clarify the Reason Of Cancelling The job Card</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Reason for Cancellation"
+            value={cancellationReason}
+            onChange={e => setCancellationReason(e.target.value)}
+            required
+            fullWidth
+            multiline
+            minRows={2}
+            autoFocus
+            error={!cancellationReason.trim()}
+            helperText={!cancellationReason.trim() ? 'This field is required' : ''}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCancelReasonModal(false)}>Cancel</Button>
+          <Button onClick={handleCancelReasonSubmit} variant="contained" color="error" disabled={!cancellationReason.trim()}>
+            Submit
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* In the job card details dialog, display the cancellation reason if present */}
+      {open && form.status === 'cancelled' && form.cancellationReason && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          <strong>Reason for Cancellation:</strong><br />
+          <span>{form.cancellationReason}</span>
+        </Alert>
+      )}
 
       <Snackbar
         open={!!success}

@@ -34,61 +34,113 @@ import ProcurementPage from './pages/ProcurementPage';
 import TariffPage from './pages/TariffPage';
 import FoodAllowancePage from './pages/FoodAllowancePage';
 import ClientsPage from './pages/ClientsPage';
+import TrackerPage from './pages/TrackerPage';
+import AssetPassesPage from './pages/AssetPassesPage';
+import EmployeePassesPage from './pages/EmployeePassesPage';
+import OvertimePage from './pages/OvertimePage';
+import TripAllowancePage from './pages/TripAllowancePage';
+import SalesPage from './pages/SalesPage';
+import WaterLogPage from './pages/WaterLogPage';
 import './custom.css';
+// Add imports for new context and components
+import { FiscalYearProvider } from './context/FiscalYearContext';
+import Sidebar from './components/Sidebar';
+import FiscalYearSelector from './components/FiscalYearSelector';
+import BudgetAssumptions from './pages/BudgetAssumptions';
+import BudgetRevenue from './pages/BudgetRevenue';
+import BudgetOpex from './pages/BudgetOpex';
+import BudgetStaffing from './pages/BudgetStaffing';
+import BudgetLoans from './pages/BudgetLoans';
+import BudgetCapex from './pages/BudgetCapex';
+import BudgetVariance from './pages/BudgetVariance';
+import BudgetContracts from './pages/BudgetContracts';
+import BudgetDashboard from './pages/BudgetDashboard';
 
 const App: React.FC = () => {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('token');
+  const showSidebar = location.pathname.startsWith('/budget');
 
-  // If not authenticated, only allow /login and /register
   if (!isAuthenticated && location.pathname !== '/login' && location.pathname !== '/register') {
     return <Navigate to="/login" replace />;
   }
-  // If authenticated, redirect away from /login and /register
   if (isAuthenticated && (location.pathname === '/login' || location.pathname === '/register')) {
     return <Navigate to="/dashboard" replace />;
   }
 
   return (
-    <>
+    <FiscalYearProvider>
       {isAuthenticated && <NavBar />}
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/expenses" element={<ExpensesPage />} />
-        <Route path="/invoices" element={<InvoicesPage />} />
-        <Route path="/income" element={<IncomePage />} />
-        <Route path="/budgets" element={<BudgetsPage />} />
-        <Route path="/accounts" element={<ChartOfAccountsPage />} />
-        <Route path="/journal-entries" element={<JournalEntriesPage />} />
-        <Route path="/trial-balance" element={<TrialBalancePage />} />
-        <Route path="/general-ledger" element={<GeneralLedgerPage />} />
-        <Route path="/periods" element={<PeriodsPage />} />
-        <Route path="/employees" element={<EmployeesPage />} />
-        <Route path="/payroll" element={<PayrollPage />} />
-        <Route path="/reimbursements" element={<ReimbursementsPage />} />
-        <Route path="/leave" element={<LeavePage />} />
-        <Route path="/fuel-logs" element={<FuelLogsPage />} />
-        <Route path="/driver-hours" element={<DriverHoursPage />} />
-        <Route path="/projects" element={<ProjectsPage />} />
-        <Route path="/assets" element={<AssetsPage />} />
-        <Route path="/maintenance" element={<MaintenancePage />} />
-        <Route path="/depreciation" element={<DepreciationPage />} />
-        <Route path="/assets/:id" element={<AssetDetailPage />} />
-        <Route path="/inventory" element={<InventoryRegisterPage />} />
-        <Route path="/inventory/transactions" element={<InventoryTransactionsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/debug-auth" element={<DebugAuthPage />} />
-        <Route path="/hse" element={<HSEPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/procurement" element={<ProcurementPage />} />
-        <Route path="/tariffs" element={<TariffPage />} />
-        <Route path="/food-allowance" element={<FoodAllowancePage />} />
-        <Route path="/clients" element={<ClientsPage />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
-      </Routes>
-    </>
+      {isAuthenticated && (
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          {showSidebar && <Sidebar />}
+          <main style={{ flex: 1, padding: '24px', marginLeft: showSidebar ? 220 : 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+              <FiscalYearSelector />
+            </div>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/expenses" element={<ExpensesPage />} />
+              <Route path="/invoices" element={<InvoicesPage />} />
+              <Route path="/income" element={<IncomePage />} />
+              <Route path="/budgets" element={<BudgetsPage />} />
+              <Route path="/budget/assumptions" element={<BudgetAssumptions />} />
+              <Route path="/budget/revenue" element={<BudgetRevenue />} />
+              <Route path="/budget/opex" element={<BudgetOpex />} />
+              <Route path="/budget/staffing" element={<BudgetStaffing />} />
+              <Route path="/budget/loans" element={<BudgetLoans />} />
+              <Route path="/budget/capex" element={<BudgetCapex />} />
+              <Route path="/budget/variance" element={<BudgetVariance />} />
+              <Route path="/budget/contracts" element={<BudgetContracts />} />
+              <Route path="/budget/reports" element={<BudgetDashboard />} />
+              <Route path="/accounts" element={<ChartOfAccountsPage />} />
+              <Route path="/journal-entries" element={<JournalEntriesPage />} />
+              <Route path="/trial-balance" element={<TrialBalancePage />} />
+              <Route path="/general-ledger" element={<GeneralLedgerPage />} />
+              <Route path="/periods" element={<PeriodsPage />} />
+              <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/payroll" element={<PayrollPage />} />
+              <Route path="/reimbursements" element={<ReimbursementsPage />} />
+              <Route path="/leave" element={<LeavePage />} />
+              <Route path="/fuel-logs" element={<FuelLogsPage />} />
+              <Route path="/driver-hours" element={<DriverHoursPage />} />
+              <Route path="/projects" element={<ProjectsPage />} />
+              <Route path="/assets" element={<AssetsPage />} />
+              <Route path="/maintenance" element={<MaintenancePage />} />
+              <Route path="/depreciation" element={<DepreciationPage />} />
+              <Route path="/assets/:id" element={<AssetDetailPage />} />
+              <Route path="/inventory" element={<InventoryRegisterPage />} />
+              <Route path="/inventory/transactions" element={<InventoryTransactionsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/debug-auth" element={<DebugAuthPage />} />
+              <Route path="/hse" element={<HSEPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/procurement" element={<ProcurementPage />} />
+              <Route path="/tariffs" element={<TariffPage />} />
+              <Route path="/food-allowance" element={<FoodAllowancePage />} />
+              <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/tracker" element={<TrackerPage />} />
+              <Route path="/asset-passes" element={<AssetPassesPage />} />
+              <Route path="/employee-passes" element={<EmployeePassesPage />} />
+              <Route path="/overtime" element={<OvertimePage />} />
+              <Route path="/trip-allowance" element={<TripAllowancePage />} />
+              <Route path="/sales" element={<SalesPage />} />
+              <Route path="/water-log" element={<WaterLogPage />} />
+              <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
+            </Routes>
+          </main>
+        </div>
+      )}
+      {!isAuthenticated && (
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
+      )}
+    </FiscalYearProvider>
   );
 };
 

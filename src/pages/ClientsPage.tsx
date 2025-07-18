@@ -205,8 +205,24 @@ const ClientsPage: React.FC = () => {
   };
 
   const handleSubmitQuotation = async () => {
-    if (!form.clientName || !form.rfqDate || form.lines.length === 0 || !form.paymentTerms || !form.paymentMethod) {
-      setError('Please fill all required fields');
+    if (!form.clientName) {
+      setError('Client Name is required');
+      return;
+    }
+    if (!form.rfqDate) {
+      setError('RFQ Date is required');
+      return;
+    }
+    if (form.lines.length === 0) {
+      setError('At least one Quotation Line is required');
+      return;
+    }
+    if (!form.paymentTerms) {
+      setError('Payment Terms are required');
+      return;
+    }
+    if (!form.paymentMethod) {
+      setError('Payment Method is required');
       return;
     }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import api from '../apiBase';
 import CategorySelector from '../components/CategorySelector';
 import {
-  Box, Button, Card, CardContent, Typography, Paper, TextField, MenuItem, Snackbar, Alert, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip
+  Box, Button, Card, CardContent, Typography, Paper, TextField, MenuItem, Snackbar, Alert, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Checkbox
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -12,11 +12,23 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import SearchIcon from '@mui/icons-material/Search';
 import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
 
+// Add typeOptions for the asset type dropdown
+const typeOptions = [
+  'Vehicle',
+  'Equipment',
+  'Building',
+  'IT',
+  'Furniture',
+  'Tools',
+  'Half Lorrey',
+  'Bom Truck'
+];
+
 const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f', '#6d4c41', '#0288d1'];
 
 // Updated asset categories as requested
 const AssetMainCategories = [
-  'Vehicle', 'Equipment', 'Building', 'IT', 'Furniture', 'Tools'
+  'Vehicle', 'Equipment', 'Building', 'IT', 'Furniture', 'Tools', 'Half Lorrey', 'Bom Truck'
 ];
 
 const AssetSubCategories = {
@@ -78,9 +90,12 @@ const AssetsPage: React.FC = () => {
     serialNumber: '',
     fleetNumber: '',
     notes: '',
+    type: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
+  const [multiBookValueDate, setMultiBookValueDate] = useState<string>("");
 
   useEffect(() => {
     fetchAssets();
@@ -147,6 +162,15 @@ const AssetsPage: React.FC = () => {
     });
   }, [assets, mainCategoryFilter, subCategoryFilter, statusFilter, availabilityFilter, plateNumberFilter, chassisNumberFilter, serialNumberFilter, descriptionSearch, dateFrom, dateTo]);
 
+  const handleAssetCheckbox = (id: string) => {
+    setSelectedAssetIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+  const handleSelectAllAssets = (checked: boolean) => {
+    setSelectedAssetIds(checked ? filteredAssets.map(a => a._id) : []);
+  };
+  const selectedAssets = filteredAssets.filter(a => selectedAssetIds.includes(a._id));
+  const totalSelectedBookValue = selectedAssets.reduce((sum, a) => sum + calculateBookValue(a, multiBookValueDate ? new Date(multiBookValueDate) : undefined), 0);
+
   // Export CSV with book value as of export date
   const handleExportCSV = () => {
     const exportDate = new Date();
@@ -154,7 +178,7 @@ const AssetsPage: React.FC = () => {
     const rows = filteredAssets.map(a => [
       a.description,
       a.serial || '-', // Serial Number column
-      a.type,
+      a.type || '-',
       a.brand,
       a.status,
       a.availability,
@@ -257,11 +281,26 @@ const AssetsPage: React.FC = () => {
       serialNumber: '',
       fleetNumber: '',
       notes: '',
+      type: '',
     });
     setError('');
   };
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    // If type changes, reset mainCategory and subCategory
+    if (name === 'type') {
+      setForm(prev => ({
+        ...prev,
+        type: value,
+        mainCategory: '',
+        subCategory: '',
+        subSubCategory: '',
+        subSubSubCategory: '',
+        subSubSubSubCategory: '',
+      }));
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +312,7 @@ const AssetsPage: React.FC = () => {
         purchaseValue: Number(form.purchaseValue),
         usefulLifeMonths: Number(form.usefulLifeMonths),
         salvageValue: Number(form.salvageValue),
+        type: form.type,
       });
       setSuccess('Asset submitted successfully!');
       fetchAssets();
@@ -303,7 +343,6 @@ const AssetsPage: React.FC = () => {
           Submit Asset Request
         </Button>
       </Box>
-
       {/* Summary Cards */}
       <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
         <Card sx={{ flex: '1 1 200px', minWidth: 200 }}>
@@ -469,13 +508,58 @@ const AssetsPage: React.FC = () => {
         </Paper>
       </Box>
 
+      {/* Selection and Book Value Panel */}
+      <Paper sx={{ p: 2, minWidth: 260, maxWidth: 320, mb: 2 }}>
+        <Typography variant="subtitle1" gutterBottom>Selected Assets</Typography>
+        <Box mb={2}>
+          <Checkbox
+            checked={selectedAssetIds.length === filteredAssets.length && filteredAssets.length > 0}
+            indeterminate={selectedAssetIds.length > 0 && selectedAssetIds.length < filteredAssets.length}
+            onChange={e => handleSelectAllAssets(e.target.checked)}
+            size="small"
+          />
+          <Typography variant="body2" display="inline">Select All</Typography>
+        </Box>
+        <Box sx={{ maxHeight: 120, overflowY: 'auto', mb: 2 }}>
+          {selectedAssets.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">No assets selected</Typography>
+          ) : (
+            selectedAssets.map(a => (
+              <Typography key={a._id} variant="body2">{a.description || a.serial || a._id}</Typography>
+            ))
+          )}
+        </Box>
+        <TextField
+          label="As of Date"
+          type="date"
+          value={multiBookValueDate}
+          onChange={e => setMultiBookValueDate(e.target.value)}
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          sx={{ mb: 2 }}
+        />
+        <Typography variant="subtitle2">Total Book Value</Typography>
+        <Typography variant="h6" color="primary">
+          {totalSelectedBookValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+        </Typography>
+      </Paper>
+
       {/* Assets Table */}
       <Paper sx={{ p: 2, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                <Checkbox
+                  checked={selectedAssetIds.length === filteredAssets.length && filteredAssets.length > 0}
+                  indeterminate={selectedAssetIds.length > 0 && selectedAssetIds.length < filteredAssets.length}
+                  onChange={e => handleSelectAllAssets(e.target.checked)}
+                  size="small"
+                />
+              </th>
               <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Description</th>
               <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Serial Number</th> {/* New column */}
+              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Type</th>
               <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Category</th>
               <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Brand</th>
               <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Status</th>
@@ -497,11 +581,19 @@ const AssetsPage: React.FC = () => {
                 background: a.status === 'pending' ? '#f0f0f0' : (idx % 2 === 0 ? '#fafafa' : '#fff'),
                 opacity: a.status === 'pending' ? 0.7 : 1
               }}>
+                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                  <Checkbox
+                    checked={selectedAssetIds.includes(a._id)}
+                    onChange={() => handleAssetCheckbox(a._id)}
+                    size="small"
+                  />
+                </td>
                 <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#1976d2', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => navigate(`/assets/${a._id}`)}>
                   {a.description}
                   {a.status === 'pending' && <Chip label="Pending" size="small" sx={{ ml: 1 }} color="warning" />}
                 </td>
                 <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{a.serial || '-'}</td> {/* Serial Number */}
+                <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{a.type || '-'}</td>
                 <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
                   {a.mainCategory} {'>'} {a.subCategory}
                   {a.subSubCategory && ` > ${a.subSubCategory}`}
@@ -564,33 +656,66 @@ const AssetsPage: React.FC = () => {
         <DialogTitle>Submit Asset Request</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            {/* Type Dropdown */}
+            <TextField
+              select
+              label="Type"
+              name="type"
+              value={form.type}
+              onChange={handleFormChange}
+              required
+              fullWidth
+            >
+              <MenuItem value="">Select Type</MenuItem>
+              {typeOptions.map((type: string) => (
+                <MenuItem key={type} value={type}>{type}</MenuItem>
+              ))}
+            </TextField>
             <TextField label="Asset Description" name="description" value={form.description} onChange={handleFormChange} required fullWidth />
-            
-            <CategorySelector
-              value={{
-                mainCategory: form.mainCategory,
-                subCategory: form.subCategory,
-                subSubCategory: form.subSubCategory,
-                subSubSubCategory: form.subSubSubCategory,
-                subSubSubSubCategory: form.subSubSubSubCategory
-              }}
-              onChange={(categories: {
-                mainCategory?: string;
-                subCategory?: string;
-                subSubCategory?: string;
-                subSubSubCategory?: string;
-                subSubSubSubCategory?: string;
-              }) => {
-                setForm(prev => ({
-                  ...prev,
-                  mainCategory: categories.mainCategory || '',
-                  subCategory: categories.subCategory || '',
-                  subSubCategory: categories.subSubCategory || '',
-                  subSubSubCategory: categories.subSubSubCategory || '',
-                  subSubSubSubCategory: categories.subSubSubSubCategory || ''
-                }));
-              }}
-            />
+            {/* Main Category Dropdown, filtered by type */}
+            <TextField
+              select
+              label="Main Category"
+              name="mainCategory"
+              value={form.mainCategory}
+              onChange={handleFormChange}
+              required
+              fullWidth
+              disabled={!form.type}
+            >
+              <MenuItem value="">Select Main Category</MenuItem>
+              {AssetMainCategories.filter(cat => !form.type || cat === form.type).map(category => (
+                <MenuItem key={category} value={category}>{category}</MenuItem>
+              ))}
+            </TextField>
+            {/* CategorySelector for subcategories, only if mainCategory is selected */}
+            {form.mainCategory && (
+              <CategorySelector
+                value={{
+                  mainCategory: form.mainCategory,
+                  subCategory: form.subCategory,
+                  subSubCategory: form.subSubCategory,
+                  subSubSubCategory: form.subSubSubCategory,
+                  subSubSubSubCategory: form.subSubSubSubCategory
+                }}
+                onChange={(categories: {
+                  mainCategory?: string;
+                  subCategory?: string;
+                  subSubCategory?: string;
+                  subSubSubCategory?: string;
+                  subSubSubSubCategory?: string;
+                }) => {
+                  setForm(prev => ({
+                    ...prev,
+                    mainCategory: categories.mainCategory || '',
+                    subCategory: categories.subCategory || '',
+                    subSubCategory: categories.subSubCategory || '',
+                    subSubSubCategory: categories.subSubSubCategory || '',
+                    subSubSubSubCategory: categories.subSubSubSubCategory || ''
+                  }));
+                }}
+              />
+            )}
             
               <TextField label="Brand" name="brand" value={form.brand} onChange={handleFormChange} required fullWidth />
             <Box display="flex" gap={2}>

@@ -161,10 +161,10 @@ const IncidentReporting: React.FC = () => {
       };
 
       if (editingId) {
-        await api.put(`/incidents/${editingId}`, submitData);
+        await api.put(`/hse/incidents/${editingId}`, submitData);
         setSuccess('Incident updated successfully!');
       } else {
-        await api.post('/incidents', submitData);
+        await api.post('/hse/incidents', submitData);
         setSuccess('Incident reported successfully!');
       }
       fetchIncidents();
@@ -183,7 +183,7 @@ const IncidentReporting: React.FC = () => {
     if (!deleteId) return;
     try {
       const token = localStorage.getItem('token');
-      await api.delete(`/incidents/${deleteId}`);
+      await api.delete(`/hse/incidents/${deleteId}`);
       setSuccess('Incident deleted successfully!');
       fetchIncidents();
     } catch (err: any) {
@@ -421,7 +421,7 @@ const RiskAssessment: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await api.post('/risk-assessments', form);
+      await api.post('/hse/risk-assessments', form);
       setSuccess('Risk assessment created successfully!');
       fetchAssessments();
       setOpen(false);
@@ -604,7 +604,7 @@ const PPETracking: React.FC = () => {
         totalValue: Number(form.totalValue) || 0,
       };
       
-      await api.post('/ppe', submitData);
+      await api.post('/hse/ppe', submitData);
       setSuccess('PPE item added successfully!');
       fetchPPE();
       setOpen(false);
@@ -924,7 +924,7 @@ const SafetyInspections: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await api.post('/safety-inspections', form);
+      await api.post('/hse/safety-inspections', form);
       setSuccess('Safety inspection created successfully!');
       fetchInspections();
       setOpen(false);
@@ -1165,7 +1165,7 @@ const TrainingCertifications: React.FC = () => {
         startDate: new Date(form.startDate),
         endDate: new Date(form.endDate),
       };
-      await api.post('/training', trainingData);
+      await api.post('/hse/training', trainingData);
       setSuccess('Training created successfully!');
       fetchTrainings();
       setOpen(false);
@@ -1480,7 +1480,7 @@ const EnvironmentWaste: React.FC = () => {
         date: new Date(form.date),
         mitigationMeasures: form.mitigationMeasures.split(',').map(m => m.trim()).filter(m => m),
       };
-      await api.post('/environmental', environmentalData);
+      await api.post('/hse/environmental', environmentalData);
       setSuccess('Environmental record added successfully!');
       fetchWasteTypes();
       setOpen(false);
@@ -2518,7 +2518,7 @@ const HSEDashboard: React.FC = () => {
             </Dialog>
           </Box>
         )}
-        {tab === 4 && <Typography>Audit & Inspection Status (to be implemented)</Typography>}
+        {tab === 4 && <SafetyInspections />}
         {tab === 5 && <Typography>Active Hazards / Risk Register (to be implemented)</Typography>}
         {tab === 6 && <Typography>Behavior-Based Safety (BBS) Tracking (to be implemented)</Typography>}
         {tab === 7 && <Typography>HSE Document Library (to be implemented)</Typography>}
@@ -2805,3 +2805,6 @@ function getStatusColor(status: string) {
 
 
 export default HSEDashboard; 
+
+// At the end of the file, add:
+export { HSEDashboard as HSEPage }; 

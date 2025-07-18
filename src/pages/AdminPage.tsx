@@ -283,6 +283,12 @@ const AdminPage: React.FC = () => {
     registrationCardCapacity?: string;
     registrationCardShape?: string;
     registrationCardColour?: string;
+    // New fields for asset registration type and periodic check
+    assetRegistrationType: 'public' | 'private';
+    periodicCheck: {
+      issuanceDate: string;
+      expiryDate: string;
+    };
   }>(
     {
       vehicle: '',
@@ -308,6 +314,12 @@ const AdminPage: React.FC = () => {
       passes: [],
       installmentCalculationMode: 'auto',
       installmentValue: '',
+      // New fields for asset registration type and periodic check
+      assetRegistrationType: 'public',
+      periodicCheck: {
+        issuanceDate: '',
+        expiryDate: '',
+      },
     }
   );
   const [vehicleEditing, setVehicleEditing] = useState<any>(null);
@@ -1820,6 +1832,12 @@ const AdminPage: React.FC = () => {
         registrationCardCapacity: '',
         registrationCardShape: '',
         registrationCardColour: '',
+        // New fields for asset registration type and periodic check
+        assetRegistrationType: 'public',
+        periodicCheck: {
+          issuanceDate: '',
+          expiryDate: '',
+        },
       });
     }
     setVehicleOpen(true);
@@ -1857,6 +1875,12 @@ const AdminPage: React.FC = () => {
       registrationCardCapacity: '',
       registrationCardShape: '',
       registrationCardColour: '',
+      // New fields for asset registration type and periodic check
+      assetRegistrationType: 'public',
+      periodicCheck: {
+        issuanceDate: '',
+        expiryDate: '',
+      },
     });
     setVehicleError('');
   };
@@ -1869,6 +1893,12 @@ const AdminPage: React.FC = () => {
         ...prev,
         renewalReminders: { ...prev.renewalReminders, [key]: value },
       }));
+    } else if (name.startsWith('periodicCheck.')) {
+      const key = name.replace('periodicCheck.', '');
+      setVehicleForm((prev: any) => ({
+        ...prev,
+        periodicCheck: { ...prev.periodicCheck, [key]: value },
+      }));
     } else if (name === 'insuranceInstallmentPeriod') {
       setVehicleForm((prev: any) => ({ ...prev, [name]: value ? Number(value) : '' }));
     } else if (name === 'installmentCalculationMode') {
@@ -1876,6 +1906,8 @@ const AdminPage: React.FC = () => {
     } else if (name === 'installmentValue') {
       setVehicleForm((prev: any) => ({ ...prev, [name]: value }));
     } else if (name === 'registrationCardCountry' || name === 'registrationCardBrand' || name === 'registrationCardCapacity' || name === 'registrationCardShape' || name === 'registrationCardColour') {
+      setVehicleForm((prev: any) => ({ ...prev, [name]: value }));
+    } else if (name === 'assetRegistrationType') {
       setVehicleForm((prev: any) => ({ ...prev, [name]: value }));
     } else {
       setVehicleForm((prev: any) => ({ ...prev, [name]: value }));
@@ -2914,6 +2946,8 @@ const AdminPage: React.FC = () => {
                       <TableCell>Insurance Cost</TableCell>
                       <TableCell>Payment System</TableCell>
                       <TableCell>Installment Period</TableCell>
+                      <TableCell>Asset Registration Type</TableCell>
+                      <TableCell>Periodic Check Expiry</TableCell>
                       <TableCell>Passes</TableCell>
                       <TableCell>Status</TableCell>
                       <TableCell>Actions</TableCell>
@@ -2936,6 +2970,20 @@ const AdminPage: React.FC = () => {
                         <TableCell>{vehicle.insuranceCost}</TableCell>
                         <TableCell>{vehicle.insurancePaymentSystem}</TableCell>
                         <TableCell>{vehicle.insurancePaymentSystem === 'installments' ? (vehicle.insuranceInstallmentPeriod ? `${vehicle.insuranceInstallmentPeriod} Months` : '-') : '-'}</TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={vehicle.assetRegistrationType || 'N/A'} 
+                            color={vehicle.assetRegistrationType === 'public' ? 'primary' : 'secondary'} 
+                            size="small" 
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Chip 
+                            label={vehicle.periodicCheck?.expiryDate ? dayjs(vehicle.periodicCheck.expiryDate).format('YYYY-MM-DD') : '-'} 
+                            color={getVehicleExpiryStatus(vehicle.periodicCheck?.expiryDate)} 
+                            size="small" 
+                          />
+                        </TableCell>
                         <TableCell>
                           {vehicle.hasPasses && vehicle.passes && vehicle.passes.length > 0 ? (
                             <MuiTooltip title={vehicle.passes.map((p: any) => p.passType).join(', ')}>
@@ -3016,6 +3064,44 @@ const AdminPage: React.FC = () => {
                     <TextField label="Capacity" name="registrationCardCapacity" value={vehicleForm.registrationCardCapacity || ''} onChange={handleVehicleFormChange} required fullWidth />
                     <TextField label="Shape" name="registrationCardShape" value={vehicleForm.registrationCardShape || ''} onChange={handleVehicleFormChange} required fullWidth />
                     <TextField label="Colour" name="registrationCardColour" value={vehicleForm.registrationCardColour || ''} onChange={handleVehicleFormChange} required fullWidth />
+                  </Box>
+                  
+                  <Typography variant="h6">Asset Registration Type</Typography>
+                  <TextField 
+                    select 
+                    label="Asset Registration Type" 
+                    name="assetRegistrationType" 
+                    value={vehicleForm.assetRegistrationType || 'public'} 
+                    onChange={handleVehicleFormChange} 
+                    required 
+                    fullWidth
+                  >
+                    <MenuItem value="public">Public</MenuItem>
+                    <MenuItem value="private">Private</MenuItem>
+                  </TextField>
+                  
+                  <Typography variant="h6">Periodic Check</Typography>
+                  <Box display="flex" gap={2}>
+                    <TextField 
+                      label="Issuance Date" 
+                      name="periodicCheck.issuanceDate" 
+                      value={vehicleForm.periodicCheck?.issuanceDate || ''} 
+                      onChange={handleVehicleFormChange} 
+                      type="date" 
+                      InputLabelProps={{ shrink: true }} 
+                      required 
+                      fullWidth 
+                    />
+                    <TextField 
+                      label="Expiry Date" 
+                      name="periodicCheck.expiryDate" 
+                      value={vehicleForm.periodicCheck?.expiryDate || ''} 
+                      onChange={handleVehicleFormChange} 
+                      type="date" 
+                      InputLabelProps={{ shrink: true }} 
+                      required 
+                      fullWidth 
+                    />
                   </Box>
                   
                   <TextField select label="Status" name="status" value={vehicleForm.status} onChange={handleVehicleFormChange} required fullWidth>

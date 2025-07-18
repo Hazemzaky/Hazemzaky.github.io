@@ -105,12 +105,25 @@ const NavBar: React.FC = () => {
         {/* Left: Logo/Title */}
         <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }} component={RouterLink} to="/dashboard" style={{ textDecoration: 'none' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
-            {/* Dollar SVG Logo */}
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6 }}>
-              <circle cx="16" cy="16" r="16" fill="#e8f5e9" />
-              <path d="M16 8v16M20.5 11.5c0-2-1.79-3.5-4.5-3.5s-4.5 1.5-4.5 3.5c0 2.5 2.5 3.5 4.5 3.5s4.5 1 4.5 3.5c0 2-1.79 3.5-4.5 3.5s-4.5-1.5-4.5-3.5" stroke="#43a047" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="16" cy="16" r="15" stroke="#43a047" strokeWidth="1.5" fill="none" />
-            </svg>
+            {/* Company Logo */}
+            <Typography
+              variant="h6"
+              sx={{
+                color: 'transparent',
+                textDecoration: 'none',
+                fontWeight: 700,
+                letterSpacing: 1,
+                fontSize: { xs: '0.9rem', sm: '1.1rem' },
+                background: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                display: 'inline-block',
+                mr: 1,
+              }}
+            >
+              Company Logo
+            </Typography>
             <Typography
               variant="h6"
               sx={{
@@ -126,7 +139,7 @@ const NavBar: React.FC = () => {
                 display: 'inline-block',
               }}
             >
-              Rassen
+              Company Name
             </Typography>
           </Box>
         </Box>
@@ -241,12 +254,19 @@ const NavBar: React.FC = () => {
             <MenuItem component={RouterLink} to="/projects" onClick={handleOperationsMenuClose}>Orders</MenuItem>
             <MenuItem component={RouterLink} to="/tariffs" onClick={handleOperationsMenuClose}>Tariffs</MenuItem>
             <MenuItem component={RouterLink} to="/fuel-logs" onClick={handleOperationsMenuClose}>Fuel Logs</MenuItem>
+            <MenuItem component={RouterLink} to="/water-log" onClick={handleOperationsMenuClose}>Water Log</MenuItem>
             <MenuItem component={RouterLink} to="/driver-hours" onClick={handleOperationsMenuClose}>Driver Hours</MenuItem>
+            <MenuItem component={RouterLink} to="/overtime" onClick={handleOperationsMenuClose}>Overtime</MenuItem>
+            <MenuItem component={RouterLink} to="/trip-allowance" onClick={handleOperationsMenuClose}>Trip Allowance</MenuItem>
             <MenuItem component={RouterLink} to="/food-allowance" onClick={handleOperationsMenuClose}>Food Allowance</MenuItem>
             <MenuItem component={RouterLink} to="/clients" onClick={handleOperationsMenuClose}>Clients</MenuItem>
+            <MenuItem component={RouterLink} to="/tracker" onClick={handleOperationsMenuClose}>Tracker</MenuItem>
+            <MenuItem component={RouterLink} to="/asset-passes" onClick={handleOperationsMenuClose}>Asset Passes</MenuItem>
+            <MenuItem component={RouterLink} to="/employee-passes" onClick={handleOperationsMenuClose}>Employee Passes</MenuItem>
           </Menu>
           <Button color="inherit" component={RouterLink} to="/maintenance">Maintenance</Button>
           <Button color="inherit" onClick={() => navigate('/procurement')}>Procurement</Button>
+          <Button color="inherit" component={RouterLink} to="/sales">Sales</Button>
           <Button color="inherit" component={RouterLink} to="/hse">HSE</Button>
           <Button color="inherit" component={RouterLink} to="/admin">Admin</Button>
           <Button color="inherit" onClick={handleInventoryMenuOpen} aria-controls="inventory-menu" aria-haspopup="true">Inventory</Button>

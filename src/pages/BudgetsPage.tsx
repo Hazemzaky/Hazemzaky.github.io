@@ -1,259 +1,221 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
-  Box, Typography, Paper, Button, Card, CardContent, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, TextField, InputAdornment, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Alert
+  Box, Typography, Paper, Button, Card, CardContent, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, TextField, Alert, Tabs, Tab
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import axios from 'axios';
+import dayjs from 'dayjs';
+import Countdown from 'react-countdown';
+import AddIcon from '@mui/icons-material/Add';
 
-interface Budget {
-  _id: string;
-  department: string;
-  project?: string;
-  period: string;
-  amount: number;
-  forecast: number;
-  scenarios: { best: number; worst: number; expected: number };
-  actual: number;
-  variance: number;
-  notes?: string;
-  history?: any[];
-}
+const tabCategories = [
+  'Budget Assumptions', 'Summary', 'Variance', 'Expected Sales', 'Sales', 'Other', 'Logistics Cost',
+  'Cost Of Water Sale', 'Cost Of Rental Equipment', 'GA', 'OPEX', 'Staff', 'Costs', 'Manpower', 'Capex'
+];
 
-type SortKey = 'department' | 'project' | 'period' | 'amount' | 'actual' | 'variance' | 'forecast' | '';
-type SortOrder = 'asc' | 'desc';
+const getNextBudgetDate = (year: number) => dayjs(`${year}-04-01T00:00:00`);
 
 const BudgetsPage: React.FC = () => {
-  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [budgetsByTab, setBudgetsByTab] = useState<{ [tab: string]: any[] }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
+  const [years, setYears] = useState<number[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(dayjs().year());
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [form, setForm] = useState<any>({
     department: '',
     project: '',
     period: '',
+    accountCode: '',
     amount: '',
     forecast: '',
     scenarios: { best: '', worst: '', expected: '' },
     notes: '',
+    subCategory: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
+  // Fetch all budgets for the selected year, grouped by tab
   useEffect(() => {
+    const fetchBudgets = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/budgets?year=${selectedYear}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        // Group by category/tab
+        const grouped: { [tab: string]: any[] } = {};
+        tabCategories.forEach(tab => grouped[tab] = []);
+        data.forEach((b: any) => {
+          if (grouped[b.category]) grouped[b.category].push(b);
+        });
+        setBudgetsByTab(grouped);
+        // Update years list
+        const allYears = new Set<number>([selectedYear, ...data.map((b: any) => b.year)]);
+        setYears(Array.from(allYears).sort());
+      } catch (err: any) {
+        setError('Failed to fetch budgets');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchBudgets();
-  }, []);
+  }, [selectedYear]);
 
-  const fetchBudgets = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get<Budget[]>('/api/budgets', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setBudgets(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch budgets');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sorting and filtering
-  const filteredBudgets = useMemo(() => {
-    let data = budgets;
-    if (search.trim()) {
-      const s = search.trim().toLowerCase();
-      data = data.filter(b =>
-        b.department.toLowerCase().includes(s) ||
-        (b.project || '').toLowerCase().includes(s) ||
-        b.period.toLowerCase().includes(s)
-      );
-    }
-    if (sortKey) {
-      data = [...data].sort((a, b) => {
-        let aVal: any = a[sortKey as keyof Budget];
-        let bVal: any = b[sortKey as keyof Budget];
-        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-    return data;
-  }, [budgets, search, sortKey, sortOrder]);
-
-  // Color for variance
-  const getVarianceColor = (variance: number) => {
-    if (variance < 0) return 'green';
-    if (variance > 0) return 'red';
-    return 'inherit';
+  // Add new year
+  const handleAddYear = () => {
+    const nextYear = Math.max(...years, dayjs().year()) + 1;
+    setYears([...years, nextYear]);
+    setSelectedYear(nextYear);
   };
 
   // Add Budget handlers
-  const handleOpen = () => setOpen(true);
-  const handleClose = () => {
-    setOpen(false);
-    setForm({
-      department: '',
-      project: '',
-      period: '',
-      amount: '',
-      forecast: '',
-      scenarios: { best: '', worst: '', expected: '' },
-      notes: '',
-    });
-  };
-
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-
   const handleScenarioChange = (field: string, value: string) => {
     setForm({ ...form, scenarios: { ...form.scenarios, [field]: value } });
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/api/budgets', {
-        department: form.department,
-        project: form.project,
-        period: form.period,
-        amount: Number(form.amount),
-        forecast: Number(form.forecast),
-        scenarios: {
-          best: Number(form.scenarios.best),
-          worst: Number(form.scenarios.worst),
-          expected: Number(form.scenarios.expected),
-        },
-        notes: form.notes,
-      }, {
+      await fetch('/api/budgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          ...form,
+          year: selectedYear,
+          category: tabCategories[selectedTab],
+          amount: Number(form.amount),
+          forecast: Number(form.forecast),
+          scenarios: {
+            best: Number(form.scenarios.best),
+            worst: Number(form.scenarios.worst),
+            expected: Number(form.scenarios.expected),
+          },
+        }),
+      });
+      setSuccess('Budget entry added!');
+      setForm({
+        department: '',
+        project: '',
+        period: '',
+        accountCode: '',
+        amount: '',
+        forecast: '',
+        scenarios: { best: '', worst: '', expected: '' },
+        notes: '',
+        subCategory: '',
+      });
+      // Refetch
+      const res = await fetch(`/api/budgets?year=${selectedYear}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSuccess('Budget created successfully!');
-      fetchBudgets();
-      handleClose();
+      const data = await res.json();
+      const grouped: { [tab: string]: any[] } = {};
+      tabCategories.forEach(tab => grouped[tab] = []);
+      data.forEach((b: any) => {
+        if (grouped[b.category]) grouped[b.category].push(b);
+      });
+      setBudgetsByTab(grouped);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create budget');
+      setError('Failed to add budget entry');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Chart data for scenario modeling
-  const scenarioChartData = useMemo(() =>
-    filteredBudgets.map(b => ({
-      name: `${b.department} ${b.period}`,
-      Budget: b.amount,
-      Actual: b.actual,
-      Forecast: b.forecast,
-      Best: b.scenarios.best,
-      Worst: b.scenarios.worst,
-      Expected: b.scenarios.expected,
-    })),
-    [filteredBudgets]
-  );
+  // Table totals for current tab
+  const currentTabBudgets = budgetsByTab[tabCategories[selectedTab]] || [];
+  const totalAmount = useMemo(() => currentTabBudgets.reduce((sum, b) => sum + (b.amount || 0), 0), [currentTabBudgets]);
+  const totalForecast = useMemo(() => currentTabBudgets.reduce((sum, b) => sum + (b.forecast || 0), 0), [currentTabBudgets]);
+  const totalActual = useMemo(() => currentTabBudgets.reduce((sum, b) => sum + (b.actual || 0), 0), [currentTabBudgets]);
+  const totalVariance = useMemo(() => currentTabBudgets.reduce((sum, b) => sum + (b.variance || 0), 0), [currentTabBudgets]);
 
   return (
     <Box p={3}>
-      <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} gap={3} mb={3}>
-        <Box flex={1} mb={{ xs: 2, md: 0 }}>
-          <Card sx={{ background: '#6d4c41', color: '#fff' }}>
-            <CardContent>
-              <Typography variant="h6">Total Budgets</Typography>
-              <Typography variant="h4">{budgets.length}</Typography>
-            </CardContent>
-          </Card>
-        </Box>
-        <Box flex={2} display="flex" alignItems="center" justifyContent="flex-end" gap={2}>
-          <TextField
-            size="small"
-            placeholder="Search by department, project, or period"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-              endAdornment: search && (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setSearch('')} size="small">
-                    <CloseIcon />
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={{ minWidth: 300 }}
-          />
-          <Button variant="contained" color="primary" onClick={handleOpen} sx={{ minWidth: 180, fontWeight: 600, fontSize: 16 }}>
-            Add Budget
-          </Button>
+      {/* Year Selector and Countdown */}
+      <Box display="flex" alignItems="center" gap={2} mb={3}>
+        <TextField
+          select
+          label="Year"
+          value={selectedYear}
+          onChange={e => setSelectedYear(Number(e.target.value))}
+          sx={{ minWidth: 120 }}
+        >
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </TextField>
+        <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddYear}>Add Year</Button>
+        <Box ml={2}>
+          <Typography variant="subtitle1">Next Budget Cycle:</Typography>
+          <Countdown date={getNextBudgetDate(selectedYear).toDate()} />
         </Box>
       </Box>
-      <Paper sx={{ mt: 2, p: 2, overflowX: 'auto' }}>
-        <Typography variant="h5" gutterBottom>Budgets</Typography>
+      {/* Tab Bar */}
+      <Tabs value={selectedTab} onChange={(_, v) => setSelectedTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
+        {tabCategories.map((cat, idx) => <Tab key={cat} label={cat} />)}
+      </Tabs>
+      {/* Add Data Form */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+          <TextField label="Department" name="department" value={form.department} onChange={handleFormChange} required sx={{ minWidth: 160 }} />
+          <TextField label="Project" name="project" value={form.project} onChange={handleFormChange} sx={{ minWidth: 120 }} />
+          <TextField label="Period" name="period" value={form.period} onChange={handleFormChange} required sx={{ minWidth: 100 }} />
+          <TextField label="Account Code" name="accountCode" value={form.accountCode} onChange={handleFormChange} sx={{ minWidth: 120 }} />
+          <TextField label="Amount" name="amount" value={form.amount} onChange={handleFormChange} type="number" required sx={{ minWidth: 100 }} />
+          <TextField label="Forecast" name="forecast" value={form.forecast} onChange={handleFormChange} type="number" required sx={{ minWidth: 100 }} />
+          <TextField label="Best" name="best" value={form.scenarios.best} onChange={e => handleScenarioChange('best', e.target.value)} type="number" required sx={{ minWidth: 80 }} />
+          <TextField label="Worst" name="worst" value={form.scenarios.worst} onChange={e => handleScenarioChange('worst', e.target.value)} type="number" required sx={{ minWidth: 80 }} />
+          <TextField label="Expected" name="expected" value={form.scenarios.expected} onChange={e => handleScenarioChange('expected', e.target.value)} type="number" required sx={{ minWidth: 80 }} />
+          <TextField label="Notes" name="notes" value={form.notes} onChange={handleFormChange} sx={{ minWidth: 160 }} />
+          <Button type="submit" variant="contained" color="primary" disabled={submitting}>Add Entry</Button>
+        </form>
+      </Paper>
+      {/* Table for Selected Tab/Year */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h6" gutterBottom>{tabCategories[selectedTab]} ({selectedYear})</Typography>
         {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-            <CircularProgress />
-          </Box>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}><CircularProgress /></Box>
+        ) : error ? (
+          <Alert severity="error">{error}</Alert>
         ) : (
-          <TableContainer sx={{ maxHeight: 500 }}>
-            <Table stickyHeader>
+          <TableContainer>
+            <Table size="small">
               <TableHead>
-                <TableRow sx={{ background: '#f5f5f5' }}>
+                <TableRow>
                   <TableCell>Department</TableCell>
                   <TableCell>Project</TableCell>
                   <TableCell>Period</TableCell>
-                  <TableCell
-                    sx={{ cursor: 'pointer', fontWeight: 700 }}
-                    onClick={() => setSortKey('amount')}
-                  >
-                    Budgeted
-                  </TableCell>
-                  <TableCell
-                    sx={{ cursor: 'pointer', fontWeight: 700 }}
-                    onClick={() => setSortKey('actual')}
-                  >
-                    Actual
-                  </TableCell>
-                  <TableCell
-                    sx={{ cursor: 'pointer', fontWeight: 700 }}
-                    onClick={() => setSortKey('variance')}
-                  >
-                    Variance
-                  </TableCell>
+                  <TableCell>Account Code</TableCell>
+                  <TableCell>Amount</TableCell>
                   <TableCell>Forecast</TableCell>
                   <TableCell>Best</TableCell>
                   <TableCell>Worst</TableCell>
                   <TableCell>Expected</TableCell>
+                  <TableCell>Actual</TableCell>
+                  <TableCell>Variance</TableCell>
                   <TableCell>Notes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredBudgets.map((b, idx) => (
+                {currentTabBudgets.map((b, idx) => (
                   <TableRow key={b._id} sx={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <TableCell>{b.department}</TableCell>
                     <TableCell>{b.project || '-'}</TableCell>
                     <TableCell>{b.period}</TableCell>
-                    <TableCell>{b.amount.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                    <TableCell>{b.actual.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                    <TableCell sx={{ color: getVarianceColor(b.variance), fontWeight: 700 }}>{b.variance.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                    <TableCell>{b.forecast.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                    <TableCell>{b.scenarios.best.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                    <TableCell>{b.scenarios.worst.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                    <TableCell>{b.scenarios.expected.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
+                    <TableCell>{b.accountCode || '-'}</TableCell>
+                    <TableCell>{b.amount?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
+                    <TableCell>{b.forecast?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
+                    <TableCell>{b.scenarios?.best}</TableCell>
+                    <TableCell>{b.scenarios?.worst}</TableCell>
+                    <TableCell>{b.scenarios?.expected}</TableCell>
+                    <TableCell>{b.actual?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
+                    <TableCell>{b.variance?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
                     <TableCell>{b.notes || '-'}</TableCell>
                   </TableRow>
                 ))}
@@ -261,61 +223,20 @@ const BudgetsPage: React.FC = () => {
             </Table>
           </TableContainer>
         )}
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+        {/* Totals Card */}
+        <Card sx={{ mt: 2, background: '#f5f5f5' }}>
+          <CardContent>
+            <Typography variant="subtitle1">Totals</Typography>
+            <Box display="flex" gap={4} flexWrap="wrap">
+              <Typography>Total Amount: <b>{totalAmount.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</b></Typography>
+              <Typography>Total Forecast: <b>{totalForecast.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</b></Typography>
+              <Typography>Total Actual: <b>{totalActual.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</b></Typography>
+              <Typography>Total Variance: <b>{totalVariance.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</b></Typography>
+            </Box>
+          </CardContent>
+        </Card>
       </Paper>
-      <Paper sx={{ mt: 4, p: 2 }}>
-        <Typography variant="h6" gutterBottom>Scenario Modeling & Variance Analysis</Typography>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={scenarioChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="Budget" fill="#1976d2" />
-            <Bar dataKey="Actual" fill="#d32f2f" />
-            <Bar dataKey="Forecast" fill="#388e3c" />
-            <Bar dataKey="Best" fill="#fbc02d" />
-            <Bar dataKey="Worst" fill="#6d4c41" />
-            <Bar dataKey="Expected" fill="#0288d1" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Paper>
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>Add Budget</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <Box display="flex" gap={2}>
-              <TextField label="Department" name="department" value={form.department} onChange={handleFormChange} required fullWidth />
-              <TextField label="Project" name="project" value={form.project} onChange={handleFormChange} fullWidth />
-              <TextField label="Period" name="period" value={form.period} onChange={handleFormChange} required fullWidth placeholder="e.g. 2024-Q2 or 2024-05" />
-            </Box>
-            <Box display="flex" gap={2}>
-              <TextField label="Budgeted Amount" name="amount" value={form.amount} onChange={handleFormChange} required fullWidth type="number" />
-              <TextField label="Forecast" name="forecast" value={form.forecast} onChange={handleFormChange} required fullWidth type="number" />
-            </Box>
-            <Typography variant="subtitle1" fontWeight={600} mt={2}>Scenarios</Typography>
-            <Box display="flex" gap={2}>
-              <TextField label="Best Case" value={form.scenarios.best} onChange={e => handleScenarioChange('best', e.target.value)} required fullWidth type="number" />
-              <TextField label="Worst Case" value={form.scenarios.worst} onChange={e => handleScenarioChange('worst', e.target.value)} required fullWidth type="number" />
-              <TextField label="Expected Case" value={form.scenarios.expected} onChange={e => handleScenarioChange('expected', e.target.value)} required fullWidth type="number" />
-            </Box>
-            <TextField label="Notes" name="notes" value={form.notes} onChange={handleFormChange} fullWidth multiline minRows={2} />
-            {error && <Alert severity="error">{error}</Alert>}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary" disabled={submitting}>Create Budget</Button>
-        </DialogActions>
-      </Dialog>
-      <Snackbar
-        open={!!success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess('')}
-        message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{success}</span>}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      />
+      <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess('')} message={success} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} />
     </Box>
   );
 };

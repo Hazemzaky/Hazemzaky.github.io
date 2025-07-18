@@ -1,0 +1,456 @@
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Card, CardContent, TextField, MenuItem, Button, Divider, InputAdornment, Snackbar, Alert, Paper, Table, TableHead, TableRow, TableCell, TableBody, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import axios from 'axios';
+import PrintIcon from '@mui/icons-material/Print';
+
+const defaultQuote = {
+  quotationDate: '',
+  validUntil: '',
+  status: 'Draft',
+  clientName: '',
+  contactPerson: '',
+  phone: '',
+  email: '',
+  billingAddress: '',
+  clientCategory: '',
+  equipmentType: '',
+  quantity: '',
+  rentalStart: '',
+  rentalEnd: '',
+  usageType: '',
+  projectLocation: '',
+  rateType: 'daily',
+  rate: '',
+  operatorCharges: '',
+  fuelCharges: '',
+  mobilizationFee: '',
+  standbyCharges: '',
+  securityDeposit: '',
+  discounts: '',
+  taxes: '',
+  addOns: '',
+  paymentTerms: '',
+  paymentMethods: '',
+  penalty: '',
+  withOperator: 'no',
+  fuelProvidedBy: '',
+  insurance: '',
+  maintenance: '',
+  availability: '',
+  breakdownPolicy: '',
+  standbyConditions: '',
+  grandTotal: '',
+};
+
+function exportCSV(rows: any[], headers: string[], filename: string) {
+  const csv = [headers, ...rows].map((r: any[]) => r.map((x: any) => `"${x ?? ''}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  window.URL.revokeObjectURL(url);
+}
+
+const SalesPage: React.FC = () => {
+  const [quote, setQuote] = useState<any>(defaultQuote);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
+  const [quotations, setQuotations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  // Filtering/search state
+  const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterClient, setFilterClient] = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Fetch quotations from backend
+  const fetchQuotations = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get<any[]>('/api/quotations', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setQuotations(res.data);
+    } catch (err: any) {
+      setError((err as any).response?.data?.message || 'Failed to fetch quotations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuotations();
+  }, []);
+
+  // Auto-calculate rental duration and totals
+  const calcDuration = () => {
+    if (quote.rentalStart && quote.rentalEnd) {
+      const start = new Date(quote.rentalStart);
+      const end = new Date(quote.rentalEnd);
+      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      return diff > 0 ? diff : 0;
+    }
+    return '';
+  };
+  const calcTotal = () => {
+    const qty = Number(quote.quantity) || 0;
+    const rate = Number(quote.rate) || 0;
+    const duration = calcDuration() || 1;
+    let total = qty * rate * duration;
+    total += Number(quote.operatorCharges) || 0;
+    total += Number(quote.fuelCharges) || 0;
+    total += Number(quote.mobilizationFee) || 0;
+    total += Number(quote.standbyCharges) || 0;
+    total += Number(quote.securityDeposit) || 0;
+    total -= Number(quote.discounts) || 0;
+    total += Number(quote.taxes) || 0;
+    return total > 0 ? total : 0;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setQuote({ ...quote, [e.target.name]: e.target.value });
+  };
+
+  const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuote({ ...quote, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      const submitData = {
+        ...quote,
+        quantity: Number(quote.quantity),
+        rate: Number(quote.rate),
+        operatorCharges: Number(quote.operatorCharges),
+        fuelCharges: Number(quote.fuelCharges),
+        mobilizationFee: Number(quote.mobilizationFee),
+        standbyCharges: Number(quote.standbyCharges),
+        securityDeposit: Number(quote.securityDeposit),
+        discounts: Number(quote.discounts),
+        taxes: Number(quote.taxes),
+        grandTotal: calcTotal(),
+        rentalStart: quote.rentalStart ? new Date(quote.rentalStart) : null,
+        rentalEnd: quote.rentalEnd ? new Date(quote.rentalEnd) : null,
+        quotationDate: quote.quotationDate ? new Date(quote.quotationDate) : null,
+        validUntil: quote.validUntil ? new Date(quote.validUntil) : null,
+      };
+      await axios.post('/api/quotations', submitData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSuccess('Quotation submitted!');
+      setQuote(defaultQuote);
+      fetchQuotations();
+      setDialogOpen(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to submit quotation');
+    }
+  };
+
+  // Filtered and searched quotations
+  const filteredQuotations = quotations.filter(q => {
+    // Date range
+    if (filterFrom && (!q.quotationDate || new Date(q.quotationDate) < new Date(filterFrom))) return false;
+    if (filterTo && (!q.quotationDate || new Date(q.quotationDate) > new Date(filterTo))) return false;
+    // Status
+    if (filterStatus && q.status !== filterStatus) return false;
+    // Client
+    if (filterClient && !q.clientName?.toLowerCase().includes(filterClient.toLowerCase())) return false;
+    // Free text search
+    if (search) {
+      const s = search.toLowerCase();
+      if (!(
+        (q.clientName && q.clientName.toLowerCase().includes(s)) ||
+        (q.equipmentType && q.equipmentType.toLowerCase().includes(s)) ||
+        (q.status && q.status.toLowerCase().includes(s)) ||
+        (q.projectLocation && q.projectLocation.toLowerCase().includes(s))
+      )) return false;
+    }
+    return true;
+  });
+
+  // Export CSV
+  const handleExportCSV = () => {
+    const headers = ['Date', 'Client', 'Equipment', 'Qty', 'Status', 'Grand Total'];
+    const rows = filteredQuotations.map(q => [
+      q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-',
+      q.clientName,
+      q.equipmentType,
+      q.quantity,
+      q.status,
+      q.grandTotal ? `${q.grandTotal} KWD` : '-',
+    ]);
+    exportCSV(rows, headers, 'quotations.csv');
+  };
+
+  const printQuotation = (q: any) => {
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <html>
+        <head>
+          <title>Quotation - ${q.clientName}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+            .logo { font-size: 2rem; font-weight: bold; color: #1976d2; }
+            .company-info { text-align: right; }
+            .section { margin-bottom: 24px; }
+            .section-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 8px; color: #1976d2; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+            th, td { border: 1px solid #ddd; padding: 8px; }
+            th { background: #f5f5f5; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">Company Logo</div>
+            <div class="company-info">
+              <div>Company Name</div>
+              <div>Address Line 1</div>
+              <div>Address Line 2</div>
+              <div>Email: info@company.com</div>
+              <div>Phone: +965 1234 5678</div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">Quotation Details</div>
+            <table>
+              <tr><th>Quotation Date</th><td>${q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-'}</td></tr>
+              <tr><th>Valid Until</th><td>${q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '-'}</td></tr>
+              <tr><th>Status</th><td>${q.status}</td></tr>
+            </table>
+          </div>
+          <div class="section">
+            <div class="section-title">Customer Information</div>
+            <table>
+              <tr><th>Client Name</th><td>${q.clientName}</td></tr>
+              <tr><th>Contact Person</th><td>${q.contactPerson}</td></tr>
+              <tr><th>Phone</th><td>${q.phone}</td></tr>
+              <tr><th>Email</th><td>${q.email}</td></tr>
+              <tr><th>Billing Address</th><td>${q.billingAddress}</td></tr>
+              <tr><th>Client Category</th><td>${q.clientCategory}</td></tr>
+            </table>
+          </div>
+          <div class="section">
+            <div class="section-title">Rental Requirements</div>
+            <table>
+              <tr><th>Equipment/Vehicle Type</th><td>${q.equipmentType}</td></tr>
+              <tr><th>Quantity</th><td>${q.quantity}</td></tr>
+              <tr><th>Rental Start</th><td>${q.rentalStart ? new Date(q.rentalStart).toLocaleDateString() : '-'}</td></tr>
+              <tr><th>Rental End</th><td>${q.rentalEnd ? new Date(q.rentalEnd).toLocaleDateString() : '-'}</td></tr>
+              <tr><th>Usage Type</th><td>${q.usageType}</td></tr>
+              <tr><th>Project Location</th><td>${q.projectLocation}</td></tr>
+            </table>
+          </div>
+          <div class="section">
+            <div class="section-title">Pricing Breakdown</div>
+            <table>
+              <tr><th>Rate Type</th><td>${q.rateType}</td></tr>
+              <tr><th>Rate per Unit</th><td>${q.rate} KWD</td></tr>
+              <tr><th>Operator Charges</th><td>${q.operatorCharges} KWD</td></tr>
+              <tr><th>Fuel Charges</th><td>${q.fuelCharges} KWD</td></tr>
+              <tr><th>Mobilization/Demobilization Fee</th><td>${q.mobilizationFee} KWD</td></tr>
+              <tr><th>Standby Charges</th><td>${q.standbyCharges} KWD</td></tr>
+              <tr><th>Security Deposit</th><td>${q.securityDeposit} KWD</td></tr>
+              <tr><th>Discounts</th><td>${q.discounts} KWD</td></tr>
+              <tr><th>Taxes / VAT</th><td>${q.taxes} KWD</td></tr>
+              <tr><th>Grand Total</th><td><b>${q.grandTotal} KWD</b></td></tr>
+            </table>
+          </div>
+          <div class="section">
+            <div class="section-title">Service Add-ons / Conditions</div>
+            <table>
+              <tr><th>With/Without Operator</th><td>${q.withOperator === 'yes' ? 'With Operator' : 'Without Operator'}</td></tr>
+              <tr><th>Fuel Provided By</th><td>${q.fuelProvidedBy}</td></tr>
+              <tr><th>Insurance Responsibility</th><td>${q.insurance}</td></tr>
+              <tr><th>Maintenance Coverage</th><td>${q.maintenance}</td></tr>
+              <tr><th>Availability Confirmation</th><td>${q.availability}</td></tr>
+              <tr><th>Breakdown Replacement Policy</th><td>${q.breakdownPolicy}</td></tr>
+              <tr><th>Standby Conditions</th><td>${q.standbyConditions}</td></tr>
+            </table>
+          </div>
+          <div class="section">
+            <div class="section-title">Payment Terms</div>
+            <table>
+              <tr><th>Payment Terms</th><td>${q.paymentTerms}</td></tr>
+              <tr><th>Accepted Payment Methods</th><td>${q.paymentMethods}</td></tr>
+              <tr><th>Penalty for Late Return</th><td>${q.penalty}</td></tr>
+            </table>
+          </div>
+          <div style="margin-top: 40px; text-align: right; font-size: 1.1rem; color: #1976d2;">Thank you for your business!</div>
+          <script>window.onload = function() { window.print(); };</script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  return (
+    <Box p={3}>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+        <Typography variant="h4">Sales Department</Typography>
+        <Button variant="contained" color="primary" onClick={() => setDialogOpen(true)}>
+          Add Quotation
+        </Button>
+      </Box>
+      <Divider sx={{ my: 3 }} />
+      {/* Quotation Creation Dialog */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Create Quotation</DialogTitle>
+        <DialogContent>
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+            <Typography variant="h6" gutterBottom>Quotation Details</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Quotation Date" name="quotationDate" type="date" value={quote.quotationDate} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
+              <TextField label="Valid Until" name="validUntil" type="date" value={quote.validUntil} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
+              <TextField label="Status" name="status" value={quote.status} onChange={handleChange} select fullWidth>
+                <MenuItem value="Draft">Draft</MenuItem>
+                <MenuItem value="Sent">Sent</MenuItem>
+                <MenuItem value="Approved">Approved</MenuItem>
+                <MenuItem value="Rejected">Rejected</MenuItem>
+                <MenuItem value="Expired">Expired</MenuItem>
+              </TextField>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>Customer Information</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Client Name / Company" name="clientName" value={quote.clientName} onChange={handleChange} fullWidth required />
+              <TextField label="Contact Person" name="contactPerson" value={quote.contactPerson} onChange={handleChange} fullWidth />
+              <TextField label="Phone" name="phone" value={quote.phone} onChange={handleChange} fullWidth />
+              <TextField label="Email" name="email" value={quote.email} onChange={handleChange} fullWidth />
+              <TextField label="Billing Address" name="billingAddress" value={quote.billingAddress} onChange={handleChange} fullWidth />
+              <TextField label="Client Category" name="clientCategory" value={quote.clientCategory} onChange={handleChange} select fullWidth>
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="Construction">Construction</MenuItem>
+                <MenuItem value="Oil & Gas">Oil & Gas</MenuItem>
+                <MenuItem value="Events">Events</MenuItem>
+                <MenuItem value="Other">Other</MenuItem>
+              </TextField>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>Rental Requirements</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Equipment/Vehicle Type" name="equipmentType" value={quote.equipmentType} onChange={handleChange} fullWidth required />
+              <TextField label="Quantity" name="quantity" value={quote.quantity} onChange={handleChange} type="number" fullWidth required />
+              <TextField label="Usage Type" name="usageType" value={quote.usageType} onChange={handleChange} fullWidth />
+              <TextField label="Rental Start Date" name="rentalStart" type="date" value={quote.rentalStart} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
+              <TextField label="Rental End Date" name="rentalEnd" type="date" value={quote.rentalEnd} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
+              <TextField label="Rental Duration (days)" value={calcDuration()} InputProps={{ readOnly: true }} fullWidth />
+              <TextField label="Project/Job Site Location" name="projectLocation" value={quote.projectLocation} onChange={handleChange} fullWidth />
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>Pricing Breakdown</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Rate Type" name="rateType" value={quote.rateType} onChange={handleSelect} select fullWidth>
+                <MenuItem value="daily">Daily</MenuItem>
+                <MenuItem value="hourly">Hourly</MenuItem>
+                <MenuItem value="weekly">Weekly</MenuItem>
+              </TextField>
+              <TextField label="Rate per Unit" name="rate" value={quote.rate} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth required />
+              <TextField label="Grand Total" value={calcTotal()} InputProps={{ readOnly: true, endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+              <TextField label="Operator Charges" name="operatorCharges" value={quote.operatorCharges} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+              <TextField label="Fuel Charges" name="fuelCharges" value={quote.fuelCharges} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+              <TextField label="Mobilization/Demobilization Fee" name="mobilizationFee" value={quote.mobilizationFee} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+              <TextField label="Standby Charges" name="standbyCharges" value={quote.standbyCharges} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+              <TextField label="Security Deposit" name="securityDeposit" value={quote.securityDeposit} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+              <TextField label="Discounts" name="discounts" value={quote.discounts} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+              <TextField label="Taxes / VAT" name="taxes" value={quote.taxes} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>Service Add-ons / Conditions</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="With/Without Operator" name="withOperator" value={quote.withOperator} onChange={handleSelect} select fullWidth>
+                <MenuItem value="no">Without Operator</MenuItem>
+                <MenuItem value="yes">With Operator</MenuItem>
+              </TextField>
+              <TextField label="Fuel Provided By" name="fuelProvidedBy" value={quote.fuelProvidedBy} onChange={handleChange} select fullWidth>
+                <MenuItem value="">Select</MenuItem>
+                <MenuItem value="Company">Company</MenuItem>
+                <MenuItem value="Client">Client</MenuItem>
+              </TextField>
+              <TextField label="Insurance Responsibility" name="insurance" value={quote.insurance} onChange={handleChange} fullWidth />
+              <TextField label="Maintenance Coverage" name="maintenance" value={quote.maintenance} onChange={handleChange} fullWidth />
+              <TextField label="Availability Confirmation" name="availability" value={quote.availability} onChange={handleChange} fullWidth />
+              <TextField label="Breakdown Replacement Policy" name="breakdownPolicy" value={quote.breakdownPolicy} onChange={handleChange} fullWidth />
+              <TextField label="Standby Conditions" name="standbyConditions" value={quote.standbyConditions} onChange={handleChange} fullWidth />
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>Payment Terms</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Payment Terms" name="paymentTerms" value={quote.paymentTerms} onChange={handleChange} fullWidth />
+              <TextField label="Accepted Payment Methods" name="paymentMethods" value={quote.paymentMethods} onChange={handleChange} fullWidth />
+              <TextField label="Penalty for Late Return" name="penalty" value={quote.penalty} onChange={handleChange} fullWidth />
+            </Box>
+            {error && <Alert severity="error">{error}</Alert>}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained" color="primary">Submit</Button>
+        </DialogActions>
+      </Dialog>
+      {/* Quotations Table and other content remain below */}
+      <Typography variant="h5" gutterBottom>Recent Quotations</Typography>
+      {/* Filter/Search Controls */}
+      <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
+        <TextField label="Search" value={search} onChange={e => setSearch(e.target.value)} sx={{ minWidth: 180 }} />
+        <TextField label="Client" value={filterClient} onChange={e => setFilterClient(e.target.value)} sx={{ minWidth: 160 }} />
+        <TextField select label="Status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} sx={{ minWidth: 140 }}>
+          <MenuItem value="">All Statuses</MenuItem>
+          <MenuItem value="Draft">Draft</MenuItem>
+          <MenuItem value="Sent">Sent</MenuItem>
+          <MenuItem value="Approved">Approved</MenuItem>
+          <MenuItem value="Rejected">Rejected</MenuItem>
+          <MenuItem value="Expired">Expired</MenuItem>
+        </TextField>
+        <TextField label="From" type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
+        <TextField label="To" type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
+        <Button variant="outlined" onClick={handleExportCSV}>Export CSV</Button>
+      </Box>
+      {loading ? <Typography>Loading...</Typography> : (
+        <Paper sx={{ p: 2, overflowX: 'auto' }}>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Date</TableCell>
+                <TableCell>Client</TableCell>
+                <TableCell>Equipment</TableCell>
+                <TableCell>Qty</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Grand Total</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredQuotations.map((q) => (
+                <TableRow key={q._id}>
+                  <TableCell>{q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-'}</TableCell>
+                  <TableCell>{q.clientName}</TableCell>
+                  <TableCell>{q.equipmentType}</TableCell>
+                  <TableCell>{q.quantity}</TableCell>
+                  <TableCell>{q.status}</TableCell>
+                  <TableCell>{q.grandTotal ? `${q.grandTotal} KWD` : '-'}</TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => printQuotation(q)}><PrintIcon /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Paper>
+      )}
+      <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess('')} message={success} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} />
+    </Box>
+  );
+};
+
+export default SalesPage; 

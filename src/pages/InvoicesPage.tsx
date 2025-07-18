@@ -47,6 +47,7 @@ const InvoicesPage: React.FC = () => {
     recipientEmail: '',
     dueDate: '',
     lineItems: [{ description: '', quantity: 1, unitPrice: 0, total: 0 }],
+    serial: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -131,6 +132,7 @@ const InvoicesPage: React.FC = () => {
       recipientEmail: '',
       dueDate: '',
       lineItems: [{ description: '', quantity: 1, unitPrice: 0, total: 0 }],
+      serial: '',
     });
   };
 
@@ -166,6 +168,7 @@ const InvoicesPage: React.FC = () => {
         recipient: { name: form.recipientName, email: form.recipientEmail },
         dueDate: form.dueDate,
         lineItems: form.lineItems,
+        serial: form.serial,
       });
       setSuccess('Invoice created successfully!');
       fetchInvoices();
@@ -282,6 +285,7 @@ const InvoicesPage: React.FC = () => {
         <DialogTitle>Add Invoice</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField label="Serial Number" name="serial" value={form.serial} onChange={handleFormChange} required fullWidth />
             <Box display="flex" gap={2}>
               <TextField label="Recipient Name" name="recipientName" value={form.recipientName} onChange={handleFormChange} required fullWidth />
               <TextField label="Recipient Email" name="recipientEmail" value={form.recipientEmail} onChange={handleFormChange} required fullWidth type="email" />

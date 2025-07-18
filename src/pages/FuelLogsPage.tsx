@@ -1,39 +1,53 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../apiBase';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Card, CardContent
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Card, CardContent, InputAdornment
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
-import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
 import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
 
-interface FuelLog {
+interface Asset {
   _id: string;
-  date: string;
-  vehicle?: string;
-  driver?: { _id: string; name: string } | string;
-  liters: number;
-  cost: number;
-  project?: { _id: string; name: string } | string;
+  plateNumber: string;
+  description: string;
+}
+interface Client {
+  _id: string;
+  name: string;
+}
+interface FuelLog {
+  _id?: string;
+  dateTime: string;
+  asset: string | Asset;
+  currentKm: number;
+  lastKm: number;
+  distanceTraveled: number;
+  client: string | Client;
+  type: 'callout' | 'monthly';
+  litresConsumed: number;
+  pricePerLitre: number;
+  totalCost: number;
 }
 
 const defaultForm = {
-  date: '',
-  vehicle: '',
-  driver: '',
-  liters: '',
-  cost: '',
-  project: '',
+  dateTime: '',
+  asset: '',
+  currentKm: '',
+  lastKm: '',
+  client: '',
+  type: '',
+  litresConsumed: '',
+  pricePerLitre: '',
 };
 
 const FuelLogsPage: React.FC = () => {
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [drivers, setDrivers] = useState<any[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -41,20 +55,20 @@ const FuelLogsPage: React.FC = () => {
   const [form, setForm] = useState<any>(defaultForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [filterProject, setFilterProject] = useState('');
   const [search, setSearch] = useState('');
+  const [assetSearch, setAssetSearch] = useState('');
 
   useEffect(() => {
     fetchFuelLogs();
-    fetchProjects();
-    fetchDrivers();
-  }, [filterProject]);
+    fetchAssets();
+    fetchClients();
+  }, []);
 
   const fetchFuelLogs = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get<FuelLog[]>('/fuel-logs', { params: filterProject ? { project: filterProject } : {} });
+      const res = await api.get<FuelLog[]>('/fuel-logs');
       setFuelLogs(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch fuel logs');
@@ -62,29 +76,31 @@ const FuelLogsPage: React.FC = () => {
       setLoading(false);
     }
   };
-  const fetchProjects = async () => {
+  const fetchAssets = async () => {
     try {
-      const res = await api.get('/projects');
-      setProjects(res.data as any[]);
+      const res = await api.get('/assets');
+      setAssets(res.data as Asset[]);
     } catch {}
   };
-  const fetchDrivers = async () => {
+  const fetchClients = async () => {
     try {
-      const res = await api.get('/employees');
-      setDrivers(res.data as any[]);
+      const res = await api.get('/clients');
+      setClients(res.data as Client[]);
     } catch {}
   };
 
   const handleOpen = (log?: FuelLog) => {
     if (log) {
-      setEditingId(log._id);
+      setEditingId(log._id!);
       setForm({
-        date: log.date ? log.date.slice(0, 10) : '',
-        vehicle: log.vehicle || '',
-        driver: typeof log.driver === 'object' ? log.driver._id : log.driver || '',
-        liters: log.liters.toString(),
-        cost: log.cost.toString(),
-        project: typeof log.project === 'object' ? log.project._id : log.project || '',
+        dateTime: log.dateTime ? log.dateTime.slice(0, 16) : '',
+        asset: typeof log.asset === 'object' ? log.asset._id : log.asset,
+        currentKm: log.currentKm,
+        lastKm: log.lastKm,
+        client: typeof log.client === 'object' ? log.client._id : log.client,
+        type: log.type,
+        litresConsumed: log.litresConsumed,
+        pricePerLitre: log.pricePerLitre,
       });
     } else {
       setEditingId(null);
@@ -98,25 +114,46 @@ const FuelLogsPage: React.FC = () => {
     setForm(defaultForm);
   };
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev: any) => {
+      let updated = { ...prev, [name]: value };
+      // Auto-calculate distanceTraveled if currentKm or lastKm changes
+      if (name === 'currentKm' || name === 'lastKm') {
+        const current = Number(name === 'currentKm' ? value : updated.currentKm);
+        const last = Number(name === 'lastKm' ? value : updated.lastKm);
+        if (!isNaN(current) && !isNaN(last)) {
+          updated.distanceTraveled = current - last;
+        }
+      }
+      // Auto-calculate totalCost if litresConsumed or pricePerLitre changes
+      if (name === 'litresConsumed' || name === 'pricePerLitre') {
+        const litres = Number(name === 'litresConsumed' ? value : updated.litresConsumed);
+        const price = Number(name === 'pricePerLitre' ? value : updated.pricePerLitre);
+        if (!isNaN(litres) && !isNaN(price)) {
+          updated.totalCost = litres * price;
+        }
+      }
+      return updated;
+    });
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
+      const submitData = {
+        ...form,
+        currentKm: Number(form.currentKm),
+        lastKm: Number(form.lastKm),
+        litresConsumed: Number(form.litresConsumed),
+        pricePerLitre: Number(form.pricePerLitre),
+        distanceTraveled: Number(form.currentKm) - Number(form.lastKm),
+        totalCost: Number(form.litresConsumed) * Number(form.pricePerLitre),
+      };
       if (editingId) {
-        await api.put(`/fuel-logs/${editingId}`, {
-          ...form,
-          liters: Number(form.liters),
-          cost: Number(form.cost),
-        });
+        await api.put(`/fuel-logs/${editingId}`, submitData);
         setSuccess('Fuel log updated!');
       } else {
-        await api.post('/fuel-logs', {
-          ...form,
-          liters: Number(form.liters),
-          cost: Number(form.cost),
-        });
+        await api.post('/fuel-logs', submitData);
         setSuccess('Fuel log created!');
       }
       fetchFuelLogs();
@@ -138,57 +175,51 @@ const FuelLogsPage: React.FC = () => {
     }
   };
 
-  const columns = useMemo<ColumnDef<FuelLog>[]>(() => [
-    { header: 'Date', accessorKey: 'date', cell: info => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString() : '-' },
-    { header: 'Vehicle', accessorKey: 'vehicle' },
-    { header: 'Driver', accessorKey: 'driver', cell: info => typeof info.getValue() === 'object' ? (info.getValue() as any)?.name : info.getValue() },
-    { header: 'Liters', accessorKey: 'liters' },
-    { header: 'Cost', accessorKey: 'cost', cell: info => Number(info.getValue()).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) },
-    { header: 'Project', accessorKey: 'project', cell: info => typeof info.getValue() === 'object' ? (info.getValue() as any)?.name : info.getValue() },
-    {
-      header: 'Actions',
-      cell: ({ row }) => (
-        <Box display="flex" gap={1}>
-          <IconButton color="primary" onClick={() => handleOpen(row.original)}><EditIcon /></IconButton>
-          <IconButton color="error" onClick={() => setDeleteId(row.original._id)}><DeleteIcon /></IconButton>
-        </Box>
-      ),
-    },
-  ], [projects, drivers]);
+  // Filtered assets for vehicle search
+  const filteredAssets = useMemo(() => {
+    if (!assetSearch.trim()) return assets;
+    const s = assetSearch.trim().toLowerCase();
+    return assets.filter(a =>
+      (a.plateNumber && a.plateNumber.toLowerCase().includes(s)) ||
+      (a.description && a.description.toLowerCase().includes(s))
+    );
+  }, [assets, assetSearch]);
 
-  const table = useReactTable({
-    data: fuelLogs,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
-  // Summary calculations
-  const totalLiters = fuelLogs.reduce((sum, log) => sum + Number(log.liters), 0);
-  const totalCost = fuelLogs.reduce((sum, log) => sum + Number(log.cost), 0);
-  const avgCostPerLiter = totalLiters ? totalCost / totalLiters : 0;
-
-  // Filtered logs
+  // Filtered logs for search
   const filteredLogs = useMemo(() => {
     if (!search.trim()) return fuelLogs;
     const s = search.trim().toLowerCase();
-    return fuelLogs.filter(log =>
-      (log.vehicle || '').toLowerCase().includes(s) ||
-      (typeof log.driver === 'object' ? log.driver.name : log.driver || '').toLowerCase().includes(s) ||
-      (log.date ? new Date(log.date).toLocaleDateString().toLowerCase() : '').includes(s)
-    );
-  }, [fuelLogs, search]);
+    return fuelLogs.filter(log => {
+      const asset = typeof log.asset === 'object' ? log.asset : assets.find(a => a._id === log.asset);
+      const client = typeof log.client === 'object' ? log.client : clients.find(c => c._id === log.client);
+      return (
+        (asset?.plateNumber || '').toLowerCase().includes(s) ||
+        (asset?.description || '').toLowerCase().includes(s) ||
+        (client?.name || '').toLowerCase().includes(s)
+      );
+    });
+  }, [fuelLogs, search, assets, clients]);
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ['Date', 'Vehicle', 'Driver', 'Liters', 'Cost', 'Project'];
-    const rows = filteredLogs.map(log => [
-      log.date ? new Date(log.date).toLocaleDateString() : '',
-      log.vehicle || '',
-      typeof log.driver === 'object' ? log.driver.name : log.driver || '',
-      log.liters,
-      log.cost,
-      typeof log.project === 'object' ? log.project.name : log.project || '',
-    ]);
+    const headers = ['Date/Time', 'Plate Number', 'Asset Description', 'Current KM', 'Last KM', 'Distance', 'Client', 'Type', 'Litres', 'Price/Litre', 'Total Cost'];
+    const rows = filteredLogs.map(log => {
+      const asset = typeof log.asset === 'object' ? log.asset : assets.find(a => a._id === log.asset);
+      const client = typeof log.client === 'object' ? log.client : clients.find(c => c._id === log.client);
+      return [
+        log.dateTime ? new Date(log.dateTime).toLocaleString() : '',
+        asset?.plateNumber || '',
+        asset?.description || '',
+        log.currentKm,
+        log.lastKm,
+        log.distanceTraveled,
+        client?.name || '',
+        log.type,
+        log.litresConsumed,
+        log.pricePerLitre,
+        log.totalCost,
+      ];
+    });
     const csv = [headers, ...rows].map(r => r.map(x => `"${x}"`).join(',')).join('\n');
     const csvWithHeader = addExportHeader(csv, 'Fuel Logs');
     const blob = new Blob([csvWithHeader], { type: 'text/csv' });
@@ -235,20 +266,8 @@ const FuelLogsPage: React.FC = () => {
       <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
         <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
           <CardContent>
-            <Typography variant="subtitle1">Total Liters</Typography>
-            <Typography variant="h5">{totalLiters.toLocaleString()}</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <CardContent>
-            <Typography variant="subtitle1">Total Cost</Typography>
-            <Typography variant="h5">{totalCost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <CardContent>
-            <Typography variant="subtitle1">Avg. Cost per Liter</Typography>
-            <Typography variant="h5">{avgCostPerLiter.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+            <Typography variant="subtitle1">Total Logs</Typography>
+            <Typography variant="h5">{fuelLogs.length}</Typography>
           </CardContent>
         </Card>
       </Box>
@@ -267,48 +286,55 @@ const FuelLogsPage: React.FC = () => {
           label="Search"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search vehicle, driver, or date"
+          placeholder="Search plate, asset, or client"
           size="small"
           sx={{ minWidth: 220 }}
         />
-        <TextField
-          select
-          label="Filter by Project"
-          value={filterProject}
-          onChange={e => setFilterProject(e.target.value)}
-          sx={{ minWidth: 220 }}
-        >
-          <MenuItem value="">All Projects</MenuItem>
-          {projects.map(p => (
-            <MenuItem key={p._id} value={p._id}>{p.name}</MenuItem>
-          ))}
-        </TextField>
       </Box>
       <Paper sx={{ p: 2, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
+            <tr>
+              <th>Date/Time</th>
+              <th>Plate Number</th>
+              <th>Asset Description</th>
+              <th>Current KM</th>
+              <th>Last KM</th>
+              <th>Distance</th>
+              <th>Client</th>
+              <th>Type</th>
+              <th>Litres</th>
+              <th>Price/Litre</th>
+              <th>Total Cost</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>
-            {table.getRowModel().rows
-              .filter(row => filteredLogs.includes(row.original))
-              .map(row => (
-                <tr key={row.id} style={{ background: row.index % 2 === 0 ? '#fafafa' : '#fff' }}>
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+            {filteredLogs.map((log, idx) => {
+              const asset = typeof log.asset === 'object' ? log.asset : assets.find(a => a._id === log.asset);
+              const client = typeof log.client === 'object' ? log.client : clients.find(c => c._id === log.client);
+              return (
+                <tr key={log._id || idx} style={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
+                  <td>{log.dateTime ? new Date(log.dateTime).toLocaleString() : ''}</td>
+                  <td>{asset?.plateNumber || '-'}</td>
+                  <td>{asset?.description || '-'}</td>
+                  <td>{log.currentKm}</td>
+                  <td>{log.lastKm}</td>
+                  <td>{log.distanceTraveled}</td>
+                  <td>{client?.name || '-'}</td>
+                  <td>{log.type}</td>
+                  <td>{log.litresConsumed}</td>
+                  <td>{log.pricePerLitre}</td>
+                  <td>{log.totalCost}</td>
+                  <td>
+                    <Box display="flex" gap={1}>
+                      <IconButton color="primary" onClick={() => handleOpen(log)}><EditIcon /></IconButton>
+                      <IconButton color="error" onClick={() => setDeleteId(log._id!)}><DeleteIcon /></IconButton>
+                    </Box>
+                  </td>
                 </tr>
-              ))}
+              );
+            })}
           </tbody>
         </table>
         {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
@@ -319,22 +345,63 @@ const FuelLogsPage: React.FC = () => {
         <DialogTitle>{editingId ? 'Edit Fuel Log' : 'Add Fuel Log'}</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField label="Date" name="date" value={form.date} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-            <TextField label="Vehicle" name="vehicle" value={form.vehicle} onChange={handleFormChange} fullWidth />
-            <TextField select label="Driver" name="driver" value={form.driver} onChange={handleFormChange} required fullWidth>
-              <MenuItem value="">Select Driver</MenuItem>
-              {drivers.map((d: any) => (
-                <MenuItem key={d._id} value={d._id}>{d.name}</MenuItem>
+            <TextField label="Date/Time" name="dateTime" value={form.dateTime} onChange={handleFormChange} type="datetime-local" InputLabelProps={{ shrink: true }} required fullWidth />
+            <TextField
+              label="Search Plate/Asset"
+              value={assetSearch}
+              onChange={e => setAssetSearch(e.target.value)}
+              placeholder="Search by plate or description"
+              fullWidth
+            />
+            <TextField
+              select
+              label="Select Vehicle (Plate)"
+              name="asset"
+              value={form.asset}
+              onChange={handleFormChange}
+              required
+              fullWidth
+            >
+              <MenuItem value="">Select Vehicle</MenuItem>
+              {filteredAssets.map(asset => (
+                <MenuItem key={asset._id} value={asset._id}>
+                  {asset.plateNumber} - {asset.description}
+                </MenuItem>
               ))}
             </TextField>
-            <TextField label="Liters" name="liters" value={form.liters} onChange={handleFormChange} type="number" required fullWidth />
-            <TextField label="Cost" name="cost" value={form.cost} onChange={handleFormChange} type="number" required fullWidth />
-            <TextField select label="Project" name="project" value={form.project} onChange={handleFormChange} required fullWidth>
-              <MenuItem value="">Select Project</MenuItem>
-              {projects.map((p: any) => (
-                <MenuItem key={p._id} value={p._id}>{p.name}</MenuItem>
+            <TextField label="Current KM" name="currentKm" value={form.currentKm} onChange={handleFormChange} type="number" required fullWidth />
+            <TextField label="Last KM" name="lastKm" value={form.lastKm} onChange={handleFormChange} type="number" required fullWidth />
+            <TextField label="Distance Traveled" name="distanceTraveled" value={form.distanceTraveled || (form.currentKm && form.lastKm ? Number(form.currentKm) - Number(form.lastKm) : '')} InputProps={{ readOnly: true }} fullWidth />
+            <TextField
+              select
+              label="Client"
+              name="client"
+              value={form.client}
+              onChange={handleFormChange}
+              required
+              fullWidth
+            >
+              <MenuItem value="">Select Client</MenuItem>
+              {clients.map(client => (
+                <MenuItem key={client._id} value={client._id}>{client.name}</MenuItem>
               ))}
             </TextField>
+            <TextField
+              select
+              label="Type"
+              name="type"
+              value={form.type}
+              onChange={handleFormChange}
+              required
+              fullWidth
+            >
+              <MenuItem value="">Select Type</MenuItem>
+              <MenuItem value="callout">Callout</MenuItem>
+              <MenuItem value="monthly">Monthly</MenuItem>
+            </TextField>
+            <TextField label="Litres Consumed" name="litresConsumed" value={form.litresConsumed} onChange={handleFormChange} type="number" required fullWidth InputProps={{ endAdornment: <InputAdornment position="end">L</InputAdornment> }} />
+            <TextField label="Price per Litre" name="pricePerLitre" value={form.pricePerLitre} onChange={handleFormChange} type="number" required fullWidth InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} />
+            <TextField label="Total Cost" name="totalCost" value={form.totalCost || (form.litresConsumed && form.pricePerLitre ? Number(form.litresConsumed) * Number(form.pricePerLitre) : '')} InputProps={{ readOnly: true, endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
             {error && <Alert severity="error">{error}</Alert>}
           </Box>
         </DialogContent>
