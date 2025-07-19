@@ -134,8 +134,9 @@ const TripAllowancePage: React.FC = () => {
   };
 
   // Calculate totals for each column
+  const safeMonthData = Array.isArray(monthData) ? monthData : [];
   const totals = {
-    allowance: monthData.reduce((sum, r) => sum + Number(r.allowance || 0), 0),
+    allowance: safeMonthData.reduce((sum, r) => sum + Number(r.allowance || 0), 0),
   };
 
   return (
@@ -166,7 +167,7 @@ const TripAllowancePage: React.FC = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {monthData.map((row, idx) => (
+            {safeMonthData.map((row, idx) => (
               <TableRow key={row._id || idx}>
                 <TableCell>{row.srJobTitle}</TableCell>
                 <TableCell>{row.name}</TableCell>

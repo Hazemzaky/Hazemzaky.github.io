@@ -62,10 +62,16 @@ const ProcurementPage: React.FC = () => {
 
   // Quotation state
   const [quotations, setQuotations] = useState<any[]>([]);
-  const [quotationForm, setQuotationForm] = useState({
+  const [quotationForm, setQuotationForm] = useState<{
+    purchaseRequest: string;
+    vendors: any[];
+    responses: any[];
+    selectedVendor: any;
+    justification: string;
+  }>({
     purchaseRequest: '',
-    vendors: [] as any[],
-    responses: [] as any[],
+    vendors: [],
+    responses: [],
     selectedVendor: '',
     justification: '',
   });
@@ -157,7 +163,9 @@ const ProcurementPage: React.FC = () => {
   const fetchGRNs = async () => {
     try {
       const res = await api.get('/goods-receipts');
-      setGRNs(Array.isArray(res.data) ? res.data : []);
+      const grnData = Array.isArray(res.data) ? res.data : [];
+      console.log('Fetched GRNs:', grnData); // Debug log
+      setGRNs(grnData);
     } catch (e) {
       setSnackbar({ open: true, message: 'Failed to fetch GRNs', severity: 'error' });
     }
@@ -343,12 +351,10 @@ const ProcurementPage: React.FC = () => {
       }
       const res = await api.post('/vendors', {
         name: vendorForm.name,
-        contactInfo: {
-          phone: vendorForm.phone,
-          email: vendorForm.email,
-          address: vendorForm.address,
-        },
-        documents: { tradeLicense },
+        phone: vendorForm.phone,
+        email: vendorForm.email,
+        address: vendorForm.address,
+        tradeLicense,
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -404,6 +410,10 @@ const ProcurementPage: React.FC = () => {
   // Submit new Quotation
   const handleQuotationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (quotationForm.vendors.length === 0) {
+      setSnackbar({ open: true, message: 'Please select at least one vendor.', severity: 'error' });
+      return;
+    }
     setQuotationSubmitting(true);
     try {
       const responses = quotationForm.responses.map((r) => ({
@@ -413,13 +423,28 @@ const ProcurementPage: React.FC = () => {
         notes: r.notes,
         status: 'submitted',
       }));
-      const res = await api.post('/quotations', {
+      // Required fields for backend
+      const today = new Date();
+      const quotationDate = today.toISOString();
+      const validUntil = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const clientName = quotationForm.vendors[0]?.name || 'N/A';
+      const payload: any = {
+        quotationDate,
+        validUntil,
+        clientName,
         purchaseRequest: quotationForm.purchaseRequest,
         vendors: quotationForm.vendors.map((v) => v._id),
         responses,
-        selectedVendor: quotationForm.selectedVendor,
         justification: quotationForm.justification,
-      }, {
+      };
+      if (
+        quotationForm.selectedVendor &&
+        typeof quotationForm.selectedVendor === 'object' &&
+        '_id' in quotationForm.selectedVendor
+      ) {
+        payload.selectedVendor = quotationForm.selectedVendor._id;
+      }
+      const res = await api.post('/quotations', payload, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -439,6 +464,21 @@ const ProcurementPage: React.FC = () => {
   // Submit new GRN
   const handleGRNSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Frontend validation for required fields
+    if (!grnForm.purchaseOrder) {
+      setSnackbar({ open: true, message: 'Purchase Order is required.', severity: 'error' });
+      return;
+    }
+    if (!grnForm.receivedDate) {
+      setSnackbar({ open: true, message: 'Received Date is required.', severity: 'error' });
+      return;
+    }
+    if (!grnForm.items.length || grnForm.items.some(item => !item.description || !item.quantity)) {
+      setSnackbar({ open: true, message: 'All items must have a description and quantity.', severity: 'error' });
+      return;
+    }
+
     setGRNSubmitting(true);
     try {
       // File upload placeholder
@@ -452,14 +492,18 @@ const ProcurementPage: React.FC = () => {
         damaged: item.damaged ? Number(item.damaged) : undefined,
         delayNotes: item.delayNotes,
       }));
-      const res = await api.post('/goods-receipts', {
+      const payload: any = {
         purchaseOrder: grnForm.purchaseOrder,
-        receivedBy: grnForm.receivedBy,
         receivedDate: grnForm.receivedDate,
         items,
         documents,
         status: grnForm.status,
-      }, {
+      };
+      // Only send receivedBy if it looks like a valid ObjectId (24 hex chars)
+      if (grnForm.receivedBy && /^[a-f\d]{24}$/i.test(grnForm.receivedBy)) {
+        payload.receivedBy = grnForm.receivedBy;
+      }
+      const res = await api.post('/goods-receipts', payload, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -753,6 +797,7 @@ const ProcurementPage: React.FC = () => {
                     <TableCell>Name</TableCell>
                     <TableCell>Phone</TableCell>
                     <TableCell>Email</TableCell>
+                    <TableCell>Address</TableCell>
                     <TableCell>Status</TableCell>
                     <TableCell>Registration</TableCell>
                     <TableCell>Rating</TableCell>
@@ -765,8 +810,9 @@ const ProcurementPage: React.FC = () => {
                     <TableRow key={v._id}>
                       <TableCell>{v._id.slice(-6)}</TableCell>
                       <TableCell>{v.name}</TableCell>
-                      <TableCell>{v.contactInfo?.phone}</TableCell>
-                      <TableCell>{v.contactInfo?.email}</TableCell>
+                      <TableCell>{v.phone || v.contactInfo?.phone || '-'}</TableCell>
+                      <TableCell>{v.email || v.contactInfo?.email || '-'}</TableCell>
+                      <TableCell>{v.address || v.contactInfo?.address || '-'}</TableCell>
                       <TableCell>{v.status}</TableCell>
                       <TableCell>{v.registrationStatus}</TableCell>
                       <TableCell>{v.rating ?? '-'}</TableCell>
@@ -910,7 +956,7 @@ const ProcurementPage: React.FC = () => {
                   getOptionLabel={(option) => option.name}
                   value={quotationForm.vendors}
                   onChange={handleQuotationVendorsChange}
-                  renderInput={(params) => <TextField {...params} label="Vendors" required />}
+                  renderInput={(params) => <TextField {...params} label="Vendors" />}
                 />
                 <Typography variant="subtitle1">Quote Responses</Typography>
                 {quotationForm.responses.map((r, idx) => (
@@ -1045,19 +1091,27 @@ const ProcurementPage: React.FC = () => {
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
-                <TableBody>
-                  {grns.map((grn) => (
-                    <TableRow key={grn._id}>
-                      <TableCell>{grn.purchaseOrder?.poNumber || grn.purchaseOrder}</TableCell>
-                      <TableCell>{grn.receivedBy?.email || grn.receivedBy}</TableCell>
-                      <TableCell>{new Date(grn.receivedDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{grn.status}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => setGRNDialog({ open: true, grn })}><InfoIcon /></IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                                  <TableBody>
+                    {grns.map((grn) => (
+                      <TableRow key={grn._id}>
+                        <TableCell>{grn.purchaseOrder?.poNumber || grn.purchaseOrder}</TableCell>
+                        <TableCell>
+                          {grn.receivedBy?.email || grn.receivedBy?._id || grn.receivedBy || '-'}
+                          {/* Debug info */}
+                          {process.env.NODE_ENV === 'development' && (
+                            <Typography variant="caption" display="block" color="textSecondary">
+                              Raw: {JSON.stringify(grn.receivedBy)}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>{new Date(grn.receivedDate).toLocaleDateString()}</TableCell>
+                        <TableCell>{grn.status}</TableCell>
+                        <TableCell>
+                          <IconButton onClick={() => setGRNDialog({ open: true, grn })}><InfoIcon /></IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
               </Table>
             </TableContainer>
             {/* GRN Details Dialog */}

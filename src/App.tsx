@@ -14,6 +14,7 @@ import TrialBalancePage from './pages/TrialBalancePage';
 import GeneralLedgerPage from './pages/GeneralLedgerPage';
 import PeriodsPage from './pages/PeriodsPage';
 import EmployeesPage from './pages/EmployeesPage';
+import EmployeeProfilePage from './pages/EmployeeProfilePage';
 import PayrollPage from './pages/PayrollPage';
 import ReimbursementsPage from './pages/ReimbursementsPage';
 import LeavePage from './pages/LeavePage';
@@ -101,6 +102,7 @@ const App: React.FC = () => {
               <Route path="/general-ledger" element={<GeneralLedgerPage />} />
               <Route path="/periods" element={<PeriodsPage />} />
               <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/employees/:id" element={<EmployeeProfilePage />} />
               <Route path="/payroll" element={<PayrollPage />} />
               <Route path="/reimbursements" element={<ReimbursementsPage />} />
               <Route path="/leave" element={<LeavePage />} />
