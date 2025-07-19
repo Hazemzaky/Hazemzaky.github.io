@@ -649,9 +649,12 @@ const AdminPage: React.FC = () => {
   const fetchCountryGuidelines = async () => {
     try {
       const res = await api.get('/travel/country-guidelines');
-      setCountryGuidelines((res.data as any[]) || []);
+      // Ensure countryGuidelines is always an array
+      setCountryGuidelines(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setGuidelineError(err.response?.data?.message || 'Failed to fetch country guidelines');
+      // Set empty array on error to prevent .map() errors
+      setCountryGuidelines([]);
     }
   };
 
@@ -792,9 +795,12 @@ const AdminPage: React.FC = () => {
     setError('');
     try {
       const res = await api.get('/admin/employee-residencies');
-      setRecords(res.data as any[]);
+      // Ensure records is always an array
+      setRecords(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch records');
+      // Set empty array on error to prevent .map() errors
+      setRecords([]);
     } finally {
       setLoading(false);
     }
@@ -803,9 +809,12 @@ const AdminPage: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       const res = await api.get('/admin/employees');
-      setEmployees(res.data as any[]);
+      // Ensure employees is always an array
+      setEmployees(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       console.error('Failed to fetch employees:', err);
+      // Set empty array on error to prevent .map() errors
+      setEmployees([]);
     }
   };
 
@@ -814,9 +823,12 @@ const AdminPage: React.FC = () => {
     setGovDocError('');
     try {
       const res = await api.get('/admin/government-documents');
-      setGovDocs(res.data as any[]);
+      // Ensure govDocs is always an array
+      setGovDocs(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setGovDocError(err.response?.data?.message || 'Failed to fetch documents');
+      // Set empty array on error to prevent .map() errors
+      setGovDocs([]);
     } finally {
       setGovDocLoading(false);
     }
@@ -1036,9 +1048,12 @@ const AdminPage: React.FC = () => {
     setVehicleError('');
     try {
       const res = await api.get('/admin/vehicle-registrations');
-      setVehicles(res.data as any[]);
+      // Ensure vehicles is always an array
+      setVehicles(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setVehicleError(err.response?.data?.message || 'Failed to fetch vehicles');
+      // Set empty array on error to prevent .map() errors
+      setVehicles([]);
     } finally {
       setLoading(false);
     }
@@ -1047,9 +1062,12 @@ const AdminPage: React.FC = () => {
   const fetchAssets = async () => {
     try {
       const res = await api.get('/admin/assets');
-      setAssets(res.data as any[]);
+      // Ensure assets is always an array
+      setAssets(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       console.error('Failed to fetch assets:', err);
+      // Set empty array on error to prevent .map() errors
+      setAssets([]);
     }
   };
 
@@ -1100,9 +1118,12 @@ const AdminPage: React.FC = () => {
     setCorrespondenceError('');
     try {
       const res = await api.get('/admin/government-correspondence');
-      setCorrespondences(res.data as any[]);
+      // Ensure correspondences is always an array
+      setCorrespondences(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setCorrespondenceError(err.response?.data?.message || 'Failed to fetch correspondences');
+      // Set empty array on error to prevent .map() errors
+      setCorrespondences([]);
     } finally {
       setLoading(false);
     }
@@ -1224,9 +1245,12 @@ const AdminPage: React.FC = () => {
     setLegalCaseError('');
     try {
       const res = await api.get('/admin/legal-cases');
-      setLegalCases(res.data as any[]);
+      // Ensure legalCases is always an array
+      setLegalCases(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setLegalCaseError(err.response?.data?.message || 'Failed to fetch legal cases');
+      // Set empty array on error to prevent .map() errors
+      setLegalCases([]);
     } finally {
       setLoading(false);
     }
@@ -1392,9 +1416,12 @@ const AdminPage: React.FC = () => {
     setFacilityError('');
     try {
       const res = await api.get('/admin/company-facilities');
-      setFacilities(res.data as any[]);
+      // Ensure facilities is always an array
+      setFacilities(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setFacilityError(err.response?.data?.message || 'Failed to fetch facilities');
+      // Set empty array on error to prevent .map() errors
+      setFacilities([]);
     } finally {
       setLoading(false);
     }
@@ -2523,7 +2550,7 @@ const AdminPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {records.map((rec) => (
+                    {Array.isArray(records) && records.map((rec) => (
                       <TableRow key={rec._id}>
                         <TableCell>{rec.employee?.name || rec.employee}</TableCell>
                         <TableCell>{rec.coId || '-'}</TableCell>
@@ -2595,7 +2622,7 @@ const AdminPage: React.FC = () => {
                 <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                   <TextField select label="Employee" name="employee" value={form.employee} onChange={handleFormChange} required fullWidth>
                     <MenuItem value="">Select Employee</MenuItem>
-                    {employees.map(emp => (
+                    {Array.isArray(employees) && employees.map(emp => (
                       <MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>
                     ))}
                   </TextField>
@@ -2827,7 +2854,7 @@ const AdminPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {govDocs.map((doc) => (
+                    {Array.isArray(govDocs) && govDocs.map((doc) => (
                       <TableRow key={doc._id}>
                         <TableCell>{documentTypes.find(d => d.value === doc.documentType)?.label || doc.documentType}</TableCell>
                         <TableCell>{doc.documentNumber}</TableCell>
@@ -2954,7 +2981,7 @@ const AdminPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {vehicles.map((vehicle) => (
+                    {Array.isArray(vehicles) && vehicles.map((vehicle) => (
                       <TableRow key={vehicle._id}>
                         <TableCell>{vehicle.vehicle?.description || vehicle.vehicle}</TableCell>
                         <TableCell>{vehicle.plateNumber}</TableCell>
@@ -3015,7 +3042,7 @@ const AdminPage: React.FC = () => {
                   <Box display="flex" gap={2}>
                     <TextField select label="Vehicle" name="vehicle" value={vehicleForm.vehicle} onChange={handleVehicleFormChange} required fullWidth>
                       <MenuItem value="">Select Vehicle</MenuItem>
-                      {assets.map(asset => (
+                      {Array.isArray(assets) && assets.map(asset => (
                         <MenuItem key={asset._id} value={asset._id}>{asset.description} - {asset.plateNumber || asset.serialNumber || asset.fleetNumber}</MenuItem>
                       ))}
                     </TextField>
@@ -3275,7 +3302,7 @@ const AdminPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {correspondences.map((corr) => (
+                    {Array.isArray(correspondences) && correspondences.map((corr) => (
                       <TableRow key={corr._id}>
                         <TableCell>{corr.referenceNumber}</TableCell>
                         <TableCell>{corr.subject}</TableCell>
@@ -3441,7 +3468,7 @@ const AdminPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {legalCases.map((case_) => (
+                    {Array.isArray(legalCases) && legalCases.map((case_) => (
                       <TableRow key={case_._id}>
                         <TableCell>{case_.caseNumber}</TableCell>
                         <TableCell>{case_.title}</TableCell>
@@ -3622,7 +3649,7 @@ const AdminPage: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {facilities.map((facility) => (
+                    {Array.isArray(facilities) && facilities.map((facility) => (
                       <TableRow key={facility._id}>
                         <TableCell>{facility.facilityName}</TableCell>
                         <TableCell>{facility.facilityType}</TableCell>
