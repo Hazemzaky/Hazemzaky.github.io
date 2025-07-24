@@ -196,6 +196,8 @@ const NavBar: React.FC = () => {
               <MenuItem component={RouterLink} to="/journal-entries" onClick={handleAccountingMenuClose}>Journal Entries</MenuItem>
               <MenuItem component={RouterLink} to="/trial-balance" onClick={handleAccountingMenuClose}>Trial Balance</MenuItem>
               <MenuItem component={RouterLink} to="/general-ledger" onClick={handleAccountingMenuClose}>General Ledger</MenuItem>
+              <MenuItem component={RouterLink} to="/accounting/pnl" onClick={handleAccountingMenuClose}>Profit & Loss (P&L)</MenuItem>
+              <MenuItem component={RouterLink} to="/accounting/reconciliation" onClick={handleAccountingMenuClose}>Reconciliation</MenuItem>
               <MenuItem component={RouterLink} to="/periods" onClick={handleAccountingMenuClose}>Period Closing</MenuItem>
               <MenuItem onClick={() => navigate('/expenses')}>Expenses</MenuItem>
               <MenuItem onClick={() => navigate('/income')}>Income</MenuItem>
@@ -214,6 +216,9 @@ const NavBar: React.FC = () => {
             <MenuItem component={RouterLink} to="/payroll" onClick={handleHrMenuClose}>Payroll</MenuItem>
             <MenuItem component={RouterLink} to="/reimbursements" onClick={handleHrMenuClose}>Reimbursements</MenuItem>
             <MenuItem component={RouterLink} to="/leave" onClick={handleHrMenuClose}>Leave</MenuItem>
+            <MenuItem component={RouterLink} to="/vacation" onClick={handleHrMenuClose}>Employee Vacation</MenuItem>
+            <MenuItem component={RouterLink} to="/vacation/hr" onClick={handleHrMenuClose}>HR Vacation Management</MenuItem>
+            <MenuItem component={RouterLink} to="/business-trips" onClick={handleHrMenuClose}>Business Trip Management</MenuItem>
           </Menu>
           <Button color="inherit" onClick={handleAssetsMenuOpen} aria-controls="assets-menu" aria-haspopup="true">Assets</Button>
           <Menu

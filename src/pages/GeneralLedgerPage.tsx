@@ -1,31 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Card, CardContent, Snackbar, Alert, TextField, MenuItem, Button
-} from '@mui/material';
-import api from '../apiBase';
+import { Box, Typography, Paper, Button, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
+import AccountingSidebar from '../components/AccountingSidebar';
+import axios from 'axios';
 
-interface LedgerEntry {
-  date: string;
-  description: string;
-  debit: number;
-  credit: number;
-  balance: number;
-  entryId: string;
-  reference?: string;
-}
-interface Account {
-  _id: string;
-  name: string;
-  code: string;
-}
+const departments = ['All', 'Logistics', 'Finance', 'IT', 'HR'];
 
 const GeneralLedgerPage: React.FC = () => {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<{ _id: string; name: string; code: string }[]>([]);
   const [selectedAccount, setSelectedAccount] = useState('');
-  const [period, setPeriod] = useState('');
-  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [department, setDepartment] = useState('All');
+  const [dateRange, setDateRange] = useState('');
+  const [ledger, setLedger] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [drillEntry, setDrillEntry] = useState<any | null>(null);
+  const [drillOpen, setDrillOpen] = useState(false);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -33,11 +23,10 @@ const GeneralLedgerPage: React.FC = () => {
 
   const fetchAccounts = async () => {
     try {
-      const res = await api.get<Account[]>('/accounts');
-      // Explicitly type the response as Account[]
-      setAccounts(res.data as Account[]);
+      const res = await axios.get('/api/accounts');
+      setAccounts(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch accounts');
+      setError('Failed to fetch accounts');
     }
   };
 
@@ -47,92 +36,121 @@ const GeneralLedgerPage: React.FC = () => {
     setError('');
     try {
       const params: any = { accountId: selectedAccount };
-      if (period) params.period = period;
-      const res = await api.get<LedgerEntry[]>('/accounts/general-ledger', { params });
-      // Explicitly type the response as LedgerEntry[]
-      setLedger(res.data as LedgerEntry[]);
+      // Optionally add period/dateRange/department filters
+      const res = await axios.get('/api/accounts/general-ledger', { params });
+      setLedger(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch ledger');
+      setError('Failed to fetch ledger');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleDrillDown = async (entryId: string) => {
+    setDrillLoading(true);
+    setDrillOpen(true);
+    try {
+      const res = await axios.get(`/api/journal-entries`, { params: { _id: entryId } });
+      setDrillEntry(Array.isArray(res.data) ? res.data[0] : null);
+    } catch (err) {
+      setDrillEntry(null);
+    } finally {
+      setDrillLoading(false);
+    }
+  };
+
   return (
-    <Box p={3}>
-      <Typography variant="h4" mb={3}>General Ledger</Typography>
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box display="flex" gap={2} alignItems="center">
-            <TextField
-              select
-              label="Account"
-              value={selectedAccount}
-              onChange={e => setSelectedAccount(e.target.value)}
-              sx={{ minWidth: 250 }}
-            >
+    <Box sx={{ display: 'flex', minHeight: '100vh', background: '#fafdff' }}>
+      <AccountingSidebar />
+      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, ml: '220px', width: '100%' }}>
+        <Typography variant="h4" fontWeight={700} color="text.primary" mb={3}>General Ledger Overview</Typography>
+        <Paper sx={{ p: 3, borderRadius: 4, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', mb: 3 }}>
+          <Box display="flex" gap={2} mb={2} flexWrap="wrap">
+            <TextField select label="Account" value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)} sx={{ minWidth: 200 }}>
               <MenuItem value="">Select Account</MenuItem>
-              {accounts.map(a => (
-                <MenuItem key={a._id} value={a._id}>{a.name} ({a.code})</MenuItem>
-              ))}
+              {accounts.map(acc => <MenuItem key={acc._id} value={acc._id}>{acc.name} ({acc.code})</MenuItem>)}
             </TextField>
-            <TextField
-              label="Period"
-              value={period}
-              onChange={e => setPeriod(e.target.value)}
-              placeholder="e.g. 2024-Q2 or 2024-05"
-              sx={{ minWidth: 180 }}
-            />
-            <Button variant="contained" color="primary" onClick={fetchLedger} disabled={!selectedAccount}>
-              Load Ledger
-            </Button>
+            <TextField select label="Department" value={department} onChange={e => setDepartment(e.target.value)} sx={{ minWidth: 160 }}>
+              {departments.map(dep => <MenuItem key={dep} value={dep}>{dep}</MenuItem>)}
+            </TextField>
+            <TextField label="Date Range" value={dateRange} onChange={e => setDateRange(e.target.value)} sx={{ minWidth: 180 }} />
+            <Button variant="contained" sx={{ fontWeight: 600 }} onClick={fetchLedger} disabled={!selectedAccount}>Load Ledger</Button>
+            <Button variant="contained" sx={{ fontWeight: 600 }}>Export</Button>
           </Box>
-        </CardContent>
-      </Card>
-      <Paper sx={{ p: 2, overflowX: 'auto' }}>
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-            <CircularProgress />
-          </Box>
-        ) : ledger.length > 0 ? (
-          <TableContainer>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow sx={{ background: '#f5f5f5' }}>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Debit</TableCell>
-                  <TableCell>Credit</TableCell>
-                  <TableCell>Balance</TableCell>
-                  <TableCell>Reference</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {ledger.map((l, idx) => (
-                  <TableRow key={l.entryId + idx} sx={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
-                    <TableCell>{new Date(l.date).toLocaleDateString()}</TableCell>
-                    <TableCell>{l.description}</TableCell>
-                    <TableCell>{l.debit}</TableCell>
-                    <TableCell>{l.credit}</TableCell>
-                    <TableCell>{l.balance}</TableCell>
-                    <TableCell>{l.reference || '-'}</TableCell>
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}><CircularProgress /></Box>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Debit</TableCell>
+                    <TableCell>Credit</TableCell>
+                    <TableCell>Balance</TableCell>
+                    <TableCell>Reference</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : (
-          <Typography variant="body1" color="text.secondary" align="center">No data to display</Typography>
-        )}
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      </Paper>
-      <Snackbar
-        open={!!error}
-        autoHideDuration={3000}
-        onClose={() => setError('')}
-        message={error}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      />
+                </TableHead>
+                <TableBody>
+                  {ledger.map((row, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{row.description}</TableCell>
+                      <TableCell>{row.debit}</TableCell>
+                      <TableCell>{row.credit}</TableCell>
+                      <TableCell>{row.balance}</TableCell>
+                      <TableCell>{row.reference || '-'}</TableCell>
+                      <TableCell>
+                        <Button size="small" variant="outlined" onClick={() => handleDrillDown(row.entryId)}>Drill Down</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          {error && <Typography color="error" mt={2}>{error}</Typography>}
+        </Paper>
+        {/* Drill Down Modal */}
+        <Dialog open={drillOpen} onClose={() => setDrillOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>Journal Entry Details</DialogTitle>
+          <DialogContent>
+            {drillLoading ? <CircularProgress /> : drillEntry ? (
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>Date: {new Date(drillEntry.date).toLocaleDateString()}</Typography>
+                <Typography variant="subtitle1">Reference: {drillEntry.reference || '-'}</Typography>
+                <Typography variant="subtitle1">Description: {drillEntry.description}</Typography>
+                <Divider sx={{ my: 2 }} />
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Account</TableCell>
+                      <TableCell>Debit</TableCell>
+                      <TableCell>Credit</TableCell>
+                      <TableCell>Description</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {drillEntry.lines.map((line: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell>{typeof line.account === 'object' ? line.account.name : line.account}</TableCell>
+                        <TableCell>{line.debit}</TableCell>
+                        <TableCell>{line.credit}</TableCell>
+                        <TableCell>{line.description || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Box>
+            ) : <Typography>No details found.</Typography>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDrillOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </Box>
   );
 };

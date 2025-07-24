@@ -272,6 +272,10 @@ interface Employee {
     overtimeHours: number;
     overtimePay: number;
   };
+  // --- Work Permit fields ---
+  workPermitStart?: string;
+  workPermitEnd?: string;
+  workPermitCopy?: File | string | null;
 }
 
 const benefitOptions = [
@@ -378,6 +382,226 @@ interface AttendanceStatsResponse {
   recentRecords: AttendanceRecord[];
 }
 
+// Add a type for the form state
+interface EmployeeFormState {
+  _id?: string;
+  name?: string;
+  email?: string;
+  position?: string;
+  department?: string;
+  salary?: string;
+  benefits?: { type: string; value: number }[];
+  leaveBalance?: string;
+  active?: boolean;
+  hireDate?: string;
+  terminationDate?: string;
+  phone?: string;
+  address?: string;
+  emergencyContact?: string;
+  performanceRating?: number;
+  lastReviewDate?: string;
+  skills?: string[];
+  manager?: string;
+  location?: string;
+  employeeId?: string;
+  personalEmail?: string;
+  dateOfBirth?: string;
+  nationality?: string;
+  passportNumber?: string;
+  civilId?: string;
+  gender?: 'male' | 'female' | 'other' | '';
+  maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed' | '';
+  employmentType?: 'full-time' | 'part-time' | 'contractor' | 'daily' | '';
+  jobLevel?: string;
+  hourlyRate?: string;
+  site?: string;
+  status?: 'active' | 'on-leave' | 'resigned' | 'suspended' | '';
+  driverLicense?: {
+    number: string;
+    expiryDate: string;
+    type: string;
+  };
+  vehicleAssignment?: {
+    vehicleId: string;
+    vehicleType: string;
+    assignedDate: string;
+  };
+  workShifts?: Array<{
+    id: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+    days: string[];
+  }>;
+  certifications?: Array<{
+    id: string;
+    name: string;
+    type: 'forklift' | 'hse' | 'hazmat' | 'other';
+    issueDate: string;
+    expiryDate: string;
+    status: 'valid' | 'expired' | 'expiring-soon';
+  }>;
+  compensationHistory?: Array<{
+    date: string;
+    amount: number;
+    type: string;
+    reason: string;
+  }>;
+  bonusRecords?: Array<{
+    date: string;
+    amount: number;
+    type: string;
+    description: string;
+  }>;
+  allowances?: {
+    transport: number;
+    housing: number;
+    meal: number;
+    other: number;
+  };
+  bankInfo?: {
+    bankName: string;
+    accountNumber: string;
+    iban: string;
+  };
+  payrollIncluded?: boolean;
+  bonusEligible?: boolean;
+  leaveBalanceDetails?: {
+    vacation: number;
+    sick: number;
+    personal: number;
+    other: number;
+  };
+  upcomingLeaves?: Array<{
+    startDate: string;
+    endDate: string;
+    type: string;
+    status: string;
+  }>;
+  attendanceLog?: Array<{
+    date: string;
+    checkIn: string;
+    checkOut: string;
+    hours: number;
+    status: 'present' | 'absent' | 'late' | 'on-leave';
+  }>;
+  attendancePercentage?: number;
+  absenceFrequency?: number;
+  performance?: {
+    lastReviewDate: string;
+    rating: number;
+    goals: Array<{
+      id: string;
+      title: string;
+      description: string;
+      progress: number;
+      dueDate: string;
+      status: string;
+    }>;
+    feedback: Array<{
+      date: string;
+      reviewer: string;
+      rating: number;
+      comments: string;
+      tags: string[];
+    }>;
+    kpis?: {
+      deliveryTimeliness: number;
+      customerComplaints: number;
+      vehicleUtilization: number;
+      delayPercentage: number;
+    };
+  };
+  documents?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    uploadDate: string;
+    expiryDate?: string;
+    status: 'valid' | 'expired' | 'expiring-soon';
+    category: 'id' | 'contract' | 'medical' | 'training' | 'license' | 'other';
+  }>;
+  compliance?: {
+    visaExpiry?: string;
+    workPermitExpiry?: string;
+    medicalCheckExpiry?: string;
+    insuranceStatus: 'active' | 'expired' | 'pending';
+  };
+  timeline?: Array<{
+    id: string;
+    date: string;
+    event: string;
+    description: string;
+    type: 'join' | 'promotion' | 'leave' | 'warning' | 'training' | 'contract-renewal';
+  }>;
+  hrActions?: Array<{
+    id: string;
+    date: string;
+    action: string;
+    performedBy: string;
+    notes: string;
+  }>;
+  recognition?: Array<{
+    id: string;
+    type: 'employee-of-month' | 'safety-milestone' | 'performance-award' | 'peer-compliment';
+    title: string;
+    date: string;
+    description: string;
+  }>;
+  equipment?: Array<{
+    id: string;
+    type: 'laptop' | 'phone' | 'uniform' | 'rfid-badge' | 'vehicle' | 'other';
+    name: string;
+    assignedDate: string;
+    returnDate?: string;
+    status: 'assigned' | 'returned' | 'lost';
+  }>;
+  privateNotes?: string;
+  hrNotes?: Array<{
+    id: string;
+    date: string;
+    note: string;
+    hrPersonnel: string;
+    followUpDate?: string;
+  }>;
+  orgChart?: {
+    manager?: string;
+    directReports?: string[];
+    peers?: string[];
+  };
+  skillTags?: Array<{
+    name: string;
+    level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    endorsedBy: string[];
+  }>;
+  customTags?: string[];
+  attritionRisk?: 'low' | 'medium' | 'high' | '';
+  officeLocation?: string;
+  workMode?: 'office' | 'remote' | 'hybrid' | '';
+  emergencyContacts?: Array<{
+    name: string;
+    relationship: string;
+    phone: string;
+    email?: string;
+  }>;
+  readinessTracker?: {
+    licenseValid: boolean;
+    safetyTraining: boolean;
+    medicallyFit: boolean;
+    vehicleAssigned: boolean;
+    readyForField: boolean;
+  };
+  overtime?: {
+    weeklyHours: number;
+    monthlyHours: number;
+    overtimeHours: number;
+    overtimePay: number;
+  };
+  workPermitStart?: string;
+  workPermitEnd?: string;
+  workPermitCopy?: string | File | null;
+}
+
 const EmployeesPage: React.FC = () => {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -399,19 +623,19 @@ const EmployeesPage: React.FC = () => {
     searchBy: 'name' as 'name' | 'id' | 'email' | 'phone'
   });
   
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<EmployeeFormState>({
     name: '',
     email: '',
     phone: '',
     position: '',
     department: '',
     salary: '',
-    benefits: [] as { type: string; value: number }[],
+    benefits: [],
     leaveBalance: '',
     hireDate: '',
     address: '',
     emergencyContact: '',
-    skills: [] as string[],
+    skills: [],
     manager: '',
     location: '',
     // Enhanced comprehensive fields
@@ -432,60 +656,21 @@ const EmployeesPage: React.FC = () => {
     workMode: 'office' as 'office' | 'remote' | 'hybrid',
     
     // Logistics-specific fields
-    driverLicense: {
-      number: '',
-      expiryDate: '',
-      type: ''
-    },
-    vehicleAssignment: {
-      vehicleId: '',
-      vehicleType: '',
-      assignedDate: ''
-    },
-    workShifts: [] as Array<{
-      id: string;
-      name: string;
-      startTime: string;
-      endTime: string;
-      days: string[];
-    }>,
-    certifications: [] as Array<{
-      id: string;
-      name: string;
-      type: 'forklift' | 'hse' | 'hazmat' | 'other';
-      issueDate: string;
-      expiryDate: string;
-      status: 'valid' | 'expired' | 'expiring-soon';
-    }>,
+    driverLicense: { number: '', expiryDate: '', type: '' },
+    vehicleAssignment: { vehicleId: '', vehicleType: '', assignedDate: '' },
+    workShifts: [],
+    certifications: [],
     
     // Compensation & Benefits
-    allowances: {
-      transport: 0,
-      housing: 0,
-      meal: 0,
-      other: 0
-    },
-    bankInfo: {
-      bankName: '',
-      accountNumber: '',
-      iban: ''
-    },
+    allowances: { transport: 0, housing: 0, meal: 0, other: 0 },
+    bankInfo: { bankName: '', accountNumber: '', iban: '' },
     payrollIncluded: true,
     bonusEligible: true,
     
     // Emergency Contacts & Skills
-    emergencyContacts: [] as Array<{
-      name: string;
-      relationship: string;
-      phone: string;
-      email?: string;
-    }>,
-    skillTags: [] as Array<{
-      name: string;
-      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-      endorsedBy: string[];
-    }>,
-    customTags: [] as string[],
+    emergencyContacts: [],
+    skillTags: [],
+    customTags: [],
     
     // Notes & Risk
     privateNotes: '',
@@ -501,25 +686,9 @@ const EmployeesPage: React.FC = () => {
     },
     
     // Leave & Attendance
-    leaveBalanceDetails: {
-      vacation: 0,
-      sick: 0,
-      personal: 0,
-      other: 0
-    },
-    upcomingLeaves: [] as Array<{
-      startDate: string;
-      endDate: string;
-      type: string;
-      status: string;
-    }>,
-    attendanceLog: [] as Array<{
-      date: string;
-      checkIn: string;
-      checkOut: string;
-      hours: number;
-      status: 'present' | 'absent' | 'late' | 'on-leave';
-    }>,
+    leaveBalanceDetails: { vacation: 0, sick: 0, personal: 0, other: 0 },
+    upcomingLeaves: [],
+    attendanceLog: [],
     attendancePercentage: 0,
     absenceFrequency: 0,
     
@@ -527,21 +696,8 @@ const EmployeesPage: React.FC = () => {
     performance: {
       lastReviewDate: '',
       rating: 0,
-      goals: [] as Array<{
-        id: string;
-        title: string;
-        description: string;
-        progress: number;
-        dueDate: string;
-        status: string;
-      }>,
-      feedback: [] as Array<{
-        date: string;
-        reviewer: string;
-        rating: number;
-        comments: string;
-        tags: string[];
-      }>,
+      goals: [],
+      feedback: [],
       kpis: {
         deliveryTimeliness: 0,
         customerComplaints: 0,
@@ -551,15 +707,7 @@ const EmployeesPage: React.FC = () => {
     },
     
     // Documents & Compliance
-    documents: [] as Array<{
-      id: string;
-      name: string;
-      type: string;
-      uploadDate: string;
-      expiryDate?: string;
-      status: 'valid' | 'expired' | 'expiring-soon';
-      category: 'id' | 'contract' | 'medical' | 'training' | 'license' | 'other';
-    }>,
+    documents: [],
     compliance: {
       visaExpiry: '',
       workPermitExpiry: '',
@@ -568,63 +716,26 @@ const EmployeesPage: React.FC = () => {
     },
     
     // Timeline & History
-    timeline: [] as Array<{
-      id: string;
-      date: string;
-      event: string;
-      description: string;
-      type: 'join' | 'promotion' | 'leave' | 'warning' | 'training' | 'contract-renewal';
-    }>,
-    hrActions: [] as Array<{
-      id: string;
-      date: string;
-      action: string;
-      performedBy: string;
-      notes: string;
-    }>,
+    timeline: [],
+    hrActions: [],
     
     // Recognition & Awards
-    recognition: [] as Array<{
-      id: string;
-      type: 'employee-of-month' | 'safety-milestone' | 'performance-award' | 'peer-compliment';
-      title: string;
-      date: string;
-      description: string;
-    }>,
+    recognition: [],
     
     // Equipment & Assets
-    equipment: [] as Array<{
-      id: string;
-      type: 'laptop' | 'phone' | 'uniform' | 'rfid-badge' | 'vehicle' | 'other';
-      name: string;
-      assignedDate: string;
-      returnDate?: string;
-      status: 'assigned' | 'returned' | 'lost';
-    }>,
+    equipment: [],
     
     // HR Notes
-    hrNotes: [] as Array<{
-      id: string;
-      date: string;
-      note: string;
-      hrPersonnel: string;
-      followUpDate?: string;
-    }>,
+    hrNotes: [],
     
     // Organizational
-    orgChart: {
-      manager: '',
-      directReports: [] as string[],
-      peers: [] as string[]
-    },
+    orgChart: { manager: '', directReports: [], peers: [] },
     
     // Overtime & Hours
-    overtime: {
-      weeklyHours: 0,
-      monthlyHours: 0,
-      overtimeHours: 0,
-      overtimePay: 0
-    }
+    overtime: { weeklyHours: 0, monthlyHours: 0, overtimeHours: 0, overtimePay: 0 },
+    workPermitStart: '',
+    workPermitEnd: '',
+    workPermitCopy: null,
   });
   
   const [submitting, setSubmitting] = useState(false);
@@ -901,7 +1012,10 @@ const EmployeesPage: React.FC = () => {
           monthlyHours: employee.overtime?.monthlyHours || 0,
           overtimeHours: employee.overtime?.overtimeHours || 0,
           overtimePay: employee.overtime?.overtimePay || 0
-        }
+        },
+        workPermitStart: employee.workPermitStart || '',
+        workPermitEnd: employee.workPermitEnd || '',
+        workPermitCopy: typeof employee.workPermitCopy === 'string' && employee.workPermitCopy ? employee.workPermitCopy : null,
       });
       
       // Initialize attendance data
@@ -988,7 +1102,10 @@ const EmployeesPage: React.FC = () => {
         orgChart: { manager: '', directReports: [], peers: [] },
         
         // Overtime & Hours
-        overtime: { weeklyHours: 0, monthlyHours: 0, overtimeHours: 0, overtimePay: 0 }
+        overtime: { weeklyHours: 0, monthlyHours: 0, overtimeHours: 0, overtimePay: 0 },
+        workPermitStart: '',
+        workPermitEnd: '',
+        workPermitCopy: null,
       });
       setTodayAttendance(null);
       setAttendanceHistory([]);
@@ -1076,20 +1193,23 @@ const EmployeesPage: React.FC = () => {
       orgChart: { manager: '', directReports: [], peers: [] },
       
       // Overtime & Hours
-      overtime: { weeklyHours: 0, monthlyHours: 0, overtimeHours: 0, overtimePay: 0 }
+      overtime: { weeklyHours: 0, monthlyHours: 0, overtimeHours: 0, overtimePay: 0 },
+      workPermitStart: '',
+      workPermitEnd: '',
+      workPermitCopy: null,
     });
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    setForm((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const handleBenefitsChange = (event: any) => {
     const { value } = event.target;
     setForm((prev) => {
       const newBenefits = (typeof value === 'string' ? value.split(',') : value).map((type: string) => {
-        const existing = prev.benefits.find((b) => b.type === type);
+        const existing = (prev.benefits ?? []).find((b) => b.type === type);
         return existing ? existing : { type, value: 0 };
       });
       return { ...prev, benefits: newBenefits };
@@ -1099,14 +1219,14 @@ const EmployeesPage: React.FC = () => {
   const handleBenefitValueChange = (type: string, newValue: number) => {
     setForm((prev) => ({
       ...prev,
-      benefits: prev.benefits.map((b) => b.type === type ? { ...b, value: newValue } : b),
+      benefits: (prev.benefits ?? []).map((b) => b.type === type ? { ...b, value: newValue } : b),
     }));
   };
 
   const handleEmergencyContactChange = (index: number, field: string, value: string) => {
     setForm((prev) => ({
       ...prev,
-      emergencyContacts: prev.emergencyContacts.map((contact, i) => 
+      emergencyContacts: (prev.emergencyContacts ?? []).map((contact, i) => 
         i === index ? { ...contact, [field]: value } : contact
       ),
     }));
@@ -1115,21 +1235,21 @@ const EmployeesPage: React.FC = () => {
   const addEmergencyContact = () => {
     setForm((prev) => ({
       ...prev,
-      emergencyContacts: [...prev.emergencyContacts, { name: '', relationship: '', phone: '', email: '' }],
+      emergencyContacts: [...(prev.emergencyContacts ?? []), { name: '', relationship: '', phone: '', email: '' }],
     }));
   };
 
   const removeEmergencyContact = (index: number) => {
     setForm((prev) => ({
       ...prev,
-      emergencyContacts: prev.emergencyContacts.filter((_, i) => i !== index),
+      emergencyContacts: (prev.emergencyContacts ?? []).filter((_, i) => i !== index),
     }));
   };
 
   const handleSkillTagChange = (index: number, field: string, value: string) => {
     setForm((prev) => ({
       ...prev,
-      skillTags: prev.skillTags.map((tag, i) => 
+      skillTags: (prev.skillTags ?? []).map((tag, i) => 
         i === index ? { ...tag, [field]: value } : tag
       ),
     }));
@@ -1138,14 +1258,14 @@ const EmployeesPage: React.FC = () => {
   const addSkillTag = () => {
     setForm((prev) => ({
       ...prev,
-      skillTags: [...prev.skillTags, { name: '', level: 'beginner', endorsedBy: [] }],
+      skillTags: [...(prev.skillTags ?? []), { name: '', level: 'beginner', endorsedBy: [] }],
     }));
   };
 
   const removeSkillTag = (index: number) => {
     setForm((prev) => ({
       ...prev,
-      skillTags: prev.skillTags.filter((_, i) => i !== index),
+      skillTags: (prev.skillTags ?? []).filter((_, i) => i !== index),
     }));
   };
 
@@ -1262,6 +1382,11 @@ const EmployeesPage: React.FC = () => {
         skills: form.skills,
         emergencyContacts: form.emergencyContacts,
         skillTags: form.skillTags,
+        workPermitCopy: (typeof form.workPermitCopy === 'object' && form.workPermitCopy !== null && 'name' in form.workPermitCopy)
+          ? form.workPermitCopy.name
+          : typeof form.workPermitCopy === 'string'
+            ? form.workPermitCopy
+            : '',
       };
 
       if (editingId) {
@@ -1504,6 +1629,15 @@ const EmployeesPage: React.FC = () => {
     }
     
     return days;
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, files } = e.target;
+    if (name === 'workPermitCopy') {
+      setForm((prev: any) => ({ ...prev, workPermitCopy: files && files[0] ? files[0] : null }));
+    } else {
+      setForm((prev: any) => ({ ...prev, [name]: files?.[0] }));
+    }
   };
 
     return (
@@ -3012,6 +3146,45 @@ const EmployeesPage: React.FC = () => {
                         sx={{ mb: 2 }}
                       />
                     </Box>
+                    <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                      <TextField 
+                        label="Work Permit Start Date"
+                        name="workPermitStart"
+                        value={form.workPermitStart}
+                        onChange={handleFormChange}
+                        fullWidth
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ mb: 2 }}
+                      />
+                    </Box>
+                    <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                      <TextField 
+                        label="Work Permit End Date"
+                        name="workPermitEnd"
+                        value={form.workPermitEnd}
+                        onChange={handleFormChange}
+                        fullWidth
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ mb: 2 }}
+                      />
+                    </Box>
+                    <Box sx={{ flex: '1 1 300px', minWidth: 300, display: 'flex', alignItems: 'center' }}>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        sx={{ minWidth: 180, height: 56, alignSelf: 'center', mb: 2 }}
+                      >
+                        Upload Work Permit Copy
+                        <input type="file" name="workPermitCopy" hidden onChange={handleFileChange} />
+                      </Button>
+                      {form.workPermitCopy && typeof form.workPermitCopy === 'object' && 'name' in form.workPermitCopy && (
+                        <Typography variant="body2" sx={{ ml: 2, alignSelf: 'center' }}>
+                          {(form.workPermitCopy as File).name}
+                        </Typography>
+                      )}
+                    </Box>
                   </Box>
                 </Box>
               )}
@@ -3032,10 +3205,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="License Number" 
                         name="driverLicense.number" 
-                        value={form.driverLicense.number} 
+                        value={form.driverLicense?.number ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          driverLicense: { ...form.driverLicense, number: e.target.value }
+                          driverLicense: { ...(form.driverLicense ?? { number: '', expiryDate: '', type: '' }), number: e.target.value, expiryDate: form.driverLicense?.expiryDate ?? '', type: form.driverLicense?.type ?? '' }
                         })} 
                         fullWidth 
                         sx={{ mb: 2 }}
@@ -3045,10 +3218,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="License Type" 
                         name="driverLicense.type" 
-                        value={form.driverLicense.type} 
+                        value={form.driverLicense?.type ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          driverLicense: { ...form.driverLicense, type: e.target.value }
+                          driverLicense: { ...(form.driverLicense ?? { number: '', expiryDate: '', type: '' }), number: form.driverLicense?.number ?? '', expiryDate: form.driverLicense?.expiryDate ?? '', type: e.target.value }
                         })} 
                         fullWidth 
                         sx={{ mb: 2 }}
@@ -3058,10 +3231,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Expiry Date" 
                         name="driverLicense.expiryDate" 
-                        value={form.driverLicense.expiryDate} 
+                        value={form.driverLicense?.expiryDate ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          driverLicense: { ...form.driverLicense, expiryDate: e.target.value }
+                          driverLicense: { ...(form.driverLicense ?? { number: '', expiryDate: '', type: '' }), number: form.driverLicense?.number ?? '', expiryDate: e.target.value, type: form.driverLicense?.type ?? '' }
                         })} 
                         fullWidth 
                         type="date" 
@@ -3080,10 +3253,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Vehicle ID" 
                         name="vehicleAssignment.vehicleId" 
-                        value={form.vehicleAssignment.vehicleId} 
+                        value={form.vehicleAssignment?.vehicleId ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          vehicleAssignment: { ...form.vehicleAssignment, vehicleId: e.target.value }
+                          vehicleAssignment: { ...(form.vehicleAssignment ?? { vehicleId: '', vehicleType: '', assignedDate: '' }), vehicleId: e.target.value, vehicleType: form.vehicleAssignment?.vehicleType ?? '', assignedDate: form.vehicleAssignment?.assignedDate ?? '' }
                         })} 
                         fullWidth 
                         sx={{ mb: 2 }}
@@ -3093,10 +3266,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Vehicle Type" 
                         name="vehicleAssignment.vehicleType" 
-                        value={form.vehicleAssignment.vehicleType} 
+                        value={form.vehicleAssignment?.vehicleType ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          vehicleAssignment: { ...form.vehicleAssignment, vehicleType: e.target.value }
+                          vehicleAssignment: { ...(form.vehicleAssignment ?? { vehicleId: '', vehicleType: '', assignedDate: '' }), vehicleId: form.vehicleAssignment?.vehicleId ?? '', vehicleType: e.target.value, assignedDate: form.vehicleAssignment?.assignedDate ?? '' }
                         })} 
                         fullWidth 
                         sx={{ mb: 2 }}
@@ -3106,10 +3279,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Assigned Date" 
                         name="vehicleAssignment.assignedDate" 
-                        value={form.vehicleAssignment.assignedDate} 
+                        value={form.vehicleAssignment?.assignedDate ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          vehicleAssignment: { ...form.vehicleAssignment, assignedDate: e.target.value }
+                          vehicleAssignment: { ...(form.vehicleAssignment ?? { vehicleId: '', vehicleType: '', assignedDate: '' }), vehicleId: form.vehicleAssignment?.vehicleId ?? '', vehicleType: form.vehicleAssignment?.vehicleType ?? '', assignedDate: e.target.value }
                         })} 
                         fullWidth 
                         type="date" 
@@ -3174,10 +3347,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Transport Allowance" 
                         name="allowances.transport" 
-                        value={form.allowances.transport} 
+                        value={form.allowances?.transport ?? 0} 
                         onChange={(e) => setForm({
                           ...form,
-                          allowances: { ...form.allowances, transport: Number(e.target.value) }
+                          allowances: { ...(form.allowances ?? { transport: 0, housing: 0, meal: 0, other: 0 }), transport: Number(e.target.value), housing: form.allowances?.housing ?? 0, meal: form.allowances?.meal ?? 0, other: form.allowances?.other ?? 0 }
                         })} 
                         fullWidth 
                         type="number" 
@@ -3188,10 +3361,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Housing Allowance" 
                         name="allowances.housing" 
-                        value={form.allowances.housing} 
+                        value={form.allowances?.housing ?? 0} 
                         onChange={(e) => setForm({
                           ...form,
-                          allowances: { ...form.allowances, housing: Number(e.target.value) }
+                          allowances: { ...(form.allowances ?? { transport: 0, housing: 0, meal: 0, other: 0 }), transport: form.allowances?.transport ?? 0, housing: Number(e.target.value), meal: form.allowances?.meal ?? 0, other: form.allowances?.other ?? 0 }
                         })} 
                         fullWidth 
                         type="number" 
@@ -3202,10 +3375,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Meal Allowance" 
                         name="allowances.meal" 
-                        value={form.allowances.meal} 
+                        value={form.allowances?.meal ?? 0} 
                         onChange={(e) => setForm({
                           ...form,
-                          allowances: { ...form.allowances, meal: Number(e.target.value) }
+                          allowances: { ...(form.allowances ?? { transport: 0, housing: 0, meal: 0, other: 0 }), transport: form.allowances?.transport ?? 0, housing: form.allowances?.housing ?? 0, meal: Number(e.target.value), other: form.allowances?.other ?? 0 }
                         })} 
                         fullWidth 
                         type="number" 
@@ -3216,10 +3389,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Other Allowance" 
                         name="allowances.other" 
-                        value={form.allowances.other} 
+                        value={form.allowances?.other ?? 0} 
                         onChange={(e) => setForm({
                           ...form,
-                          allowances: { ...form.allowances, other: Number(e.target.value) }
+                          allowances: { ...(form.allowances ?? { transport: 0, housing: 0, meal: 0, other: 0 }), transport: form.allowances?.transport ?? 0, housing: form.allowances?.housing ?? 0, meal: form.allowances?.meal ?? 0, other: Number(e.target.value) }
                         })} 
                         fullWidth 
                         type="number" 
@@ -3237,10 +3410,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Bank Name" 
                         name="bankInfo.bankName" 
-                        value={form.bankInfo.bankName} 
+                        value={form.bankInfo?.bankName ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          bankInfo: { ...form.bankInfo, bankName: e.target.value }
+                          bankInfo: { ...(form.bankInfo ?? { bankName: '', accountNumber: '', iban: '' }), bankName: e.target.value, accountNumber: form.bankInfo?.accountNumber ?? '', iban: form.bankInfo?.iban ?? '' }
                         })} 
                         fullWidth 
                         sx={{ mb: 2 }}
@@ -3250,10 +3423,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="Account Number" 
                         name="bankInfo.accountNumber" 
-                        value={form.bankInfo.accountNumber} 
+                        value={form.bankInfo?.accountNumber ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          bankInfo: { ...form.bankInfo, accountNumber: e.target.value }
+                          bankInfo: { ...(form.bankInfo ?? { bankName: '', accountNumber: '', iban: '' }), bankName: form.bankInfo?.bankName ?? '', accountNumber: e.target.value, iban: form.bankInfo?.iban ?? '' }
                         })} 
                         fullWidth 
                         sx={{ mb: 2 }}
@@ -3263,10 +3436,10 @@ const EmployeesPage: React.FC = () => {
                       <TextField 
                         label="IBAN" 
                         name="bankInfo.iban" 
-                        value={form.bankInfo.iban} 
+                        value={form.bankInfo?.iban ?? ''} 
                         onChange={(e) => setForm({
                           ...form,
-                          bankInfo: { ...form.bankInfo, iban: e.target.value }
+                          bankInfo: { ...(form.bankInfo ?? { bankName: '', accountNumber: '', iban: '' }), bankName: form.bankInfo?.bankName ?? '', accountNumber: form.bankInfo?.accountNumber ?? '', iban: e.target.value }
                         })} 
                         fullWidth 
                         sx={{ mb: 2 }}
@@ -3288,7 +3461,7 @@ const EmployeesPage: React.FC = () => {
                     Emergency Contacts
                   </Typography>
                   <Box sx={{ mb: 3 }}>
-                    {form.emergencyContacts.map((contact, index) => (
+                    {(form.emergencyContacts ?? []).map((contact, index) => (
                       <Box key={index} sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                         <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
                           <TextField
@@ -3353,7 +3526,7 @@ const EmployeesPage: React.FC = () => {
                     Skill Tags
                   </Typography>
                   <Box sx={{ mb: 3 }}>
-                    {form.skillTags.map((tag, index) => (
+                    {(form.skillTags ?? []).map((tag, index) => (
                       <Box key={index} sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
                         <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
                           <TextField
@@ -3412,11 +3585,11 @@ const EmployeesPage: React.FC = () => {
                     <FormControlLabel
                       control={
                         <Switch
-                          checked={form.readinessTracker.licenseValid}
+                          checked={form.readinessTracker?.licenseValid ?? false}
                           onChange={(e) => setForm(prev => ({
                             ...prev,
                             readinessTracker: {
-                              ...prev.readinessTracker,
+                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               licenseValid: e.target.checked
                             }
                           }))}
@@ -3429,11 +3602,11 @@ const EmployeesPage: React.FC = () => {
                     <FormControlLabel
                       control={
                         <Switch
-                          checked={form.readinessTracker.safetyTraining}
+                          checked={form.readinessTracker?.safetyTraining ?? false}
                           onChange={(e) => setForm(prev => ({
                             ...prev,
                             readinessTracker: {
-                              ...prev.readinessTracker,
+                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               safetyTraining: e.target.checked
                             }
                           }))}
@@ -3446,11 +3619,11 @@ const EmployeesPage: React.FC = () => {
                     <FormControlLabel
                       control={
                         <Switch
-                          checked={form.readinessTracker.medicallyFit}
+                          checked={form.readinessTracker?.medicallyFit ?? false}
                           onChange={(e) => setForm(prev => ({
                             ...prev,
                             readinessTracker: {
-                              ...prev.readinessTracker,
+                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               medicallyFit: e.target.checked
                             }
                           }))}
@@ -3463,11 +3636,11 @@ const EmployeesPage: React.FC = () => {
                     <FormControlLabel
                       control={
                         <Switch
-                          checked={form.readinessTracker.vehicleAssigned}
+                          checked={form.readinessTracker?.vehicleAssigned ?? false}
                           onChange={(e) => setForm(prev => ({
                             ...prev,
                             readinessTracker: {
-                              ...prev.readinessTracker,
+                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               vehicleAssigned: e.target.checked
                             }
                           }))}
@@ -3480,14 +3653,14 @@ const EmployeesPage: React.FC = () => {
                   </Box>
                   
                   {/* Readiness Status */}
-                  <Paper sx={{ p: 2, background: form.readinessTracker.readyForField ? '#e8f5e8' : '#fff3e0' }}>
+                  <Paper sx={{ p: 2, background: form.readinessTracker?.readyForField ? '#e8f5e8' : '#fff3e0' }}>
                     <Box display="flex" alignItems="center" gap={2}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: form.readinessTracker.readyForField ? '#2e7d32' : '#f57c00' }}>
-                        Ready for Field: {form.readinessTracker.readyForField ? '✅' : '❌'}
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: form.readinessTracker?.readyForField ? '#2e7d32' : '#f57c00' }}>
+                        Ready for Field: {form.readinessTracker?.readyForField ? '✅' : '❌'}
                       </Typography>
                       <Chip 
-                        label={form.readinessTracker.readyForField ? 'READY' : 'NOT READY'} 
-                        color={form.readinessTracker.readyForField ? 'success' : 'warning'}
+                        label={form.readinessTracker?.readyForField ? 'READY' : 'NOT READY'} 
+                        color={form.readinessTracker?.readyForField ? 'success' : 'warning'}
                         sx={{ fontWeight: 600 }}
                       />
                     </Box>

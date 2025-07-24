@@ -1,83 +1,41 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box, Typography, Paper, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, IconButton, Collapse, TextField, MenuItem
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import AddIcon from '@mui/icons-material/Add';
-import api from '../apiBase';
+import { Box, Typography, Paper, Button, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, MenuItem, Chip, Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress } from '@mui/material';
+import AccountingSidebar from '../components/AccountingSidebar';
+import axios from 'axios';
 
-interface EntryLine {
-  account: string | { _id: string; [key: string]: any };
-  debit: number;
-  credit: number;
-  description?: string;
-}
-interface Entry {
-  _id: string;
-  date: string;
-  description: string;
-  period: string;
-  status: string;
-  reference?: string;
-  lines: EntryLine[];
-  serial?: string; // Added serial field
-}
-
-interface Period {
-  _id: string;
-  period: string;
-  closed: boolean;
-}
+const journalTypes = ['All', 'Sales', 'Purchase', 'Misc'];
+const statuses = ['All', 'Draft', 'Posted'];
 
 const JournalEntriesPage: React.FC = () => {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [journalType, setJournalType] = useState('All');
+  const [status, setStatus] = useState('All');
+  const [dateRange, setDateRange] = useState('');
+  const [entries, setEntries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<{ _id: string; name: string }[]>([]);
-  const [form, setForm] = useState({
-    date: '',
-    description: '',
-    period: '',
-    reference: '',
-    lines: [{ account: '', debit: 0, credit: 0, description: '' }],
-  });
+  const [form, setForm] = useState({ date: '', description: '', period: '', reference: '', lines: [{ account: '', debit: 0, credit: 0, description: '' }] });
   const [submitting, setSubmitting] = useState(false);
-  const [periods, setPeriods] = useState<Period[]>([]);
-  const [periodLocked, setPeriodLocked] = useState(false);
+  const [viewEntry, setViewEntry] = useState<any | null>(null);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [accounts, setAccounts] = useState<{ _id: string; name: string }[]>([]);
 
   useEffect(() => {
     fetchEntries();
     fetchAccounts();
-    fetchPeriods();
-  }, []);
-
-  useEffect(() => {
-    if (form.period) {
-      const found = periods.find(p => p.period === form.period);
-      setPeriodLocked(!!(found && found.closed));
-    } else {
-      setPeriodLocked(false);
-    }
-  }, [form.period, periods]);
+  }, [journalType, status]);
 
   const fetchEntries = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await api.get('/journal-entries');
-      if (Array.isArray(res.data)) {
-        setEntries(res.data);
-      } else {
-        setEntries([]);
-        setError('Unexpected response from server');
-        console.error('Expected array, got:', res.data);
-      }
+      const params: any = {};
+      if (status !== 'All') params.status = status.toLowerCase();
+      // Optionally add journalType/dateRange filters
+      const res = await axios.get('/api/journal-entries', { params });
+      setEntries(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch journal entries');
+      setError('Failed to fetch journal entries');
     } finally {
       setLoading(false);
     }
@@ -85,29 +43,13 @@ const JournalEntriesPage: React.FC = () => {
 
   const fetchAccounts = async () => {
     try {
-      const res = await api.get<{ _id: string; name: string }[]>('/accounts');
-      setAccounts(res.data as { _id: string; name: string }[]);
+      const res = await axios.get('/api/accounts');
+      setAccounts(Array.isArray(res.data) ? res.data : []);
     } catch {}
   };
 
-  const fetchPeriods = async () => {
-    try {
-      const res = await api.get<Period[]>('/periods');
-      setPeriods(res.data);
-    } catch {}
-  };
-
-  const handleExpand = (id: string) => {
-    setExpanded(expanded === id ? null : id);
-  };
   const handleOpen = () => {
-    setForm({
-      date: '',
-      description: '',
-      period: '',
-      reference: '',
-      lines: [{ account: '', debit: 0, credit: 0, description: '' }],
-    });
+    setForm({ date: '', description: '', period: '', reference: '', lines: [{ account: '', debit: 0, credit: 0, description: '' }] });
     setOpen(true);
   };
   const handleClose = () => {
@@ -141,153 +83,164 @@ const JournalEntriesPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      await api.post('/journal-entries', {
-        ...form,
-        createdBy: 'system',
-      });
-      setSuccess('Journal entry created!');
+      await axios.post('/api/journal-entries', form);
       fetchEntries();
       handleClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create entry');
+      setError('Failed to create entry');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleView = (entry: any) => {
+    setViewEntry(entry);
+    setViewOpen(true);
+  };
+  const handleViewClose = () => {
+    setViewOpen(false);
+    setViewEntry(null);
+  };
+
+  // TODO: Implement Edit and Delete actions
+
   return (
-    <Box p={3}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Journal Entries</Typography>
-        <Button variant="contained" color="primary" onClick={handleOpen} startIcon={<AddIcon />} disabled={periodLocked}>
-          Add Entry
-        </Button>
-      </Box>
-      {periodLocked && <Alert severity="warning" sx={{ mb: 2 }}>This period is locked and cannot be edited.</Alert>}
-      <Paper sx={{ p: 2, overflowX: 'auto' }}>
-        {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
-            <CircularProgress />
+    <Box sx={{ display: 'flex', minHeight: '100vh', background: '#fafdff' }}>
+      <AccountingSidebar />
+      <Box sx={{ flex: 1, p: { xs: 2, md: 4 }, ml: '220px', width: '100%' }}>
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+          <Typography variant="h4" fontWeight={700} color="text.primary">Manual Journal Entries</Typography>
+          <Button variant="contained" sx={{ fontWeight: 600, borderRadius: 2 }} onClick={handleOpen}>+ New Journal Entry</Button>
+        </Box>
+        <Paper sx={{ p: 3, borderRadius: 4, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)', mb: 3 }}>
+          <Box display="flex" gap={2} mb={2} flexWrap="wrap">
+            <TextField select label="Journal Type" value={journalType} onChange={e => setJournalType(e.target.value)} sx={{ minWidth: 160 }}>
+              {journalTypes.map(type => <MenuItem key={type} value={type}>{type}</MenuItem>)}
+            </TextField>
+            <TextField select label="Status" value={status} onChange={e => setStatus(e.target.value)} sx={{ minWidth: 160 }}>
+              {statuses.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            </TextField>
+            <TextField label="Date Range" value={dateRange} onChange={e => setDateRange(e.target.value)} sx={{ minWidth: 180 }} />
           </Box>
-        ) : (
-          <TableContainer>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow sx={{ background: '#f5f5f5' }}>
-                  <TableCell />
-                  <TableCell>Date</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Period</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Reference</TableCell>
-                  <TableCell>Serial Number</TableCell> {/* Added Serial Number column */}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {entries.map((e, idx) => (
-                  <React.Fragment key={e._id}>
-                    <TableRow sx={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
+          {loading ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}><CircularProgress /></Box>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Entry Number</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Reference</TableCell>
+                    <TableCell>Debit Total</TableCell>
+                    <TableCell>Credit Total</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {entries.map(row => (
+                    <TableRow key={row._id}>
+                      <TableCell>{row.serial || row._id}</TableCell>
+                      <TableCell>{new Date(row.date).toLocaleDateString()}</TableCell>
+                      <TableCell>{row.reference}</TableCell>
+                      <TableCell>{row.lines.reduce((sum: number, l: any) => sum + Number(l.debit), 0)}</TableCell>
+                      <TableCell>{row.lines.reduce((sum: number, l: any) => sum + Number(l.credit), 0)}</TableCell>
+                      <TableCell><Chip label={row.status} color={row.status === 'posted' ? 'success' : 'warning'} /></TableCell>
                       <TableCell>
-                        <IconButton size="small" onClick={() => handleExpand(e._id)}>
-                          {expanded === e._id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                        </IconButton>
-                      </TableCell>
-                      <TableCell>{new Date(e.date).toLocaleDateString()}</TableCell>
-                      <TableCell>{e.description}</TableCell>
-                      <TableCell>{e.period}</TableCell>
-                      <TableCell>{e.status}</TableCell>
-                      <TableCell>{e.reference || '-'}</TableCell>
-                      <TableCell>{e.serial || '-'}</TableCell> {/* Display serial number */}
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={7} sx={{ p: 0, border: 0 }}> {/* Updated colSpan */}
-                        <Collapse in={expanded === e._id} timeout="auto" unmountOnExit>
-                          <Box sx={{ m: 2 }}>
-                            <Typography variant="subtitle1" fontWeight={600}>Lines</Typography>
-                            <Table size="small">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell>Account</TableCell>
-                                  <TableCell>Debit</TableCell>
-                                  <TableCell>Credit</TableCell>
-                                  <TableCell>Description</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {e.lines.map((l, i) => (
-                                  <TableRow key={i}>
-                                    <TableCell>
-                                      {accounts.find(a => a._id === (typeof l.account === 'object' && l.account !== null ? l.account._id : l.account))?.name ||
-                                       (typeof l.account === 'object' && l.account !== null ? l.account._id : l.account)}
-                                    </TableCell>
-                                    <TableCell>{l.debit}</TableCell>
-                                    <TableCell>{l.credit}</TableCell>
-                                    <TableCell>{l.description || '-'}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </Box>
-                        </Collapse>
+                        <Button size="small" variant="outlined" onClick={() => handleView(row)}>View</Button>
+                        {/* <Button size="small" variant="outlined" sx={{ ml: 1 }}>Edit</Button>
+                        <Button size="small" variant="outlined" color="error" sx={{ ml: 1 }}>Delete</Button> */}
                       </TableCell>
                     </TableRow>
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      </Paper>
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>Add Journal Entry</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField label="Date" name="date" value={form.date} onChange={handleFormChange} required fullWidth type="date" InputLabelProps={{ shrink: true }} />
-            <TextField label="Description" name="description" value={form.description} onChange={handleFormChange} required fullWidth />
-            <TextField label="Period" name="period" value={form.period} onChange={handleFormChange} required fullWidth placeholder="e.g. 2024-Q2 or 2024-05" />
-            <TextField label="Reference" name="reference" value={form.reference} onChange={handleFormChange} fullWidth />
-            <Typography variant="subtitle1" fontWeight={600} mt={2}>Lines</Typography>
-            {form.lines.map((line, idx) => (
-              <Box key={idx} display="flex" gap={2} alignItems="center" mb={1}>
-                <TextField
-                  label="Account"
-                  value={line.account}
-                  onChange={e => handleLineChange(idx, 'account', e.target.value)}
-                  required
-                  select
-                  sx={{ minWidth: 200 }}
-                >
-                  <MenuItem value="">Select Account</MenuItem>
-                  {accounts.map(a => (
-                    <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>
                   ))}
-                </TextField>
-                <TextField label="Debit" type="number" value={line.debit} onChange={e => handleLineChange(idx, 'debit', Number(e.target.value))} required sx={{ maxWidth: 120 }} />
-                <TextField label="Credit" type="number" value={line.credit} onChange={e => handleLineChange(idx, 'credit', Number(e.target.value))} required sx={{ maxWidth: 120 }} />
-                <TextField label="Line Description" value={line.description} onChange={e => handleLineChange(idx, 'description', e.target.value)} sx={{ minWidth: 200 }} />
-                <Button onClick={() => handleRemoveLine(idx)} color="error" disabled={form.lines.length === 1}>Remove</Button>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+          {error && <Typography color="error" mt={2}>{error}</Typography>}
+        </Paper>
+        {/* New Journal Entry Modal */}
+        <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+          <DialogTitle>Add Journal Entry</DialogTitle>
+          <DialogContent>
+            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <TextField label="Date" name="date" value={form.date} onChange={handleFormChange} required fullWidth type="date" InputLabelProps={{ shrink: true }} />
+              <TextField label="Description" name="description" value={form.description} onChange={handleFormChange} required fullWidth />
+              <TextField label="Period" name="period" value={form.period} onChange={handleFormChange} required fullWidth placeholder="e.g. 2024-Q2 or 2024-05" />
+              <TextField label="Reference" name="reference" value={form.reference} onChange={handleFormChange} fullWidth />
+              <Typography variant="subtitle1" fontWeight={600} mt={2}>Lines</Typography>
+              {form.lines.map((line, idx) => (
+                <Box key={idx} display="flex" gap={2} alignItems="center" mb={1}>
+                  <TextField
+                    label="Account"
+                    value={line.account}
+                    onChange={e => handleLineChange(idx, 'account', e.target.value)}
+                    required
+                    select
+                    sx={{ minWidth: 200 }}
+                  >
+                    <MenuItem value="">Select Account</MenuItem>
+                    {accounts.map(a => (
+                      <MenuItem key={a._id} value={a._id}>{a.name}</MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField label="Debit" type="number" value={line.debit} onChange={e => handleLineChange(idx, 'debit', Number(e.target.value))} required sx={{ maxWidth: 120 }} />
+                  <TextField label="Credit" type="number" value={line.credit} onChange={e => handleLineChange(idx, 'credit', Number(e.target.value))} required sx={{ maxWidth: 120 }} />
+                  <TextField label="Line Description" value={line.description} onChange={e => handleLineChange(idx, 'description', e.target.value)} sx={{ minWidth: 200 }} />
+                  <Button onClick={() => handleRemoveLine(idx)} color="error" disabled={form.lines.length === 1}>Remove</Button>
+                </Box>
+              ))}
+              <Button onClick={handleAddLine} variant="outlined" color="primary" sx={{ width: 180, mb: 2 }}>Add Line</Button>
+              <Typography variant="body2" color={isBalanced ? 'success.main' : 'error.main'}>
+                Total Debit: {totalDebit} | Total Credit: {totalCredit} {isBalanced ? '(Balanced)' : '(Not Balanced)'}
+              </Typography>
+              {error && <Typography color="error">{error}</Typography>}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
+            <Button onClick={handleSubmit} variant="contained" color="primary" disabled={submitting || !isBalanced}>Create Entry</Button>
+          </DialogActions>
+        </Dialog>
+        {/* View Entry Modal */}
+        <Dialog open={viewOpen} onClose={handleViewClose} maxWidth="md" fullWidth>
+          <DialogTitle>Journal Entry Details</DialogTitle>
+          <DialogContent>
+            {viewEntry ? (
+              <Box>
+                <Typography variant="subtitle1" fontWeight={600}>Date: {new Date(viewEntry.date).toLocaleDateString()}</Typography>
+                <Typography variant="subtitle1">Reference: {viewEntry.reference || '-'}</Typography>
+                <Typography variant="subtitle1">Description: {viewEntry.description}</Typography>
+                <Divider sx={{ my: 2 }} />
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Account</TableCell>
+                      <TableCell>Debit</TableCell>
+                      <TableCell>Credit</TableCell>
+                      <TableCell>Description</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {viewEntry.lines.map((line: any, idx: number) => (
+                      <TableRow key={idx}>
+                        <TableCell>{typeof line.account === 'object' ? line.account.name : line.account}</TableCell>
+                        <TableCell>{line.debit}</TableCell>
+                        <TableCell>{line.credit}</TableCell>
+                        <TableCell>{line.description || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </Box>
-            ))}
-            <Button onClick={handleAddLine} variant="outlined" color="primary" sx={{ width: 180, mb: 2 }}>Add Line</Button>
-            <Typography variant="body2" color={isBalanced ? 'success.main' : 'error.main'}>
-              Total Debit: {totalDebit} | Total Credit: {totalCredit} {isBalanced ? '(Balanced)' : '(Not Balanced)'}
-            </Typography>
-            {error && <Alert severity="error">{error}</Alert>}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary" disabled={submitting || !isBalanced}>Create Entry</Button>
-        </DialogActions>
-      </Dialog>
-      <Snackbar
-        open={!!success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess('')}
-        message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{success}</span>}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      />
+            ) : <Typography>No details found.</Typography>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleViewClose}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
     </Box>
   );
 };

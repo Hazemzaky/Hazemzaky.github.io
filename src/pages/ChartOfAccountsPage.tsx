@@ -124,14 +124,25 @@ const ChartOfAccountsPage: React.FC = () => {
   };
 
   return (
-    <Box p={3}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Chart of Accounts</Typography>
-        <Button variant="contained" color="primary" onClick={() => handleOpen()}>
+    <Box sx={{ p: { xs: 1, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
+      <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" mb={3} gap={2}>
+        <Typography variant="h4" fontWeight={700} color="text.primary">Chart of Accounts</Typography>
+        <Button variant="contained" color="primary" onClick={() => handleOpen()} sx={{ fontWeight: 600, borderRadius: 2, minWidth: 140 }}>
           Add Account
         </Button>
       </Box>
-      <Paper sx={{ p: 2, mb: 2 }}>
+      {/* Summary Widget */}
+      <Paper sx={{ p: 2, mb: 3, borderRadius: 4, background: '#fafdff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
+        <Box display="flex" flexWrap="wrap" gap={3} alignItems="center">
+          <Typography variant="subtitle1" fontWeight={600} color="text.primary">Total: {accounts.length}</Typography>
+          <Chip label={`Active: ${accounts.filter(a => a.active).length}`} color="success" sx={{ fontWeight: 600 }} />
+          <Chip label={`Inactive: ${accounts.filter(a => !a.active).length}`} color="default" sx={{ fontWeight: 600 }} />
+          {['asset','liability','equity','revenue','expense'].map(type => (
+            <Chip key={type} label={`${type.charAt(0).toUpperCase() + type.slice(1)}: ${accounts.filter(a => a.type === type).length}`} sx={{ fontWeight: 600, background: '#e3e8ee', color: '#333' }} />
+          ))}
+        </Box>
+      </Paper>
+      <Paper sx={{ p: 2, mb: 2, borderRadius: 4, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
         <TextField
           size="small"
           placeholder="Search by name, code, or type"
@@ -151,34 +162,34 @@ const ChartOfAccountsPage: React.FC = () => {
               </InputAdornment>
             )
           }}
-          sx={{ minWidth: 300 }}
+          sx={{ minWidth: 260, maxWidth: 400, mb: 1 }}
         />
       </Paper>
-      <Paper sx={{ p: 2, overflowX: 'auto' }}>
+      <Paper sx={{ p: 2, overflowX: 'auto', borderRadius: 4, background: '#fff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer>
-            <Table stickyHeader>
+          <TableContainer sx={{ maxHeight: 500 }}>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow sx={{ background: '#f5f5f5' }}>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Code</TableCell>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Parent</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Parent</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Description</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredAccounts.map((a, idx) => (
-                  <TableRow key={a._id} sx={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
+                  <TableRow key={a._id} sx={{ background: idx % 2 === 0 ? '#fafafa' : '#fff', '&:hover': { background: '#e3e8ee' } }}>
                     <TableCell>{a.name}</TableCell>
                     <TableCell>{a.code}</TableCell>
-                    <TableCell>{a.type}</TableCell>
+                    <TableCell sx={{ textTransform: 'capitalize' }}>{a.type}</TableCell>
                     <TableCell>{accounts.find(acc => acc._id === a.parent)?.name || '-'}</TableCell>
                     <TableCell>{a.description || '-'}</TableCell>
                     <TableCell>
@@ -204,6 +215,7 @@ const ChartOfAccountsPage: React.FC = () => {
         <DialogTitle>{editingId ? 'Edit Account' : 'Add Account'}</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={1}>{editingId ? 'Edit Account Details' : 'New Account Details'}</Typography>
             <TextField label="Name" name="name" value={form.name} onChange={handleFormChange} required fullWidth />
             <TextField label="Code" name="code" value={form.code} onChange={handleFormChange} required fullWidth />
             <TextField label="Type" name="type" value={form.type} onChange={handleFormChange} required fullWidth select>

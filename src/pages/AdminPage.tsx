@@ -170,6 +170,9 @@ interface FormData {
   visaType: string;
   visaNumber: string;
   visaExpiry: string;
+  workPermitStart?: string;
+  workPermitEnd?: string;
+  workPermitCopy?: string | File | null;
   sponsor: string;
   status: string;
   hasPasses: string;
@@ -209,6 +212,9 @@ const AdminPage: React.FC = () => {
     visaType: '',
     visaNumber: '',
     visaExpiry: '',
+    workPermitStart: '',
+    workPermitEnd: '',
+    workPermitCopy: null,
     sponsor: '',
     status: 'active',
     hasPasses: 'false',
@@ -837,13 +843,8 @@ const AdminPage: React.FC = () => {
   const handleOpen = (rec?: any) => {
     if (rec) {
       setEditing(rec);
-      // Populate form with existing data
       const formData = { ...rec, employee: rec.employee?._id || rec.employee };
-      
-      // Convert hasPasses boolean to string for form
       formData.hasPasses = rec.hasPasses ? 'true' : 'false';
-      
-      // Handle pass data if exists - convert to array format
       if (rec.hasPasses && rec.passes && rec.passes.length > 0) {
         formData.passes = rec.passes.map((pass: any) => ({
           passType: pass.passType,
@@ -854,18 +855,19 @@ const AdminPage: React.FC = () => {
       } else {
         formData.passes = [];
       }
-
-      // Handle new fields
+      // Work Permit fields
+      formData.workPermitStart = rec.workPermitStart ? dayjs(rec.workPermitStart).format('YYYY-MM-DD') : '';
+      formData.workPermitEnd = rec.workPermitEnd ? dayjs(rec.workPermitEnd).format('YYYY-MM-DD') : '';
+      formData.workPermitCopy = null; // File upload is not persisted
       formData.maritalStatus = rec.maritalStatus || '';
       formData.numberOfDependents = rec.numberOfDependents || '';
       formData.dependentsLocation = rec.dependentsLocation || '';
       formData.dependentsLocationOther = rec.dependentsLocationOther || '';
-      
       setForm(formData);
     } else {
       setEditing(null);
       setForm({
-        employee: '', employeeType: '', coId: '', passportNumber: '', passportExpiry: '', nationality: '', residencyNumber: '', residencyExpiry: '', civilId: '', civilIdExpiry: '', visaType: '', visaNumber: '', visaExpiry: '', sponsor: '', status: 'active', hasPasses: 'false', passes: [], maritalStatus: '', numberOfDependents: '', dependentsLocation: '', dependentsLocationOther: '', notes: '', documents: {},
+        employee: '', employeeType: '', coId: '', passportNumber: '', passportExpiry: '', nationality: '', residencyNumber: '', residencyExpiry: '', civilId: '', civilIdExpiry: '', visaType: '', visaNumber: '', visaExpiry: '', workPermitStart: '', workPermitEnd: '', workPermitCopy: null, sponsor: '', status: 'active', hasPasses: 'false', passes: [], maritalStatus: '', numberOfDependents: '', dependentsLocation: '', dependentsLocationOther: '', notes: '', documents: {},
       });
     }
     setOpen(true);
@@ -874,18 +876,12 @@ const AdminPage: React.FC = () => {
     setOpen(false);
     setEditing(null);
     setForm({
-      employee: '', employeeType: '', coId: '', passportNumber: '', passportExpiry: '', nationality: '', residencyNumber: '', residencyExpiry: '', civilId: '', civilIdExpiry: '', visaType: '', visaNumber: '', visaExpiry: '', sponsor: '', status: 'active', hasPasses: 'false', passes: [], maritalStatus: '', numberOfDependents: '', dependentsLocation: '', dependentsLocationOther: '', notes: '', documents: {},
+      employee: '', employeeType: '', coId: '', passportNumber: '', passportExpiry: '', nationality: '', residencyNumber: '', residencyExpiry: '', civilId: '', civilIdExpiry: '', visaType: '', visaNumber: '', visaExpiry: '', workPermitStart: '', workPermitEnd: '', workPermitCopy: null, sponsor: '', status: 'active', hasPasses: 'false', passes: [], maritalStatus: '', numberOfDependents: '', dependentsLocation: '', dependentsLocationOther: '', notes: '', documents: {},
     });
   };
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
-    // Handle boolean conversion for hasPasses
-    if (name === 'hasPasses') {
-      setForm({ ...form, [name]: value });
-    } else {
-      setForm({ ...form, [name]: value });
-    }
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   // Handle adding a new pass
@@ -920,30 +916,32 @@ const AdminPage: React.FC = () => {
   };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, files } = e.target;
-    setForm({ ...form, documents: { ...form.documents, [name]: files?.[0] } });
+    if (name === 'workPermitCopy') {
+      setForm((prev) => ({ ...prev, workPermitCopy: files && files[0] ? files[0] : null }));
+    } else {
+      setForm((prev) => ({ ...prev, documents: { ...prev.documents, [name]: files?.[0] } }));
+    }
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      // Prepare submit data with proper types
       const submitData: any = { ...form };
-      
-      // Convert hasPasses string to boolean for API
       submitData.hasPasses = form.hasPasses === 'true';
-      
-      // Handle passes array - filter out empty passes
       if (form.hasPasses === 'true') {
-        submitData.passes = form.passes.filter((pass: any) => 
-          pass.passType && pass.issuanceDate && pass.expiryDate && pass.sponsor
-        );
+        submitData.passes = form.passes.filter((pass: any) => pass.passType && pass.issuanceDate && pass.expiryDate && pass.sponsor);
       } else {
         submitData.passes = [];
       }
-      
-      // For now, skip file upload, just send file names
       submitData.documents = Object.fromEntries(Object.entries(form.documents || {}).map(([k, v]) => [k, (v as any)?.name || '']));
-      
+      // Work Permit file
+      if (form.workPermitCopy && typeof form.workPermitCopy === 'object' && 'name' in form.workPermitCopy) {
+        submitData.workPermitCopy = form.workPermitCopy.name;
+      } else if (typeof form.workPermitCopy === 'string') {
+        submitData.workPermitCopy = form.workPermitCopy;
+      } else {
+        submitData.workPermitCopy = '';
+      }
       if (editing) {
         await api.put(`/admin/employee-residencies/${editing._id}`, submitData);
         setSuccess('Record updated!');
@@ -2796,6 +2794,37 @@ const AdminPage: React.FC = () => {
                     <Button variant="outlined" component="label">Visa Copy<input type="file" name="visaCopy" hidden onChange={handleFileChange} /></Button>
                   </Box>
                   {error && <Alert severity="error">{error}</Alert>}
+                  <Box display="flex" gap={2}>
+                    <TextField
+                      label="Work Permit Start"
+                      name="workPermitStart"
+                      value={form.workPermitStart}
+                      onChange={handleFormChange}
+                      type="date"
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                    <TextField
+                      label="Work Permit End"
+                      name="workPermitEnd"
+                      value={form.workPermitEnd}
+                      onChange={handleFormChange}
+                      type="date"
+                      InputLabelProps={{ shrink: true }}
+                      fullWidth
+                    />
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={2}>
+                    <Button variant="outlined" component="label">
+                      Work Permit Copy
+                      <input type="file" name="workPermitCopy" hidden onChange={handleFileChange} />
+                    </Button>
+                    {form.workPermitCopy && typeof form.workPermitCopy === 'object' && 'name' in form.workPermitCopy && (
+                      <Typography variant="body2" sx={{ ml: 2, display: 'inline' }}>
+                        {form.workPermitCopy.name}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
               </DialogContent>
               <DialogActions>

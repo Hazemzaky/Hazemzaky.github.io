@@ -56,11 +56,24 @@ import BudgetCapex from './pages/BudgetCapex';
 import BudgetVariance from './pages/BudgetVariance';
 import BudgetContracts from './pages/BudgetContracts';
 import BudgetDashboard from './pages/BudgetDashboard';
+import BusinessTripPage from './pages/BusinessTripPage';
+import ViewTripPage from './pages/ViewTripPage';
+import VacationDashboard from './pages/VacationDashboard';
+import HRVacationDashboard from './pages/HRVacationDashboard';
+import AccountingDashboardPage from './pages/AccountingDashboardPage';
+import AccountingReportsPage from './pages/AccountingReportsPage';
+import AccountingSidebar from './components/AccountingSidebar';
+import PnLPage from './pages/PnLPage';
+import ReconciliationPage from './pages/ReconciliationPage';
+
+const TaxesPage = () => <div style={{ padding: 32 }}><h2>Taxes Page (Coming Soon)</h2></div>;
+const AccountingSettingsPage = () => <div style={{ padding: 32 }}><h2>Accounting Settings Page (Coming Soon)</h2></div>;
 
 const App: React.FC = () => {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('token');
   const showSidebar = location.pathname.startsWith('/budget');
+  const showAccountingSidebar = location.pathname.startsWith('/accounting') || location.pathname.startsWith('/general-ledger') || location.pathname.startsWith('/journal-entries');
 
   if (!isAuthenticated && location.pathname !== '/login' && location.pathname !== '/register') {
     return <Navigate to="/login" replace />;
@@ -75,7 +88,8 @@ const App: React.FC = () => {
       {isAuthenticated && (
         <div style={{ display: 'flex', minHeight: '100vh' }}>
           {showSidebar && <Sidebar />}
-          <main style={{ flex: 1, padding: '24px', marginLeft: showSidebar ? 220 : 0 }}>
+          {showAccountingSidebar && <AccountingSidebar />}
+          <main style={{ flex: 1, padding: '24px', marginLeft: (showSidebar || showAccountingSidebar) ? 220 : 0 }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
               <FiscalYearSelector />
             </div>
@@ -130,6 +144,16 @@ const App: React.FC = () => {
               <Route path="/trip-allowance" element={<TripAllowancePage />} />
               <Route path="/sales" element={<SalesPage />} />
               <Route path="/water-log" element={<WaterLogPage />} />
+              <Route path="/business-trips" element={<BusinessTripPage />} />
+              <Route path="/business-trips/:id" element={<ViewTripPage />} />
+              <Route path="/vacation" element={<VacationDashboard />} />
+              <Route path="/vacation/hr" element={<HRVacationDashboard />} />
+              <Route path="/accounting/dashboard" element={<AccountingDashboardPage />} />
+              <Route path="/accounting/reports" element={<AccountingReportsPage />} />
+              <Route path="/accounting/pnl" element={<PnLPage />} />
+              <Route path="/accounting/reconciliation" element={<ReconciliationPage />} />
+              <Route path="/accounting/taxes" element={<TaxesPage />} />
+              <Route path="/accounting/settings" element={<AccountingSettingsPage />} />
               <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
             </Routes>
           </main>
