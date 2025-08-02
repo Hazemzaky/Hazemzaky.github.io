@@ -288,6 +288,33 @@ const ProjectsPage: React.FC = () => {
     }
   };
 
+  const handlePriceListSelection = (selectedDescription: string) => {
+    if (!selectedClientInfo || !selectedDescription) return;
+    
+    let priceList: any[] = [];
+    if (selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList) {
+      priceList = selectedClientInfo.contractData.priceList;
+    } else if (selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines) {
+      priceList = selectedClientInfo.quotationData.lines;
+    }
+    
+    const selectedItem = priceList.find(item => item.description === selectedDescription);
+    
+    if (selectedItem) {
+      setForm((prev: any) => ({
+        ...prev,
+        priceListDescription: selectedItem.description,
+        equipmentDescription: selectedItem.description,
+        rentType: selectedItem.rentType || selectedItem.worktime || 'monthly',
+        overtimePrice: selectedItem.overtime || 0,
+        // For contract items
+        ...(selectedItem.driversOperators && { department: `Drivers/Operators: ${selectedItem.driversOperators}` }),
+        // For quotation items
+        ...(selectedItem.quantity && { department: `Quantity: ${selectedItem.quantity}` }),
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -608,18 +635,36 @@ const ProjectsPage: React.FC = () => {
                 <TextField label="Department" name="department" value={form.department} onChange={handleFormChange} required fullWidth />
               </div>
               <div style={{ flex: '1 1 100%' }}>
-                <TextField 
-                  label="Price List Description" 
-                  name="priceListDescription" 
-                  value={form.priceListDescription} 
-                  onChange={(e) => {
-                    handleFormChange(e);
-                    handlePriceListSearch(e.target.value);
-                  }}
-                  required 
-                  fullWidth 
-                  placeholder="Search in price list by description..."
-                />
+                <FormControl fullWidth required>
+                  <InputLabel>Price List Item</InputLabel>
+                  <Select
+                    value={form.priceListDescription}
+                    onChange={(e) => {
+                      const selectedDescription = e.target.value;
+                      setForm((prev: any) => ({ ...prev, priceListDescription: selectedDescription }));
+                      handlePriceListSelection(selectedDescription);
+                    }}
+                    input={<OutlinedInput label="Price List Item" />}
+                  >
+                    <MenuItem value="">
+                      <em>Select a price list item...</em>
+                    </MenuItem>
+                    {selectedClientInfo && (
+                      <>
+                        {selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList?.map((item: any, idx: number) => (
+                          <MenuItem key={`contract-${idx}`} value={item.description}>
+                            {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
+                          </MenuItem>
+                        ))}
+                        {selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines?.map((item: any, idx: number) => (
+                          <MenuItem key={`quotation-${idx}`} value={item.description}>
+                            {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
+                          </MenuItem>
+                        ))}
+                      </>
+                    )}
+                  </Select>
+                </FormControl>
               </div>
               <div style={{ flex: '1 1 48%' }}>
                 <TextField label="Status" name="status" value={form.status} onChange={handleFormChange} fullWidth select>
