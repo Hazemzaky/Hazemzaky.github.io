@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../apiBase';
+import HierarchicalCategorySelector from '../components/HierarchicalCategorySelector';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Chip, FormControl, InputLabel, Select, OutlinedInput, CircularProgress, Link
 } from '@mui/material';
@@ -129,6 +130,14 @@ const ProjectsPage: React.FC = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState('');
   const [selectedSubSubCategory, setSelectedSubSubCategory] = useState('');
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
+  const [assetCategoryFilters, setAssetCategoryFilters] = useState({
+    type: '',
+    mainCategory: '',
+    subCategory: '',
+    subSubCategory: '',
+    subSubSubCategory: '',
+    subSubSubSubCategory: ''
+  });
 
   // New state for customer type and clients
   const [customerType, setCustomerType] = useState<'contract' | 'quotation'>('contract');
@@ -142,24 +151,43 @@ const ProjectsPage: React.FC = () => {
     fetchAssetCategories();
   }, []);
 
-  // Filter assets based on selected categories
+  // Filter assets based on hierarchical category filters
   useEffect(() => {
     let filtered = availableAssets;
     
-    if (selectedMainCategory) {
-      filtered = filtered.filter(asset => asset.mainCategory === selectedMainCategory);
+    if (assetCategoryFilters.type) {
+      filtered = filtered.filter(asset => asset.mainCategory && 
+        getMainCategoriesForType(assetCategoryFilters.type).includes(asset.mainCategory));
     }
     
-    if (selectedSubCategory) {
-      filtered = filtered.filter(asset => asset.subCategory === selectedSubCategory);
+    if (assetCategoryFilters.mainCategory) {
+      filtered = filtered.filter(asset => asset.mainCategory === assetCategoryFilters.mainCategory);
     }
     
-    if (selectedSubSubCategory) {
-      filtered = filtered.filter(asset => asset.subSubCategory === selectedSubSubCategory);
+    if (assetCategoryFilters.subCategory) {
+      filtered = filtered.filter(asset => asset.subCategory === assetCategoryFilters.subCategory);
+    }
+    
+    if (assetCategoryFilters.subSubCategory) {
+      filtered = filtered.filter(asset => asset.subSubCategory === assetCategoryFilters.subSubCategory);
     }
     
     setFilteredAssets(filtered);
-  }, [availableAssets, selectedMainCategory, selectedSubCategory, selectedSubSubCategory]);
+  }, [availableAssets, assetCategoryFilters]);
+
+  // Helper function to get main categories for a type
+  const getMainCategoriesForType = (type: string) => {
+    const AssetMainCategories = {
+      'Vehicle': ['Truck', 'Car', 'Van', 'Bus', 'Trailer', 'Motorcycle', 'Forklift'],
+      'Attachment': ['Trailer Hitch', 'Crane Attachment', 'Bucket Attachment', 'Fork Attachment', 'Grapple Attachment'],
+      'Equipment': ['Crane', 'Excavator', 'Bulldozer', 'Generator', 'Compressor', 'Welder', 'Drill'],
+      'Building': ['Office', 'Warehouse', 'Workshop', 'Showroom', 'Storage Facility', 'Maintenance Bay'],
+      'Furniture': ['Desk', 'Chair', 'Cabinet', 'Table', 'Shelf', 'Filing Cabinet', 'Conference Table'],
+      'IT': ['Computer', 'Laptop', 'Printer', 'Server', 'Network Device', 'Scanner', 'Projector'],
+      'Other': ['Tools', 'Safety Equipment', 'Office Supplies', 'Miscellaneous']
+    };
+    return AssetMainCategories[type as keyof typeof AssetMainCategories] || [];
+  };
 
   // Fetch clients when customerType changes
   useEffect(() => {
@@ -267,6 +295,17 @@ const ProjectsPage: React.FC = () => {
 
   const handleSubSubCategoryChange = (event: any) => {
     setSelectedSubSubCategory(event.target.value);
+  };
+
+  const handleAssetCategoryFilterChange = (categories: {
+    type?: string;
+    mainCategory?: string;
+    subCategory?: string;
+    subSubCategory?: string;
+    subSubSubCategory?: string;
+    subSubSubSubCategory?: string;
+  }) => {
+    setAssetCategoryFilters(categories);
   };
 
   const handlePriceListSearch = (description: string) => {
@@ -746,54 +785,11 @@ const ProjectsPage: React.FC = () => {
               </Box>
               <div style={{ flex: '1 1 100%' }}>
                 <Typography variant="subtitle2" gutterBottom>Asset Selection</Typography>
-                <Box display="flex" gap={2} mb={2}>
-                  <FormControl fullWidth>
-                    <InputLabel>Main Category</InputLabel>
-                    <Select
-                      value={selectedMainCategory}
-                      onChange={handleMainCategoryChange}
-                      input={<OutlinedInput label="Main Category" />}
-                    >
-                      <MenuItem value="">All Categories</MenuItem>
-                      {Object.keys(assetCategories).map(category => (
-                        <MenuItem key={category} value={category}>{category}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                  
-                  <FormControl fullWidth>
-                    <InputLabel>Sub Category</InputLabel>
-                    <Select
-                      value={selectedSubCategory}
-                      onChange={handleSubCategoryChange}
-                      input={<OutlinedInput label="Sub Category" />}
-                      disabled={!selectedMainCategory}
-                    >
-                      <MenuItem value="">All Sub Categories</MenuItem>
-                      {selectedMainCategory && assetCategories[selectedMainCategory] && 
-                        Object.keys(assetCategories[selectedMainCategory]).map(subCategory => (
-                          <MenuItem key={subCategory} value={subCategory}>{subCategory}</MenuItem>
-                        ))
-                      }
-                    </Select>
-                  </FormControl>
-                  
-                  <FormControl fullWidth>
-                    <InputLabel>Sub Sub Category</InputLabel>
-                    <Select
-                      value={selectedSubSubCategory}
-                      onChange={handleSubSubCategoryChange}
-                      input={<OutlinedInput label="Sub Sub Category" />}
-                      disabled={!selectedSubCategory}
-                    >
-                      <MenuItem value="">All Sub Sub Categories</MenuItem>
-                      {selectedSubCategory && selectedMainCategory && 
-                        assetCategories[selectedMainCategory]?.[selectedSubCategory]?.map((subSubCategory: string) => (
-                          <MenuItem key={subSubCategory} value={subSubCategory}>{subSubCategory}</MenuItem>
-                        ))
-                      }
-                    </Select>
-                  </FormControl>
+                <Box mb={2}>
+                  <HierarchicalCategorySelector
+                    value={assetCategoryFilters}
+                    onChange={handleAssetCategoryFilterChange}
+                  />
                 </Box>
                 
                 <FormControl fullWidth>
