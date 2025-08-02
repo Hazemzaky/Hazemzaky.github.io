@@ -260,6 +260,15 @@ const SalesPage: React.FC = () => {
           </div>
 
           <div class="section">
+            <div class="section-title">Quotation Details</div>
+            <table>
+              <tr><th>Quotation Date</th><td>${q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-'}</td></tr>
+              <tr><th>Valid Until</th><td>${q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '-'}</td></tr>
+              <tr><th>Status</th><td>${q.status}</td></tr>
+            </table>
+          </div>
+
+          <div class="section">
             <div class="section-title">Customer Information</div>
             <table style="width: 100%; border-collapse: collapse;">
               <tr>
@@ -320,6 +329,20 @@ const SalesPage: React.FC = () => {
         <DialogTitle>Create Quotation</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+            <Typography variant="h6" gutterBottom>Quotation Details</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Quotation Date" name="quotationDate" type="date" value={quote.quotationDate} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
+              <TextField label="Valid Until" name="validUntil" type="date" value={quote.validUntil} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
+              <TextField label="Status" name="status" value={quote.status} onChange={handleChange} select fullWidth>
+                <MenuItem value="Draft">Draft</MenuItem>
+                <MenuItem value="Sent">Sent</MenuItem>
+                <MenuItem value="Revised">Revised</MenuItem>
+                <MenuItem value="Rejected">Rejected</MenuItem>
+                <MenuItem value="Approved">Approved</MenuItem>
+                <MenuItem value="Expired">Expired</MenuItem>
+              </TextField>
+            </Box>
+            <Divider sx={{ my: 2 }} />
             <Typography variant="h6" gutterBottom>Customer Information</Typography>
             <Box display="flex" flexDirection="column" gap={2}>
               <Box display="flex" gap={2}>
@@ -440,12 +463,7 @@ const SalesPage: React.FC = () => {
               ))}
               <Button variant="outlined" onClick={handleAddTerm}>Add Term</Button>
             </Box>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" gutterBottom>Quotation Details (Placeholder)</Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <TextField label="Serial Number" name="serialNumber" value={quote.serialNumber} onChange={handleChange} fullWidth placeholder="Auto/Manual" />
-              <TextField label="Additional Details" name="additionalDetails" value={quote.additionalDetails || ''} onChange={handleChange} fullWidth multiline minRows={2} />
-            </Box>
+
 
 
             {error && <Alert severity="error">{error}</Alert>}
