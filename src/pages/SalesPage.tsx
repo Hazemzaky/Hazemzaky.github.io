@@ -258,14 +258,7 @@ const SalesPage: React.FC = () => {
               <div>Phone: +965 1234 5678</div>
             </div>
           </div>
-          <div class="section">
-            <div class="section-title">Quotation Details</div>
-            <table>
-              <tr><th>Quotation Date</th><td>${q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-'}</td></tr>
-              <tr><th>Valid Until</th><td>${q.validUntil ? new Date(q.validUntil).toLocaleDateString() : '-'}</td></tr>
-              <tr><th>Status</th><td>${q.status}</td></tr>
-            </table>
-          </div>
+
           <div class="section">
             <div class="section-title">Customer Information</div>
             <table style="width: 100%; border-collapse: collapse;">
@@ -302,41 +295,9 @@ const SalesPage: React.FC = () => {
             </div>
           </div>
 
-          <div class="section">
-            <div class="section-title">Pricing Breakdown</div>
-            <table>
-              <tr><th>Rate Type</th><td>${q.rateType}</td></tr>
-              <tr><th>Rate per Unit</th><td>${q.rate} KWD</td></tr>
-              <tr><th>Operator Charges</th><td>${q.operatorCharges} KWD</td></tr>
-              <tr><th>Fuel Charges</th><td>${q.fuelCharges} KWD</td></tr>
-              <tr><th>Mobilization/Demobilization Fee</th><td>${q.mobilizationFee} KWD</td></tr>
-              <tr><th>Standby Charges</th><td>${q.standbyCharges} KWD</td></tr>
-              <tr><th>Security Deposit</th><td>${q.securityDeposit} KWD</td></tr>
-              <tr><th>Discounts</th><td>${q.discounts} KWD</td></tr>
-              <tr><th>Taxes / VAT</th><td>${q.taxes} KWD</td></tr>
-              <tr><th>Grand Total</th><td><b>${q.grandTotal} KWD</b></td></tr>
-            </table>
-          </div>
-          <div class="section">
-            <div class="section-title">Service Add-ons / Conditions</div>
-            <table>
-              <tr><th>With/Without Operator</th><td>${q.withOperator === 'yes' ? 'With Operator' : 'Without Operator'}</td></tr>
-              <tr><th>Fuel Provided By</th><td>${q.fuelProvidedBy}</td></tr>
-              <tr><th>Insurance Responsibility</th><td>${q.insurance}</td></tr>
-              <tr><th>Maintenance Coverage</th><td>${q.maintenance}</td></tr>
-              <tr><th>Availability Confirmation</th><td>${q.availability}</td></tr>
-              <tr><th>Breakdown Replacement Policy</th><td>${q.breakdownPolicy}</td></tr>
-              <tr><th>Standby Conditions</th><td>${q.standbyConditions}</td></tr>
-            </table>
-          </div>
-          <div class="section">
-            <div class="section-title">Payment Terms</div>
-            <table>
-              <tr><th>Payment Terms</th><td>${q.paymentTerms}</td></tr>
-              <tr><th>Accepted Payment Methods</th><td>${q.paymentMethods}</td></tr>
-              <tr><th>Penalty for Late Return</th><td>${q.penalty}</td></tr>
-            </table>
-          </div>
+
+
+
           <div style="margin-top: 40px; text-align: right; font-size: 1.1rem; color: #1976d2;">Thank you for your business!</div>
           <script>window.onload = function() { window.print(); };</script>
         </body>
@@ -359,20 +320,6 @@ const SalesPage: React.FC = () => {
         <DialogTitle>Create Quotation</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-            <Typography variant="h6" gutterBottom>Quotation Details</Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <TextField label="Quotation Date" name="quotationDate" type="date" value={quote.quotationDate} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
-              <TextField label="Valid Until" name="validUntil" type="date" value={quote.validUntil} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
-              <TextField label="Status" name="status" value={quote.status} onChange={handleChange} select fullWidth>
-                <MenuItem value="Draft">Draft</MenuItem>
-                <MenuItem value="Sent">Sent</MenuItem>
-                <MenuItem value="Revised">Revised</MenuItem>
-                <MenuItem value="Rejected">Rejected</MenuItem>
-                <MenuItem value="Approved">Approved</MenuItem>
-                <MenuItem value="Expired">Expired</MenuItem>
-              </TextField>
-            </Box>
-            <Divider sx={{ my: 2 }} />
             <Typography variant="h6" gutterBottom>Customer Information</Typography>
             <Box display="flex" flexDirection="column" gap={2}>
               <Box display="flex" gap={2}>
@@ -477,30 +424,7 @@ const SalesPage: React.FC = () => {
             >
               Add More Items
             </Button>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" gutterBottom>Pricing Breakdown</Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <TextField label="Currency" name="currency" value={quote.currency} onChange={handleChange} select fullWidth>
-                {currencyOptions.map(opt => (
-                  <MenuItem key={opt.code} value={opt.code}>{opt.code} ({opt.sign})</MenuItem>
-                ))}
-              </TextField>
-              <TextField label="Rate Type" name="rateType" value={quote.rateType} onChange={handleSelect} select fullWidth>
-                <MenuItem value="daily">Daily</MenuItem>
-                <MenuItem value="hourly">Hourly</MenuItem>
-                <MenuItem value="weekly">Weekly</MenuItem>
-              </TextField>
-              <TextField label="Rate per Unit" name="rate" value={quote.rate} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth required />
-              <TextField label="Grand Total" value={calcTotal()} InputProps={{ readOnly: true, endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-              <TextField label="Operator Charges" name="operatorCharges" value={quote.operatorCharges} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-              <TextField label="Fuel Charges" name="fuelCharges" value={quote.fuelCharges} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-              <TextField label="Mobilization/Demobilization Fee" name="mobilizationFee" value={quote.mobilizationFee} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-              <TextField label="Standby Charges" name="standbyCharges" value={quote.standbyCharges} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-              <TextField label="Security Deposit" name="securityDeposit" value={quote.securityDeposit} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-              <TextField label="Discounts" name="discounts" value={quote.discounts} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-              <TextField label="Taxes / VAT" name="taxes" value={quote.taxes} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
-            </Box>
-            <Divider sx={{ my: 2 }} />
+
             <Typography variant="h6" gutterBottom>Initial Terms & Conditions</Typography>
             <Box display="flex" flexDirection="column" gap={2}>
               {terms.map((term, idx) => (
@@ -522,32 +446,8 @@ const SalesPage: React.FC = () => {
               <TextField label="Serial Number" name="serialNumber" value={quote.serialNumber} onChange={handleChange} fullWidth placeholder="Auto/Manual" />
               <TextField label="Additional Details" name="additionalDetails" value={quote.additionalDetails || ''} onChange={handleChange} fullWidth multiline minRows={2} />
             </Box>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" gutterBottom>Service Add-ons / Conditions</Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <TextField label="With/Without Operator" name="withOperator" value={quote.withOperator} onChange={handleSelect} select fullWidth>
-                <MenuItem value="no">Without Operator</MenuItem>
-                <MenuItem value="one">With One Operator</MenuItem>
-                <MenuItem value="two">With Two Operators</MenuItem>
-              </TextField>
-              <TextField label="Fuel Provided By" name="fuelProvidedBy" value={quote.fuelProvidedBy} onChange={handleChange} select fullWidth>
-                <MenuItem value="">Select</MenuItem>
-                <MenuItem value="Company">Company</MenuItem>
-                <MenuItem value="Client">Client</MenuItem>
-              </TextField>
-              <TextField label="Insurance Responsibility" name="insurance" value={quote.insurance} onChange={handleChange} fullWidth />
-              <TextField label="Maintenance Coverage" name="maintenance" value={quote.maintenance} onChange={handleChange} fullWidth />
-              <TextField label="Availability Confirmation" name="availability" value={quote.availability} onChange={handleChange} fullWidth />
-              <TextField label="Breakdown Replacement Policy" name="breakdownPolicy" value={quote.breakdownPolicy} onChange={handleChange} fullWidth />
-              <TextField label="Standby Conditions" name="standbyConditions" value={quote.standbyConditions} onChange={handleChange} fullWidth />
-            </Box>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" gutterBottom>Payment Terms</Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <TextField label="Payment Terms" name="paymentTerms" value={quote.paymentTerms} onChange={handleChange} fullWidth />
-              <TextField label="Accepted Payment Methods" name="paymentMethods" value={quote.paymentMethods} onChange={handleChange} fullWidth />
-              <TextField label="Penalty for Late Return" name="penalty" value={quote.penalty} onChange={handleChange} fullWidth />
-            </Box>
+
+
             {error && <Alert severity="error">{error}</Alert>}
           </Box>
         </DialogContent>
