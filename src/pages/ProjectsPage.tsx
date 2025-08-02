@@ -36,10 +36,15 @@ interface Project {
   _id: string;
   customer: string;
   equipmentDescription: string;
-  rentTime: string;
+  totalBasicHours: number;
+  totalOvertimeHours: number;
+  overallHours: number;
+  overtimeHoursCost: number;
+  overtimeHours: number;
+  overtimePrice: number;
   rentType: 'monthly' | 'call_out';
-  timing: '8_hours' | '12_hours' | '24_hours';
-  operatorDriver: '1' | '2';
+  department: string;
+  priceListDescription: string;
   startTime: string;
   endTime: string;
   status?: string;
@@ -55,12 +60,17 @@ const defaultForm = {
   startTime: '00:00',
   endDate: '',
   endTime: '00:00',
-  timing: '8Hrs',
   customer: '',
   equipmentDescription: '',
-  rentTime: '',
+  totalBasicHours: 0,
+  totalOvertimeHours: 0,
+  overallHours: 0,
+  overtimeHoursCost: 0,
+  overtimeHours: 0,
+  overtimePrice: 0,
   rentType: 'monthly',
-  operatorDriver: '1',
+  department: '',
+  priceListDescription: '',
   status: 'in_progress',
   description: '',
   revenue: '',
@@ -219,7 +229,18 @@ const ProjectsPage: React.FC = () => {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm((prev: any) => ({ ...prev, [name]: value }));
+    setForm((prev: any) => {
+      const updatedForm = { ...prev, [name]: value };
+      
+      // Auto-calculate overall hours when basic hours or overtime hours change
+      if (name === 'totalBasicHours' || name === 'totalOvertimeHours') {
+        const basicHours = name === 'totalBasicHours' ? Number(value) : Number(prev.totalBasicHours);
+        const overtimeHours = name === 'totalOvertimeHours' ? Number(value) : Number(prev.totalOvertimeHours);
+        updatedForm.overallHours = basicHours + overtimeHours;
+      }
+      
+      return updatedForm;
+    });
   };
 
   const handleAssetChange = (event: any) => {
@@ -240,6 +261,31 @@ const ProjectsPage: React.FC = () => {
 
   const handleSubSubCategoryChange = (event: any) => {
     setSelectedSubSubCategory(event.target.value);
+  };
+
+  const handlePriceListSearch = (description: string) => {
+    if (!selectedClientInfo) return;
+    
+    let priceList: any[] = [];
+    if (selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList) {
+      priceList = selectedClientInfo.contractData.priceList;
+    } else if (selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines) {
+      priceList = selectedClientInfo.quotationData.lines;
+    }
+    
+    const matchingItem = priceList.find(item => 
+      item.description.toLowerCase().includes(description.toLowerCase())
+    );
+    
+    if (matchingItem) {
+      setForm((prev: any) => ({
+        ...prev,
+        priceListDescription: matchingItem.description,
+        rentType: matchingItem.rentType || matchingItem.worktime || 'monthly',
+        overtimePrice: matchingItem.overtime || 0,
+        // Add other fields as needed
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -534,8 +580,23 @@ const ProjectsPage: React.FC = () => {
               <div style={{ flex: '1 1 100%' }}>
                 <TextField label="Equipment Description" name="equipmentDescription" value={form.equipmentDescription} onChange={handleFormChange} required fullWidth />
               </div>
-              <div style={{ flex: '1 1 100%' }}>
-                <TextField label="Rent Time" name="rentTime" value={form.rentTime} onChange={handleFormChange} required fullWidth />
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Total Basic Hours" name="totalBasicHours" type="number" value={form.totalBasicHours} onChange={handleFormChange} required fullWidth />
+              </div>
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Total Overtime Hours" name="totalOvertimeHours" type="number" value={form.totalOvertimeHours} onChange={handleFormChange} required fullWidth />
+              </div>
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Overall Hours" name="overallHours" type="number" value={form.overallHours} onChange={handleFormChange} required fullWidth InputProps={{ readOnly: true }} />
+              </div>
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Overtime Hours Cost" name="overtimeHoursCost" type="number" value={form.overtimeHoursCost} onChange={handleFormChange} required fullWidth />
+              </div>
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Overtime Hours" name="overtimeHours" type="number" value={form.overtimeHours} onChange={handleFormChange} required fullWidth />
+              </div>
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Overtime Price" name="overtimePrice" type="number" value={form.overtimePrice} onChange={handleFormChange} required fullWidth />
               </div>
               <div style={{ flex: '1 1 48%' }}>
                 <TextField label="Rent Type" name="rentType" value={form.rentType} onChange={handleFormChange} required fullWidth select>
@@ -544,17 +605,21 @@ const ProjectsPage: React.FC = () => {
                 </TextField>
               </div>
               <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Timing" name="timing" value={form.timing} onChange={handleFormChange} required fullWidth select>
-                  <MenuItem value="8_hours">8 Hours</MenuItem>
-                  <MenuItem value="12_hours">12 Hours</MenuItem>
-                  <MenuItem value="24_hours">24 Hours</MenuItem>
-                </TextField>
+                <TextField label="Department" name="department" value={form.department} onChange={handleFormChange} required fullWidth />
               </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Operator/Driver" name="operatorDriver" value={form.operatorDriver} onChange={handleFormChange} required fullWidth select>
-                  <MenuItem value="1">1</MenuItem>
-                  <MenuItem value="2">2</MenuItem>
-                </TextField>
+              <div style={{ flex: '1 1 100%' }}>
+                <TextField 
+                  label="Price List Description" 
+                  name="priceListDescription" 
+                  value={form.priceListDescription} 
+                  onChange={(e) => {
+                    handleFormChange(e);
+                    handlePriceListSearch(e.target.value);
+                  }}
+                  required 
+                  fullWidth 
+                  placeholder="Search in price list by description..."
+                />
               </div>
               <div style={{ flex: '1 1 48%' }}>
                 <TextField label="Status" name="status" value={form.status} onChange={handleFormChange} fullWidth select>
@@ -577,12 +642,14 @@ const ProjectsPage: React.FC = () => {
               </div>
               {/* Rental Duration Summary Box */}
               <Box sx={{ background: '#f3e5f5', borderRadius: 2, p: 2, mb: 2, border: '1px solid #ce93d8' }}>
-                <Typography variant="subtitle1" fontWeight={700} color="secondary.main">Rental Duration</Typography>
+                <Typography variant="subtitle1" fontWeight={700} color="secondary.main">Total Duration</Typography>
                 <Typography>Start: <b>{form.startDate} {form.startTime}</b></Typography>
                 <Typography>End: <b>{form.endDate} {form.endTime}</b></Typography>
                 <Typography>Total Days: <b>{rentalDuration.days}</b></Typography>
-                <Typography>Total Hours: <b>{rentalDuration.totalHours}</b></Typography>
-                <Typography>Total Minutes: <b>{rentalDuration.minutes}</b></Typography>
+                <Typography>Total Basic Hours: <b>{form.totalBasicHours}</b></Typography>
+                <Typography>Total Overtime Hours: <b>{form.totalOvertimeHours}</b></Typography>
+                <Typography>Overall Hours: <b>{form.overallHours}</b></Typography>
+                <Typography>Total Overtime Hours Cost: <b>{form.overtimeHoursCost}</b></Typography>
               </Box>
               <div style={{ flex: '1 1 100%' }}>
                 <Typography variant="subtitle2" gutterBottom>Asset Selection</Typography>
