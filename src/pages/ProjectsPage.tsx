@@ -45,6 +45,9 @@ interface Project {
   rentType: 'monthly' | 'call_out';
   department: string;
   priceListDescription: string;
+  operators: string;
+  workHours: string;
+  unitPrice: number;
   startTime: string;
   endTime: string;
   status?: string;
@@ -71,6 +74,9 @@ const defaultForm = {
   rentType: 'monthly',
   department: '',
   priceListDescription: '',
+  operators: '',
+  workHours: '',
+  unitPrice: 0,
   status: 'in_progress',
   description: '',
   revenue: '',
@@ -289,29 +295,58 @@ const ProjectsPage: React.FC = () => {
   };
 
   const handlePriceListSelection = (selectedDescription: string) => {
-    if (!selectedClientInfo || !selectedDescription) return;
+    console.log('handlePriceListSelection called with:', selectedDescription);
+    console.log('selectedClientInfo:', selectedClientInfo);
+    
+    if (!selectedClientInfo || !selectedDescription) {
+      console.log('Early return - no client info or description');
+      return;
+    }
     
     let priceList: any[] = [];
     if (selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList) {
       priceList = selectedClientInfo.contractData.priceList;
+      console.log('Using contract price list:', priceList);
     } else if (selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines) {
       priceList = selectedClientInfo.quotationData.lines;
+      console.log('Using quotation lines:', priceList);
     }
     
     const selectedItem = priceList.find(item => item.description === selectedDescription);
+    console.log('Found selected item:', selectedItem);
     
     if (selectedItem) {
+      console.log('About to update form with selected item:', selectedItem);
+      
+      const updatedForm = {
+        equipmentDescription: selectedItem.description,
+        priceListDescription: selectedItem.description,
+        rentType: selectedItem.rentType || selectedItem.worktime || 'monthly',
+        operators: selectedItem.driversOperators || selectedItem.quantity || '',
+        workHours: selectedItem.workHours || selectedItem.worktime || '',
+        unitPrice: selectedItem.unitPrice || 0,
+        overtimePrice: selectedItem.overtime || 0,
+        department: selectedItem.driversOperators ? `Drivers/Operators: ${selectedItem.driversOperators}` : 
+                   selectedItem.quantity ? `Quantity: ${selectedItem.quantity}` : '',
+      };
+      
+      console.log('Updated form data:', updatedForm);
+      
       setForm((prev: any) => ({
         ...prev,
-        priceListDescription: selectedItem.description,
+        ...updatedForm,
+      }));
+      
+      // Log for debugging
+      console.log('Selected item:', selectedItem);
+      console.log('Auto-filled form fields:', {
         equipmentDescription: selectedItem.description,
         rentType: selectedItem.rentType || selectedItem.worktime || 'monthly',
+        operators: selectedItem.driversOperators || selectedItem.quantity || '',
+        workHours: selectedItem.workHours || selectedItem.worktime || '',
+        unitPrice: selectedItem.unitPrice || 0,
         overtimePrice: selectedItem.overtime || 0,
-        // For contract items
-        ...(selectedItem.driversOperators && { department: `Drivers/Operators: ${selectedItem.driversOperators}` }),
-        // For quotation items
-        ...(selectedItem.quantity && { department: `Quantity: ${selectedItem.quantity}` }),
-      }));
+      });
     }
   };
 
@@ -563,6 +598,17 @@ const ProjectsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Box>
+            {/* Department Name Field */}
+            <Box display="flex" gap={2} mb={2}>
+              <TextField 
+                label="Department Name" 
+                name="department" 
+                value={form.department} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth 
+              />
+            </Box>
             {/* Client Info Box */}
             {selectedClientInfo && (
               <Box sx={{ background: '#e3f2fd', borderRadius: 2, p: 2, mb: 2, border: '1px solid #90caf9' }}>
@@ -607,6 +653,38 @@ const ProjectsPage: React.FC = () => {
               <div style={{ flex: '1 1 100%' }}>
                 <TextField label="Equipment Description" name="equipmentDescription" value={form.equipmentDescription} onChange={handleFormChange} required fullWidth />
               </div>
+              <div style={{ flex: '1 1 100%' }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Price List Item</InputLabel>
+                  <Select
+                    value={form.priceListDescription}
+                    onChange={(e) => {
+                      const selectedDescription = e.target.value;
+                      console.log('Price list selection changed:', selectedDescription);
+                      handlePriceListSelection(selectedDescription);
+                    }}
+                    input={<OutlinedInput label="Price List Item" />}
+                  >
+                    <MenuItem value="">
+                      <em>Select a price list item...</em>
+                    </MenuItem>
+                    {selectedClientInfo && (
+                      <>
+                        {selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList?.map((item: any, idx: number) => (
+                          <MenuItem key={`contract-${idx}`} value={item.description}>
+                            {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
+                          </MenuItem>
+                        ))}
+                        {selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines?.map((item: any, idx: number) => (
+                          <MenuItem key={`quotation-${idx}`} value={item.description}>
+                            {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
+                          </MenuItem>
+                        ))}
+                      </>
+                    )}
+                  </Select>
+                </FormControl>
+              </div>
               <div style={{ flex: '1 1 48%' }}>
                 <TextField label="Total Basic Hours" name="totalBasicHours" type="number" value={form.totalBasicHours} onChange={handleFormChange} required fullWidth />
               </div>
@@ -632,39 +710,13 @@ const ProjectsPage: React.FC = () => {
                 </TextField>
               </div>
               <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Department" name="department" value={form.department} onChange={handleFormChange} required fullWidth />
+                <TextField label="Operators" name="operators" value={form.operators} onChange={handleFormChange} required fullWidth />
               </div>
-              <div style={{ flex: '1 1 100%' }}>
-                <FormControl fullWidth required>
-                  <InputLabel>Price List Item</InputLabel>
-                  <Select
-                    value={form.priceListDescription}
-                    onChange={(e) => {
-                      const selectedDescription = e.target.value;
-                      setForm((prev: any) => ({ ...prev, priceListDescription: selectedDescription }));
-                      handlePriceListSelection(selectedDescription);
-                    }}
-                    input={<OutlinedInput label="Price List Item" />}
-                  >
-                    <MenuItem value="">
-                      <em>Select a price list item...</em>
-                    </MenuItem>
-                    {selectedClientInfo && (
-                      <>
-                        {selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList?.map((item: any, idx: number) => (
-                          <MenuItem key={`contract-${idx}`} value={item.description}>
-                            {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
-                          </MenuItem>
-                        ))}
-                        {selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines?.map((item: any, idx: number) => (
-                          <MenuItem key={`quotation-${idx}`} value={item.description}>
-                            {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
-                          </MenuItem>
-                        ))}
-                      </>
-                    )}
-                  </Select>
-                </FormControl>
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Work Hours" name="workHours" value={form.workHours} onChange={handleFormChange} required fullWidth />
+              </div>
+              <div style={{ flex: '1 1 48%' }}>
+                <TextField label="Unit Price" name="unitPrice" type="number" value={form.unitPrice} onChange={handleFormChange} required fullWidth />
               </div>
               <div style={{ flex: '1 1 48%' }}>
                 <TextField label="Status" name="status" value={form.status} onChange={handleFormChange} fullWidth select>
