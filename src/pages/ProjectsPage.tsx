@@ -668,20 +668,16 @@ const ProjectsPage: React.FC = () => {
                     <MenuItem value="">
                       <em>Select a price list item...</em>
                     </MenuItem>
-                    {selectedClientInfo && (
-                      <>
-                        {selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList?.map((item: any, idx: number) => (
-                          <MenuItem key={`contract-${idx}`} value={item.description}>
-                            {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
-                          </MenuItem>
-                        ))}
-                        {selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines?.map((item: any, idx: number) => (
-                          <MenuItem key={`quotation-${idx}`} value={item.description}>
-                            {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
-                          </MenuItem>
-                        ))}
-                      </>
-                    )}
+                    {selectedClientInfo && selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList?.map((item: any, idx: number) => (
+                      <MenuItem key={`contract-${idx}`} value={item.description}>
+                        {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
+                      </MenuItem>
+                    ))}
+                    {selectedClientInfo && selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines?.map((item: any, idx: number) => (
+                      <MenuItem key={`quotation-${idx}`} value={item.description}>
+                        {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
+                      </MenuItem>
+                    ))}
                   </Select>
                 </FormControl>
               </div>
