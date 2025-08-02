@@ -52,7 +52,7 @@ const defaultQuote = {
   contactPersonEmail: '',
   contactPersonExtension: '',
   serialNumber: '',
-  terms: [],
+  termsAndConditions: '',
   additionalDetails: '',
 };
 
@@ -89,7 +89,6 @@ const SalesPage: React.FC = () => {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [terms, setTerms] = useState<string[]>([]);
   const [rentalItems, setRentalItems] = useState<any[]>([defaultRentalItem]);
 
   // Fetch quotations from backend
@@ -133,9 +132,7 @@ const SalesPage: React.FC = () => {
     setQuote({ ...quote, [e.target.name]: e.target.value });
   };
 
-  const handleAddTerm = () => setTerms([...terms, '']);
-  const handleTermChange = (idx: number, value: string) => setTerms(terms.map((t, i) => i === idx ? value : t));
-  const handleRemoveTerm = (idx: number) => setTerms(terms.filter((_, i) => i !== idx));
+
 
   // Rental items functions
   const handleAddRentalItem = () => {
@@ -162,7 +159,7 @@ const SalesPage: React.FC = () => {
       const token = localStorage.getItem('token');
       const submitData = {
         ...quote,
-        terms,
+        termsAndConditions: quote.termsAndConditions,
         rentalItems,
         currency: quote.currency,
         clientPOBox: quote.clientPOBox,
@@ -188,7 +185,6 @@ const SalesPage: React.FC = () => {
       setSuccess('Quotation submitted!');
       setQuote(defaultQuote);
       setRentalItems([defaultRentalItem]);
-      setTerms([]);
       fetchQuotations();
       setDialogOpen(false);
     } catch (err: any) {
@@ -449,20 +445,23 @@ const SalesPage: React.FC = () => {
             </Button>
 
             <Typography variant="h6" gutterBottom>Initial Terms & Conditions</Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              {terms.map((term, idx) => (
-                <Box key={idx} display="flex" alignItems="center" gap={1}>
-                  <TextField
-                    label={`Term #${idx + 1}`}
-                    value={term}
-                    onChange={e => handleTermChange(idx, e.target.value)}
-                    fullWidth
-                  />
-                  <Button color="error" onClick={() => handleRemoveTerm(idx)}>Remove</Button>
-                </Box>
-              ))}
-              <Button variant="outlined" onClick={handleAddTerm}>Add Term</Button>
-            </Box>
+            <TextField
+              label="Terms & Conditions"
+              name="termsAndConditions"
+              value={quote.termsAndConditions}
+              onChange={handleChange}
+              fullWidth
+              multiline
+              minRows={8}
+              maxRows={15}
+              sx={{
+                '& .MuiInputBase-root': {
+                  overflow: 'auto',
+                  maxHeight: '400px',
+                }
+              }}
+              placeholder="Enter all terms and conditions here..."
+            />
 
 
 
