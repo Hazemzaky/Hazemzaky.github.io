@@ -22,12 +22,6 @@ const defaultQuote = {
   email: '',
   billingAddress: '',
   clientCategory: '',
-  equipmentType: '',
-  quantity: '',
-  rentalStart: '',
-  rentalEnd: '',
-  usageType: '',
-  projectLocation: '',
   rateType: 'daily',
   rate: '',
   operatorCharges: '',
@@ -117,20 +111,9 @@ const SalesPage: React.FC = () => {
   }, []);
 
   // Auto-calculate rental duration and totals
-  const calcDuration = () => {
-    if (quote.rentalStart && quote.rentalEnd) {
-      const start = new Date(quote.rentalStart);
-      const end = new Date(quote.rentalEnd);
-      const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      return diff > 0 ? diff : 0;
-    }
-    return '';
-  };
   const calcTotal = () => {
-    const qty = Number(quote.quantity) || 0;
     const rate = Number(quote.rate) || 0;
-    const duration = calcDuration() || 1;
-    let total = qty * rate * duration;
+    let total = rate;
     total += Number(quote.operatorCharges) || 0;
     total += Number(quote.fuelCharges) || 0;
     total += Number(quote.mobilizationFee) || 0;
@@ -188,7 +171,6 @@ const SalesPage: React.FC = () => {
         contactPersonEmail: quote.contactPersonEmail,
         contactPersonExtension: quote.contactPersonExtension,
         serialNumber: quote.serialNumber,
-        quantity: Number(quote.quantity),
         rate: Number(quote.rate),
         operatorCharges: Number(quote.operatorCharges),
         fuelCharges: Number(quote.fuelCharges),
@@ -198,8 +180,6 @@ const SalesPage: React.FC = () => {
         discounts: Number(quote.discounts),
         taxes: Number(quote.taxes),
         grandTotal: calcTotal(),
-        rentalStart: quote.rentalStart ? new Date(quote.rentalStart) : null,
-        rentalEnd: quote.rentalEnd ? new Date(quote.rentalEnd) : null,
         quotationDate: quote.quotationDate ? new Date(quote.quotationDate) : null,
         validUntil: quote.validUntil ? new Date(quote.validUntil) : null,
       };
@@ -229,9 +209,7 @@ const SalesPage: React.FC = () => {
       const s = search.toLowerCase();
       if (!(
         (q.clientName && q.clientName.toLowerCase().includes(s)) ||
-        (q.equipmentType && q.equipmentType.toLowerCase().includes(s)) ||
-        (q.status && q.status.toLowerCase().includes(s)) ||
-        (q.projectLocation && q.projectLocation.toLowerCase().includes(s))
+        (q.status && q.status.toLowerCase().includes(s))
       )) return false;
     }
     return true;
@@ -239,12 +217,10 @@ const SalesPage: React.FC = () => {
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ['Date', 'Client', 'Equipment', 'Qty', 'Status', 'Grand Total'];
+    const headers = ['Date', 'Client', 'Status', 'Grand Total'];
     const rows = filteredQuotations.map(q => [
       q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-',
       q.clientName,
-      q.equipmentType,
-      q.quantity,
       q.status,
       q.grandTotal ? `${q.grandTotal} KWD` : '-',
     ]);
@@ -300,17 +276,7 @@ const SalesPage: React.FC = () => {
               <tr><th>Client Category</th><td>${q.clientCategory}</td></tr>
             </table>
           </div>
-          <div class="section">
-            <div class="section-title">Rental Requirements</div>
-            <table>
-              <tr><th>Equipment/Vehicle Type</th><td>${q.equipmentType}</td></tr>
-              <tr><th>Quantity</th><td>${q.quantity}</td></tr>
-              <tr><th>Rental Start</th><td>${q.rentalStart ? new Date(q.rentalStart).toLocaleDateString() : '-'}</td></tr>
-              <tr><th>Rental End</th><td>${q.rentalEnd ? new Date(q.rentalEnd).toLocaleDateString() : '-'}</td></tr>
-              <tr><th>Usage Type</th><td>${q.usageType}</td></tr>
-              <tr><th>Project Location</th><td>${q.projectLocation}</td></tr>
-            </table>
-          </div>
+
           <div class="section">
             <div class="section-title">Pricing Breakdown</div>
             <table>
@@ -401,17 +367,7 @@ const SalesPage: React.FC = () => {
                 <MenuItem value="Other">Other</MenuItem>
               </TextField>
             </Box>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" gutterBottom>Rental Requirements</Typography>
-            <Box display="flex" flexDirection="column" gap={2}>
-              <TextField label="Equipment/Vehicle Type" name="equipmentType" value={quote.equipmentType} onChange={handleChange} fullWidth required />
-              <TextField label="Quantity" name="quantity" value={quote.quantity} onChange={handleChange} type="number" fullWidth required />
-              <TextField label="Usage Type" name="usageType" value={quote.usageType} onChange={handleChange} fullWidth />
-              <TextField label="Rental Start Date" name="rentalStart" type="date" value={quote.rentalStart} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
-              <TextField label="Rental End Date" name="rentalEnd" type="date" value={quote.rentalEnd} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
-              <TextField label="Rental Duration (days)" value={calcDuration()} InputProps={{ readOnly: true }} fullWidth />
-              <TextField label="Project/Job Site Location" name="projectLocation" value={quote.projectLocation} onChange={handleChange} fullWidth />
-            </Box>
+
             
             {/* New Rental Items Section */}
             <Typography variant="h6" gutterBottom>Rental Items</Typography>
@@ -596,8 +552,6 @@ const SalesPage: React.FC = () => {
               <TableRow>
                 <TableCell>Date</TableCell>
                 <TableCell>Client</TableCell>
-                <TableCell>Equipment</TableCell>
-                <TableCell>Qty</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Grand Total</TableCell>
                 <TableCell>Actions</TableCell>
@@ -608,8 +562,6 @@ const SalesPage: React.FC = () => {
                 <TableRow key={q._id}>
                   <TableCell>{q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-'}</TableCell>
                   <TableCell>{q.clientName}</TableCell>
-                  <TableCell>{q.equipmentType}</TableCell>
-                  <TableCell>{q.quantity}</TableCell>
                   <TableCell>{q.status}</TableCell>
                   <TableCell>{q.grandTotal ? `${q.grandTotal} KWD` : '-'}</TableCell>
                   <TableCell>
