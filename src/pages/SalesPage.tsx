@@ -303,7 +303,10 @@ const SalesPage: React.FC = () => {
 
 
 
-          <div style="margin-top: 40px; text-align: right; font-size: 1.1rem; color: #1976d2;">Thank you for your business!</div>
+          <div style="margin-top: 40px; text-align: center; font-size: 1rem; color: #666; font-style: italic; border-top: 1px solid #ddd; padding-top: 20px;">
+            This Quotation is automatically Generated and doesn't need any signing or stamping
+          </div>
+          <div style="margin-top: 20px; text-align: right; font-size: 1.1rem; color: #1976d2;">Thank you for your business!</div>
           <script>window.onload = function() { window.print(); };</script>
         </body>
       </html>
