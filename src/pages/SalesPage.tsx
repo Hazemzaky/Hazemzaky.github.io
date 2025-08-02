@@ -17,11 +17,13 @@ const defaultQuote = {
   validUntil: '',
   status: 'Draft',
   clientName: '',
-  contactPerson: '',
-  phone: '',
+  attn: '',
   email: '',
-  billingAddress: '',
-  clientCategory: '',
+  contactNo: '',
+  subject: '',
+  refCode: '',
+  currency: 'KWD',
+  project: '',
   rateType: 'daily',
   rate: '',
   operatorCharges: '',
@@ -43,7 +45,6 @@ const defaultQuote = {
   breakdownPolicy: '',
   standbyConditions: '',
   grandTotal: '',
-  currency: 'KWD',
   clientPOBox: '',
   clientFax: '',
   clientEmail: '',
@@ -267,14 +268,38 @@ const SalesPage: React.FC = () => {
           </div>
           <div class="section">
             <div class="section-title">Customer Information</div>
-            <table>
-              <tr><th>Client Name</th><td>${q.clientName}</td></tr>
-              <tr><th>Contact Person</th><td>${q.contactPerson}</td></tr>
-              <tr><th>Phone</th><td>${q.phone}</td></tr>
-              <tr><th>Email</th><td>${q.email}</td></tr>
-              <tr><th>Billing Address</th><td>${q.billingAddress}</td></tr>
-              <tr><th>Client Category</th><td>${q.clientCategory}</td></tr>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <th style="border: 1px solid #ddd; padding: 8px; width: 25%;">Client Name</th>
+                <td style="border: 1px solid #ddd; padding: 8px; width: 25%;">${q.clientName || '-'}</td>
+                <th style="border: 1px solid #ddd; padding: 8px; width: 25%;">Date</th>
+                <td style="border: 1px solid #ddd; padding: 8px; width: 25%;">${q.quotationDate ? new Date(q.quotationDate).toLocaleDateString() : '-'}</td>
+              </tr>
+              <tr>
+                <th style="border: 1px solid #ddd; padding: 8px;">Attn.</th>
+                <td style="border: 1px solid #ddd; padding: 8px;">${q.attn || '-'}</td>
+                <th style="border: 1px solid #ddd; padding: 8px;">Ref Code</th>
+                <td style="border: 1px solid #ddd; padding: 8px;">${q.refCode || '-'}</td>
+              </tr>
+              <tr>
+                <th style="border: 1px solid #ddd; padding: 8px;">Email</th>
+                <td style="border: 1px solid #ddd; padding: 8px;">${q.email || '-'}</td>
+                <th style="border: 1px solid #ddd; padding: 8px;">Currency</th>
+                <td style="border: 1px solid #ddd; padding: 8px;">${q.currency || '-'}</td>
+              </tr>
+              <tr>
+                <th style="border: 1px solid #ddd; padding: 8px;">Cont No.</th>
+                <td style="border: 1px solid #ddd; padding: 8px;">${q.contactNo || '-'}</td>
+                <th style="border: 1px solid #ddd; padding: 8px;">Project</th>
+                <td style="border: 1px solid #ddd; padding: 8px;">${q.project || '-'}</td>
+              </tr>
             </table>
+            <div style="margin-top: 16px;">
+              <strong>Subject:</strong><br/>
+              <div style="border: 1px solid #ddd; padding: 8px; min-height: 60px; margin-top: 8px;">
+                ${q.subject || '-'}
+              </div>
+            </div>
           </div>
 
           <div class="section">
@@ -350,22 +375,27 @@ const SalesPage: React.FC = () => {
             <Divider sx={{ my: 2 }} />
             <Typography variant="h6" gutterBottom>Customer Information</Typography>
             <Box display="flex" flexDirection="column" gap={2}>
-              <TextField label="Client Name / Company" name="clientName" value={quote.clientName} onChange={handleChange} fullWidth required />
-              <TextField label="Client P.O. Box" name="clientPOBox" value={quote.clientPOBox} onChange={handleChange} fullWidth />
-              <TextField label="Client Fax" name="clientFax" value={quote.clientFax} onChange={handleChange} fullWidth />
-              <TextField label="Client Email" name="clientEmail" value={quote.clientEmail} onChange={handleChange} fullWidth />
-              <TextField label="Contact Person" name="contactPerson" value={quote.contactPerson} onChange={handleChange} fullWidth />
-              <TextField label="Contact Person Phone" name="contactPersonPhone" value={quote.contactPersonPhone} onChange={handleChange} fullWidth />
-              <TextField label="Contact Person Email" name="contactPersonEmail" value={quote.contactPersonEmail} onChange={handleChange} fullWidth />
-              <TextField label="Contact Person Extension (Landline)" name="contactPersonExtension" value={quote.contactPersonExtension} onChange={handleChange} fullWidth />
-              <TextField label="Billing Address" name="billingAddress" value={quote.billingAddress} onChange={handleChange} fullWidth />
-              <TextField label="Client Category" name="clientCategory" value={quote.clientCategory} onChange={handleChange} select fullWidth>
-                <MenuItem value="">Select</MenuItem>
-                <MenuItem value="Construction">Construction</MenuItem>
-                <MenuItem value="Oil & Gas">Oil & Gas</MenuItem>
-                <MenuItem value="Events">Events</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
-              </TextField>
+              <Box display="flex" gap={2}>
+                <TextField label="Client Name" name="clientName" value={quote.clientName} onChange={handleChange} fullWidth required />
+                <TextField label="Date" name="quotationDate" type="date" value={quote.quotationDate} onChange={handleChange} InputLabelProps={{ shrink: true }} fullWidth required />
+              </Box>
+              <Box display="flex" gap={2}>
+                <TextField label="Attn." name="attn" value={quote.attn} onChange={handleChange} fullWidth />
+                <TextField label="Ref Code" name="refCode" value={quote.refCode} onChange={handleChange} fullWidth />
+              </Box>
+              <Box display="flex" gap={2}>
+                <TextField label="Email" name="email" value={quote.email} onChange={handleChange} fullWidth />
+                <TextField label="Currency" name="currency" value={quote.currency} onChange={handleChange} select fullWidth>
+                  {currencyOptions.map(opt => (
+                    <MenuItem key={opt.code} value={opt.code}>{opt.code} ({opt.sign})</MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+              <Box display="flex" gap={2}>
+                <TextField label="Cont No." name="contactNo" value={quote.contactNo} onChange={handleChange} fullWidth />
+                <TextField label="Project" name="project" value={quote.project} onChange={handleChange} fullWidth />
+              </Box>
+              <TextField label="Subject" name="subject" value={quote.subject} onChange={handleChange} fullWidth multiline minRows={2} />
             </Box>
 
             
