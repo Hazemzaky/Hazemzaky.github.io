@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Card, CardContent, TextField, MenuItem, Button, Divider, InputAdornment, Snackbar, Alert, Paper, Table, TableHead, TableRow, TableCell, TableBody, IconButton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import axios from 'axios';
+import api from '../apiBase';
 import PrintIcon from '@mui/icons-material/Print';
+
+const currencyOptions = [
+  { code: 'KWD', sign: 'د.ك' },
+  { code: 'USD', sign: '$' },
+  { code: 'EUR', sign: '€' },
+  { code: 'GBP', sign: '£' },
+  { code: 'SAR', sign: 'ر.س' },
+  { code: 'AED', sign: 'د.إ' },
+];
 
 const defaultQuote = {
   quotationDate: '',
@@ -40,6 +49,25 @@ const defaultQuote = {
   breakdownPolicy: '',
   standbyConditions: '',
   grandTotal: '',
+  currency: 'KWD',
+  clientPOBox: '',
+  clientFax: '',
+  clientEmail: '',
+  contactPersonPhone: '',
+  contactPersonEmail: '',
+  contactPersonExtension: '',
+  serialNumber: '',
+  terms: [],
+  additionalDetails: '',
+};
+
+// Default rental item structure
+const defaultRentalItem = {
+  description: '',
+  rentType: 'Callout',
+  workingHours: '8',
+  unitPrice: '',
+  remarks: ''
 };
 
 function exportCSV(rows: any[], headers: string[], filename: string) {
@@ -66,6 +94,8 @@ const SalesPage: React.FC = () => {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [terms, setTerms] = useState<string[]>([]);
+  const [rentalItems, setRentalItems] = useState<any[]>([defaultRentalItem]);
 
   // Fetch quotations from backend
   const fetchQuotations = async () => {
@@ -73,10 +103,8 @@ const SalesPage: React.FC = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get<any[]>('/api/quotations', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setQuotations(res.data);
+      const res = await api.get('/quotations');
+      setQuotations(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       setError((err as any).response?.data?.message || 'Failed to fetch quotations');
     } finally {
@@ -121,6 +149,28 @@ const SalesPage: React.FC = () => {
     setQuote({ ...quote, [e.target.name]: e.target.value });
   };
 
+  const handleAddTerm = () => setTerms([...terms, '']);
+  const handleTermChange = (idx: number, value: string) => setTerms(terms.map((t, i) => i === idx ? value : t));
+  const handleRemoveTerm = (idx: number) => setTerms(terms.filter((_, i) => i !== idx));
+
+  // Rental items functions
+  const handleAddRentalItem = () => {
+    setRentalItems([...rentalItems, { ...defaultRentalItem }]);
+  };
+
+  const handleRemoveRentalItem = (idx: number) => {
+    if (rentalItems.length > 1) {
+      setRentalItems(rentalItems.filter((_, i) => i !== idx));
+    }
+  };
+
+  const handleRentalItemChange = (idx: number, field: string, value: string) => {
+    const updatedItems = rentalItems.map((item, i) => 
+      i === idx ? { ...item, [field]: value } : item
+    );
+    setRentalItems(updatedItems);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -128,6 +178,16 @@ const SalesPage: React.FC = () => {
       const token = localStorage.getItem('token');
       const submitData = {
         ...quote,
+        terms,
+        rentalItems,
+        currency: quote.currency,
+        clientPOBox: quote.clientPOBox,
+        clientFax: quote.clientFax,
+        clientEmail: quote.clientEmail,
+        contactPersonPhone: quote.contactPersonPhone,
+        contactPersonEmail: quote.contactPersonEmail,
+        contactPersonExtension: quote.contactPersonExtension,
+        serialNumber: quote.serialNumber,
         quantity: Number(quote.quantity),
         rate: Number(quote.rate),
         operatorCharges: Number(quote.operatorCharges),
@@ -143,11 +203,11 @@ const SalesPage: React.FC = () => {
         quotationDate: quote.quotationDate ? new Date(quote.quotationDate) : null,
         validUntil: quote.validUntil ? new Date(quote.validUntil) : null,
       };
-      await axios.post('/api/quotations', submitData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post('/quotations', submitData);
       setSuccess('Quotation submitted!');
       setQuote(defaultQuote);
+      setRentalItems([defaultRentalItem]);
+      setTerms([]);
       fetchQuotations();
       setDialogOpen(false);
     } catch (err: any) {
@@ -315,8 +375,9 @@ const SalesPage: React.FC = () => {
               <TextField label="Status" name="status" value={quote.status} onChange={handleChange} select fullWidth>
                 <MenuItem value="Draft">Draft</MenuItem>
                 <MenuItem value="Sent">Sent</MenuItem>
-                <MenuItem value="Approved">Approved</MenuItem>
+                <MenuItem value="Revised">Revised</MenuItem>
                 <MenuItem value="Rejected">Rejected</MenuItem>
+                <MenuItem value="Approved">Approved</MenuItem>
                 <MenuItem value="Expired">Expired</MenuItem>
               </TextField>
             </Box>
@@ -324,9 +385,13 @@ const SalesPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>Customer Information</Typography>
             <Box display="flex" flexDirection="column" gap={2}>
               <TextField label="Client Name / Company" name="clientName" value={quote.clientName} onChange={handleChange} fullWidth required />
+              <TextField label="Client P.O. Box" name="clientPOBox" value={quote.clientPOBox} onChange={handleChange} fullWidth />
+              <TextField label="Client Fax" name="clientFax" value={quote.clientFax} onChange={handleChange} fullWidth />
+              <TextField label="Client Email" name="clientEmail" value={quote.clientEmail} onChange={handleChange} fullWidth />
               <TextField label="Contact Person" name="contactPerson" value={quote.contactPerson} onChange={handleChange} fullWidth />
-              <TextField label="Phone" name="phone" value={quote.phone} onChange={handleChange} fullWidth />
-              <TextField label="Email" name="email" value={quote.email} onChange={handleChange} fullWidth />
+              <TextField label="Contact Person Phone" name="contactPersonPhone" value={quote.contactPersonPhone} onChange={handleChange} fullWidth />
+              <TextField label="Contact Person Email" name="contactPersonEmail" value={quote.contactPersonEmail} onChange={handleChange} fullWidth />
+              <TextField label="Contact Person Extension (Landline)" name="contactPersonExtension" value={quote.contactPersonExtension} onChange={handleChange} fullWidth />
               <TextField label="Billing Address" name="billingAddress" value={quote.billingAddress} onChange={handleChange} fullWidth />
               <TextField label="Client Category" name="clientCategory" value={quote.clientCategory} onChange={handleChange} select fullWidth>
                 <MenuItem value="">Select</MenuItem>
@@ -347,9 +412,93 @@ const SalesPage: React.FC = () => {
               <TextField label="Rental Duration (days)" value={calcDuration()} InputProps={{ readOnly: true }} fullWidth />
               <TextField label="Project/Job Site Location" name="projectLocation" value={quote.projectLocation} onChange={handleChange} fullWidth />
             </Box>
+            
+            {/* New Rental Items Section */}
+            <Typography variant="h6" gutterBottom>Rental Items</Typography>
+            {rentalItems.map((item, idx) => (
+              <Box key={idx} sx={{ border: '1px solid #e0e0e0', p: 2, borderRadius: 1, mb: 2 }}>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography variant="subtitle1">Item #{idx + 1}</Typography>
+                  {rentalItems.length > 1 && (
+                    <Button 
+                      color="error" 
+                      size="small" 
+                      onClick={() => handleRemoveRentalItem(idx)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Box>
+                <Box display="flex" flexDirection="column" gap={2}>
+                  <TextField 
+                    label="Description" 
+                    value={item.description} 
+                    onChange={(e) => handleRentalItemChange(idx, 'description', e.target.value)} 
+                    fullWidth 
+                    required 
+                  />
+                  <Box display="flex" gap={2}>
+                    <TextField 
+                      select 
+                      label="Rent Type" 
+                      value={item.rentType} 
+                      onChange={(e) => handleRentalItemChange(idx, 'rentType', e.target.value)} 
+                      fullWidth 
+                      required
+                    >
+                      <MenuItem value="Callout">Callout</MenuItem>
+                      <MenuItem value="Monthly">Monthly</MenuItem>
+                      <MenuItem value="Trip">Trip</MenuItem>
+                    </TextField>
+                    <TextField 
+                      select 
+                      label="Working Hours" 
+                      value={item.workingHours} 
+                      onChange={(e) => handleRentalItemChange(idx, 'workingHours', e.target.value)} 
+                      fullWidth 
+                      required
+                    >
+                      <MenuItem value="8">8 Hours</MenuItem>
+                      <MenuItem value="12">12 Hours</MenuItem>
+                      <MenuItem value="16">16 Hours</MenuItem>
+                      <MenuItem value="24">24 Hours</MenuItem>
+                    </TextField>
+                  </Box>
+                  <Box display="flex" gap={2}>
+                    <TextField 
+                      label="Unit Price" 
+                      value={item.unitPrice} 
+                      onChange={(e) => handleRentalItemChange(idx, 'unitPrice', e.target.value)} 
+                      type="number" 
+                      fullWidth 
+                      required 
+                      InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }}
+                    />
+                    <TextField 
+                      label="Remarks" 
+                      value={item.remarks} 
+                      onChange={(e) => handleRentalItemChange(idx, 'remarks', e.target.value)} 
+                      fullWidth 
+                    />
+                  </Box>
+                </Box>
+              </Box>
+            ))}
+            <Button 
+              variant="outlined" 
+              onClick={handleAddRentalItem}
+              sx={{ mb: 2 }}
+            >
+              Add More Items
+            </Button>
             <Divider sx={{ my: 2 }} />
             <Typography variant="h6" gutterBottom>Pricing Breakdown</Typography>
             <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Currency" name="currency" value={quote.currency} onChange={handleChange} select fullWidth>
+                {currencyOptions.map(opt => (
+                  <MenuItem key={opt.code} value={opt.code}>{opt.code} ({opt.sign})</MenuItem>
+                ))}
+              </TextField>
               <TextField label="Rate Type" name="rateType" value={quote.rateType} onChange={handleSelect} select fullWidth>
                 <MenuItem value="daily">Daily</MenuItem>
                 <MenuItem value="hourly">Hourly</MenuItem>
@@ -366,11 +515,34 @@ const SalesPage: React.FC = () => {
               <TextField label="Taxes / VAT" name="taxes" value={quote.taxes} onChange={handleChange} type="number" InputProps={{ endAdornment: <InputAdornment position="end">KWD</InputAdornment> }} fullWidth />
             </Box>
             <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>Initial Terms & Conditions</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              {terms.map((term, idx) => (
+                <Box key={idx} display="flex" alignItems="center" gap={1}>
+                  <TextField
+                    label={`Term #${idx + 1}`}
+                    value={term}
+                    onChange={e => handleTermChange(idx, e.target.value)}
+                    fullWidth
+                  />
+                  <Button color="error" onClick={() => handleRemoveTerm(idx)}>Remove</Button>
+                </Box>
+              ))}
+              <Button variant="outlined" onClick={handleAddTerm}>Add Term</Button>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="h6" gutterBottom>Quotation Details (Placeholder)</Typography>
+            <Box display="flex" flexDirection="column" gap={2}>
+              <TextField label="Serial Number" name="serialNumber" value={quote.serialNumber} onChange={handleChange} fullWidth placeholder="Auto/Manual" />
+              <TextField label="Additional Details" name="additionalDetails" value={quote.additionalDetails || ''} onChange={handleChange} fullWidth multiline minRows={2} />
+            </Box>
+            <Divider sx={{ my: 2 }} />
             <Typography variant="h6" gutterBottom>Service Add-ons / Conditions</Typography>
             <Box display="flex" flexDirection="column" gap={2}>
               <TextField label="With/Without Operator" name="withOperator" value={quote.withOperator} onChange={handleSelect} select fullWidth>
                 <MenuItem value="no">Without Operator</MenuItem>
-                <MenuItem value="yes">With Operator</MenuItem>
+                <MenuItem value="one">With One Operator</MenuItem>
+                <MenuItem value="two">With Two Operators</MenuItem>
               </TextField>
               <TextField label="Fuel Provided By" name="fuelProvidedBy" value={quote.fuelProvidedBy} onChange={handleChange} select fullWidth>
                 <MenuItem value="">Select</MenuItem>
@@ -408,8 +580,9 @@ const SalesPage: React.FC = () => {
           <MenuItem value="">All Statuses</MenuItem>
           <MenuItem value="Draft">Draft</MenuItem>
           <MenuItem value="Sent">Sent</MenuItem>
-          <MenuItem value="Approved">Approved</MenuItem>
+          <MenuItem value="Revised">Revised</MenuItem>
           <MenuItem value="Rejected">Rejected</MenuItem>
+          <MenuItem value="Approved">Approved</MenuItem>
           <MenuItem value="Expired">Expired</MenuItem>
         </TextField>
         <TextField label="From" type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />

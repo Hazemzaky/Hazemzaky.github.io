@@ -102,74 +102,22 @@ const EmployeeProfilePage: React.FC = () => {
   const [privateNotes, setPrivateNotes] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Mock data for demonstration
-  const mockEmployee: Employee = {
-    _id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@company.com',
-    personalEmail: 'sarah.johnson.personal@gmail.com',
-    phone: '+1 (555) 123-4567',
-    position: 'Senior Software Engineer',
-    department: 'Engineering',
-    employeeId: 'EMP-2023-001',
-    manager: 'Michael Chen',
-    officeLocation: 'San Francisco, CA',
-    workMode: 'hybrid',
-    joinDate: '2023-03-15',
-    employmentType: 'full-time',
-    status: 'active',
-    salary: 120000,
-    hourlyRate: 60,
-    jobLevel: 'Senior',
-    skills: ['React', 'TypeScript', 'Node.js', 'Leadership', 'Communication', 'Agile'],
-    leaveBalance: {
-      vacation: 15,
-      sick: 8,
-      personal: 3
-    },
-    performance: {
-      lastReviewDate: '2024-01-15',
-      rating: 4.2,
-      goals: [
-        { id: '1', title: 'Lead 3 major features', category: 'Technical', progress: 75, target: 100 },
-        { id: '2', title: 'Mentor 2 junior developers', category: 'Leadership', progress: 100, target: 100 },
-        { id: '3', title: 'Improve team collaboration', category: 'Teamwork', progress: 60, target: 100 },
-        { id: '4', title: 'Deliver project on time', category: 'Delivery', progress: 90, target: 100 }
-      ],
-      feedback: [
-        { id: '1', from: 'Michael Chen', comment: 'Excellent technical skills and leadership', date: '2024-01-15', tags: ['Technical', 'Leadership'] },
-        { id: '2', from: 'Team Member', comment: 'Great mentor and team player', date: '2024-01-10', tags: ['Teamwork', 'Communication'] }
-      ]
-    },
-    documents: [
-      { id: '1', name: 'Employment Contract', type: 'contract', uploadDate: '2023-03-15', url: '#', expiryDate: '2025-03-15' },
-      { id: '2', name: 'NDA Agreement', type: 'nda', uploadDate: '2023-03-15', url: '#', expiryDate: '2024-12-31' },
-      { id: '3', name: 'Work Permit', type: 'permit', uploadDate: '2023-03-15', url: '#', expiryDate: '2024-06-30' },
-      { id: '4', name: 'Resume', type: 'cv', uploadDate: '2023-03-15', url: '#' }
-    ],
-    timeline: [
-      { id: '1', date: '2023-03-15', event: 'Joined Company', description: 'Started as Software Engineer', type: 'join' },
-      { id: '2', date: '2023-09-15', event: 'Promotion', description: 'Promoted to Senior Software Engineer', type: 'promotion' },
-      { id: '3', date: '2023-12-20', event: 'Leave Approved', description: 'Vacation leave approved', type: 'leave' },
-      { id: '4', date: '2024-01-15', event: 'Performance Review', description: 'Annual performance review completed', type: 'achievement' }
-    ],
-    directReports: ['John Doe', 'Jane Smith'],
-    birthday: '1990-08-15',
-    workAnniversary: '2023-03-15',
-    nextOneOnOne: '2024-02-20',
-    privateNotes: 'High performer, potential for promotion. Good team player.'
-  };
-
+  // Remove mockEmployee and setTimeout logic
   useEffect(() => {
-    // Simulate API call based on employee ID
     setLoading(true);
-    setTimeout(() => {
-      // In a real app, you would fetch employee data based on the ID
-      // For now, we'll use mock data
-      setEmployee(mockEmployee);
-      setPrivateNotes(mockEmployee.privateNotes || '');
-      setLoading(false);
-    }, 1000);
+    setError('');
+    api.get(`/employees/${id}`)
+      .then(res => {
+        const data = res.data as Employee;
+        setEmployee(data);
+        setPrivateNotes(data.privateNotes || '');
+        setLoading(false);
+      })
+      .catch(err => {
+        setError('Employee not found');
+        setEmployee(null);
+        setLoading(false);
+      });
   }, [id]);
 
   const getStatusColor = (status: string) => {

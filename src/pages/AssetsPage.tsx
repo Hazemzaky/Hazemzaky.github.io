@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../apiBase';
-import CategorySelector from '../components/CategorySelector';
+import HierarchicalCategorySelector from '../components/HierarchicalCategorySelector';
 import {
   Box, Button, Card, CardContent, Typography, Paper, TextField, MenuItem, Snackbar, Alert, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Checkbox
 } from '@mui/material';
@@ -12,32 +12,134 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import SearchIcon from '@mui/icons-material/Search';
 import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
 
-// Add typeOptions for the asset type dropdown
-const typeOptions = [
-  'Vehicle',
-  'Equipment',
-  'Building',
-  'IT',
-  'Furniture',
-  'Tools',
-  'Half Lorrey',
-  'Bom Truck'
-];
-
 const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f', '#6d4c41', '#0288d1'];
 
-// Updated asset categories as requested
-const AssetMainCategories = [
-  'Vehicle', 'Equipment', 'Building', 'IT', 'Furniture', 'Tools', 'Half Lorrey', 'Bom Truck'
-];
+// Asset types (first level)
+const AssetTypes = ['Vehicle', 'Attachment', 'Equipment', 'Building', 'Furniture', 'IT', 'Other'];
 
+// Asset types (first level selection)
+const typeOptions = AssetTypes;
+
+// Main categories (second level) - depends on type
+const AssetMainCategories = {
+  'Vehicle': ['Truck', 'Car', 'Van', 'Bus', 'Trailer', 'Motorcycle', 'Forklift'],
+  'Attachment': ['Trailer Hitch', 'Crane Attachment', 'Bucket Attachment', 'Fork Attachment', 'Grapple Attachment'],
+  'Equipment': ['Crane', 'Excavator', 'Bulldozer', 'Generator', 'Compressor', 'Welder', 'Drill'],
+  'Building': ['Office', 'Warehouse', 'Workshop', 'Showroom', 'Storage Facility', 'Maintenance Bay'],
+  'Furniture': ['Desk', 'Chair', 'Cabinet', 'Table', 'Shelf', 'Filing Cabinet', 'Conference Table'],
+  'IT': ['Computer', 'Laptop', 'Printer', 'Server', 'Network Device', 'Scanner', 'Projector'],
+  'Other': ['Tools', 'Safety Equipment', 'Office Supplies', 'Miscellaneous']
+};
+
+// Sub categories (third level) - depends on main category
 const AssetSubCategories = {
-  'Vehicle': ['Truck', 'Car', 'Van', 'Bus', 'Trailer'],
-  'Equipment': ['Crane', 'Excavator', 'Bulldozer', 'Forklift', 'Generator'],
-  'Building': ['Office', 'Warehouse', 'Workshop', 'Showroom'],
-  'IT': ['Computer', 'Laptop', 'Printer', 'Server', 'Network'],
-  'Furniture': ['Desk', 'Chair', 'Cabinet', 'Table', 'Shelf'],
-  'Tools': ['Hand Tools', 'Power Tools', 'Measuring Tools', 'Safety Equipment']
+  // Vehicle sub categories
+  'Truck': ['Light-Duty Truck', 'Medium-Duty Truck', 'Heavy-Duty Truck', 'Dump Truck', 'Tank Truck'],
+  'Car': ['Sedan', 'SUV', 'Pickup', 'Van', 'Sports Car'],
+  'Van': ['Passenger Van', 'Cargo Van', 'Mini Van', 'Delivery Van'],
+  'Bus': ['School Bus', 'Transit Bus', 'Coach Bus', 'Mini Bus'],
+  'Trailer': ['Flatbed Trailer', 'Enclosed Trailer', 'Tank Trailer', 'Dump Trailer'],
+  'Motorcycle': ['Street Bike', 'Dirt Bike', 'Scooter', 'Touring Bike'],
+  'Forklift': ['Electric Forklift', 'Gas Forklift', 'Diesel Forklift', 'Rough Terrain Forklift'],
+  
+  // Attachment sub categories
+  'Trailer Hitch': ['Ball Hitch', 'Fifth Wheel', 'Gooseneck', 'Bumper Pull'],
+  'Crane Attachment': ['Jib Extension', 'Hook Block', 'Grapple', 'Magnet'],
+  'Bucket Attachment': ['General Purpose', 'Rock Bucket', 'Trenching', 'Skeleton'],
+  'Fork Attachment': ['Pallet Forks', 'Bale Spear', 'Log Fork', 'Man Basket'],
+  'Grapple Attachment': ['Rock Grapple', 'Log Grapple', 'Multi-Purpose', 'Rotating'],
+  
+  // Equipment sub categories
+  'Crane': ['Mobile Crane', 'Tower Crane', 'Crawler Crane', 'Rough Terrain Crane'],
+  'Excavator': ['Mini Excavator', 'Standard Excavator', 'Large Excavator', 'Long Reach'],
+  'Bulldozer': ['Small Dozer', 'Medium Dozer', 'Large Dozer', 'Track Dozer'],
+  'Generator': ['Portable Generator', 'Standby Generator', 'Industrial Generator', 'Diesel Generator'],
+  'Compressor': ['Air Compressor', 'Refrigerant Compressor', 'Gas Compressor', 'Oil Compressor'],
+  'Welder': ['Arc Welder', 'MIG Welder', 'TIG Welder', 'Plasma Cutter'],
+  'Drill': ['Hand Drill', 'Hammer Drill', 'Rotary Hammer', 'Core Drill'],
+  
+  // Building sub categories
+  'Office': ['Executive Office', 'Open Plan', 'Conference Room', 'Reception Area'],
+  'Warehouse': ['Storage Warehouse', 'Distribution Center', 'Cold Storage', 'High Bay'],
+  'Workshop': ['Mechanical Workshop', 'Electrical Workshop', 'Welding Shop', 'Assembly Area'],
+  'Showroom': ['Vehicle Showroom', 'Equipment Showroom', 'Furniture Showroom', 'Display Area'],
+  'Storage Facility': ['Bulk Storage', 'Rack Storage', 'Container Storage', 'Specialized Storage'],
+  'Maintenance Bay': ['Service Bay', 'Inspection Bay', 'Wash Bay', 'Paint Bay'],
+  
+  // Furniture sub categories
+  'Desk': ['Executive Desk', 'Workstation Desk', 'Standing Desk', 'Conference Table'],
+  'Chair': ['Office Chair', 'Conference Chair', 'Visitor Chair', 'Ergonomic Chair'],
+  'Cabinet': ['Filing Cabinet', 'Storage Cabinet', 'Display Cabinet', 'Tool Cabinet'],
+  'Table': ['Conference Table', 'Work Table', 'Dining Table', 'Display Table'],
+  'Shelf': ['Book Shelf', 'Storage Shelf', 'Display Shelf', 'Wire Shelf'],
+  'Filing Cabinet': ['Lateral File', 'Vertical File', 'Mobile File', 'Fireproof File'],
+  'Conference Table': ['Boardroom Table', 'Training Table', 'Meeting Table', 'Presentation Table'],
+  
+  // IT sub categories
+  'Computer': ['Desktop Computer', 'Workstation', 'Server', 'Mini Computer'],
+  'Laptop': ['Business Laptop', 'Gaming Laptop', 'Ultrabook', 'Rugged Laptop'],
+  'Printer': ['Laser Printer', 'Inkjet Printer', '3D Printer', 'Label Printer'],
+  'Server': ['File Server', 'Web Server', 'Database Server', 'Application Server'],
+  'Network Device': ['Router', 'Switch', 'Firewall', 'Access Point'],
+  'Scanner': ['Document Scanner', 'Barcode Scanner', '3D Scanner', 'Flatbed Scanner'],
+  'Projector': ['LCD Projector', 'DLP Projector', 'LED Projector', 'Short Throw Projector'],
+  
+  // Other sub categories
+  'Tools': ['Hand Tools', 'Power Tools', 'Measuring Tools', 'Specialty Tools'],
+  'Safety Equipment': ['PPE', 'Safety Signs', 'Emergency Equipment', 'Monitoring Devices'],
+  'Office Supplies': ['Paper Products', 'Writing Supplies', 'Storage Supplies', 'Presentation Supplies'],
+  'Miscellaneous': ['Custom Items', 'Special Equipment', 'Temporary Items', 'Uncategorized']
+};
+
+// Sub-sub categories (fourth level) - depends on sub category
+const AssetSubSubCategories = {
+  // Vehicle examples
+  'Light-Duty Truck': ['Pickup Truck', 'Mini Truck', 'Delivery Truck'],
+  'Medium-Duty Truck': ['Box Truck', 'Flatbed Truck', 'Dump Truck'],
+  'Heavy-Duty Truck': ['Tractor Trailer', 'Articulated Truck', 'Multi-Axle Truck'],
+  
+  // Equipment examples
+  'Mobile Crane': ['Boom Truck', 'All Terrain Crane', 'Rough Terrain Crane'],
+  'Mini Excavator': ['Compact Excavator', 'Micro Excavator', 'Zero Tail Swing'],
+  'Portable Generator': ['Gas Generator', 'Diesel Generator', 'Inverter Generator'],
+  
+  // Building examples
+  'Executive Office': ['Corner Office', 'Standard Office', 'Shared Office'],
+  'Storage Warehouse': ['Bulk Storage', 'Rack Storage', 'Automated Storage'],
+  'Mechanical Workshop': ['Engine Repair', 'Transmission Repair', 'General Repair'],
+  
+  // Furniture examples
+  'Executive Desk': ['L-Shaped Desk', 'Straight Desk', 'Standing Desk'],
+  'Office Chair': ['Executive Chair', 'Task Chair', 'Guest Chair'],
+  'Filing Cabinet': ['2-Drawer', '3-Drawer', '4-Drawer', '5-Drawer'],
+  
+  // IT examples
+  'Desktop Computer': ['Workstation', 'Gaming PC', 'All-in-One'],
+  'Laser Printer': ['Monochrome', 'Color', 'Multifunction'],
+  'Router': ['Wireless Router', 'Wired Router', 'VPN Router']
+};
+
+// Sub-sub-sub categories (fifth level) - depends on sub-sub category
+const AssetSubSubSubCategories = {
+  // Vehicle examples
+  'Pickup Truck': ['Single Cab', 'Extended Cab', 'Crew Cab'],
+  'Box Truck': ['Standard Box', 'Refrigerated Box', 'Insulated Box'],
+  'Mobile Crane': ['Boom Truck', 'All Terrain', 'Rough Terrain'],
+  
+  // Equipment examples
+  'Compact Excavator': ['Mini Excavator', 'Micro Excavator', 'Zero Tail'],
+  'Gas Generator': ['Portable', 'Standby', 'Inverter'],
+  'Laser Printer': ['Monochrome', 'Color', 'Multifunction'],
+  
+  // Building examples
+  'Corner Office': ['Large', 'Medium', 'Small'],
+  'Bulk Storage': ['High Bay', 'Low Bay', 'Mezzanine'],
+  'Engine Repair': ['Heavy Equipment', 'Automotive', 'Marine'],
+  
+  // Furniture examples
+  'L-Shaped Desk': ['Left Return', 'Right Return', 'Corner'],
+  'Executive Chair': ['High Back', 'Mid Back', 'Low Back'],
+  '2-Drawer': ['Letter Size', 'Legal Size', 'A4 Size']
 };
 
 // Updated asset statuses as requested
@@ -72,11 +174,12 @@ const AssetsPage: React.FC = () => {
   const [calculatedBookValue, setCalculatedBookValue] = useState(0);
   const [form, setForm] = useState({
     description: '',
-    mainCategory: '',
-    subCategory: '',
-    subSubCategory: '',
-    subSubSubCategory: '',
-    subSubSubSubCategory: '',
+    type: '', // First level
+    mainCategory: '', // Second level
+    subCategory: '', // Third level
+    subSubCategory: '', // Fourth level
+    subSubSubCategory: '', // Fifth level
+    subSubSubSubCategory: '', // Sixth level (manual entry)
     brand: '',
     status: 'active',
     availability: 'available',
@@ -90,7 +193,6 @@ const AssetsPage: React.FC = () => {
     serialNumber: '',
     fleetNumber: '',
     notes: '',
-    type: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -263,11 +365,12 @@ const AssetsPage: React.FC = () => {
     setOpen(false);
     setForm({
       description: '',
-      mainCategory: '',
-      subCategory: '',
-      subSubCategory: '',
-      subSubSubCategory: '',
-      subSubSubSubCategory: '',
+      type: '', // First level
+      mainCategory: '', // Second level
+      subCategory: '', // Third level
+      subSubCategory: '', // Fourth level
+      subSubSubCategory: '', // Fifth level
+      subSubSubSubCategory: '', // Sixth level (manual entry)
       brand: '',
       status: 'active',
       availability: 'available',
@@ -281,22 +384,21 @@ const AssetsPage: React.FC = () => {
       serialNumber: '',
       fleetNumber: '',
       notes: '',
-      type: '',
     });
     setError('');
   };
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    // If type changes, reset mainCategory and subCategory
+    // If type changes, reset all category fields
     if (name === 'type') {
       setForm(prev => ({
         ...prev,
         type: value,
-        mainCategory: '',
-        subCategory: '',
-        subSubCategory: '',
-        subSubSubCategory: '',
-        subSubSubSubCategory: '',
+        mainCategory: '', // Reset main category
+        subCategory: '', // Reset sub category
+        subSubCategory: '', // Reset sub-sub category
+        subSubSubCategory: '', // Reset sub-sub-sub category
+        subSubSubSubCategory: '', // Reset sub-sub-sub-sub category
       }));
     } else {
       setForm({ ...form, [name]: value });
@@ -307,13 +409,20 @@ const AssetsPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      await api.post('/assets', {
+      const submitData = {
         ...form,
         purchaseValue: Number(form.purchaseValue),
         usefulLifeMonths: Number(form.usefulLifeMonths),
         salvageValue: Number(form.salvageValue),
         type: form.type,
-      });
+        // Ensure all category fields are included
+        mainCategory: form.mainCategory,
+        subCategory: form.subCategory,
+        subSubCategory: form.subSubCategory,
+        subSubSubCategory: form.subSubSubCategory,
+        subSubSubSubCategory: form.subSubSubSubCategory,
+      };
+      await api.post('/assets', submitData);
       setSuccess('Asset submitted successfully!');
       fetchAssets();
       handleClose();
@@ -387,7 +496,9 @@ const AssetsPage: React.FC = () => {
           sx={{ minWidth: 180 }}
         >
           <MenuItem value="">All Categories</MenuItem>
-          {AssetMainCategories.map(category => <MenuItem key={category} value={category}>{category}</MenuItem>)}
+          {AssetTypes.map(type => (
+            <MenuItem key={type} value={type}>{type}</MenuItem>
+          ))}
         </TextField>
         <TextField 
           select 
@@ -397,7 +508,7 @@ const AssetsPage: React.FC = () => {
           sx={{ minWidth: 180 }}
         >
           <MenuItem value="">All Sub Categories</MenuItem>
-          {mainCategoryFilter && AssetSubCategories[mainCategoryFilter as keyof typeof AssetSubCategories]?.map(subCategory => 
+          {mainCategoryFilter && AssetMainCategories[mainCategoryFilter as keyof typeof AssetMainCategories]?.map(subCategory => 
             <MenuItem key={subCategory} value={subCategory}>{subCategory}</MenuItem>
           )}
         </TextField>
@@ -595,7 +706,9 @@ const AssetsPage: React.FC = () => {
                 <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{a.serial || '-'}</td> {/* Serial Number */}
                 <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{a.type || '-'}</td>
                 <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                  {a.mainCategory} {'>'} {a.subCategory}
+                  {a.type && `${a.type} > `}
+                  {a.mainCategory}
+                  {a.subCategory && ` > ${a.subCategory}`}
                   {a.subSubCategory && ` > ${a.subSubCategory}`}
                   {a.subSubSubCategory && ` > ${a.subSubSubCategory}`}
                   {a.subSubSubSubCategory && ` > ${a.subSubSubSubCategory}`}
@@ -656,68 +769,38 @@ const AssetsPage: React.FC = () => {
         <DialogTitle>Submit Asset Request</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            {/* Type Dropdown */}
-            <TextField
-              select
-              label="Type"
-              name="type"
-              value={form.type}
-              onChange={handleFormChange}
-              required
-              fullWidth
-            >
-              <MenuItem value="">Select Type</MenuItem>
-              {typeOptions.map((type: string) => (
-                <MenuItem key={type} value={type}>{type}</MenuItem>
-              ))}
-            </TextField>
             <TextField label="Asset Description" name="description" value={form.description} onChange={handleFormChange} required fullWidth />
-            {/* Main Category Dropdown, filtered by type */}
-            <TextField
-              select
-              label="Main Category"
-              name="mainCategory"
-              value={form.mainCategory}
-              onChange={handleFormChange}
-              required
-              fullWidth
-              disabled={!form.type}
-            >
-              <MenuItem value="">Select Main Category</MenuItem>
-              {AssetMainCategories.filter(cat => !form.type || cat === form.type).map(category => (
-                <MenuItem key={category} value={category}>{category}</MenuItem>
-              ))}
-            </TextField>
-            {/* CategorySelector for subcategories, only if mainCategory is selected */}
-            {form.mainCategory && (
-              <CategorySelector
-                value={{
-                  mainCategory: form.mainCategory,
-                  subCategory: form.subCategory,
-                  subSubCategory: form.subSubCategory,
-                  subSubSubCategory: form.subSubSubCategory,
-                  subSubSubSubCategory: form.subSubSubSubCategory
-                }}
-                onChange={(categories: {
-                  mainCategory?: string;
-                  subCategory?: string;
-                  subSubCategory?: string;
-                  subSubSubCategory?: string;
-                  subSubSubSubCategory?: string;
-                }) => {
-                  setForm(prev => ({
-                    ...prev,
-                    mainCategory: categories.mainCategory || '',
-                    subCategory: categories.subCategory || '',
-                    subSubCategory: categories.subSubCategory || '',
-                    subSubSubCategory: categories.subSubSubCategory || '',
-                    subSubSubSubCategory: categories.subSubSubSubCategory || ''
-                  }));
-                }}
-              />
-            )}
+            {/* CategorySelector for hierarchical categories */}
+            <HierarchicalCategorySelector
+              value={{
+                type: form.type,
+                mainCategory: form.mainCategory,
+                subCategory: form.subCategory,
+                subSubCategory: form.subSubCategory,
+                subSubSubCategory: form.subSubSubCategory,
+                subSubSubSubCategory: form.subSubSubSubCategory
+              }}
+              onChange={(categories: {
+                type?: string;
+                mainCategory?: string;
+                subCategory?: string;
+                subSubCategory?: string;
+                subSubSubCategory?: string;
+                subSubSubSubCategory?: string;
+              }) => {
+                setForm(prev => ({
+                  ...prev,
+                  type: categories.type || '',
+                  mainCategory: categories.mainCategory || '',
+                  subCategory: categories.subCategory || '',
+                  subSubCategory: categories.subSubCategory || '',
+                  subSubSubCategory: categories.subSubSubCategory || '',
+                  subSubSubSubCategory: categories.subSubSubSubCategory || ''
+                }));
+              }}
+            />
             
-              <TextField label="Brand" name="brand" value={form.brand} onChange={handleFormChange} required fullWidth />
+            <TextField label="Brand" name="brand" value={form.brand} onChange={handleFormChange} required fullWidth />
             <Box display="flex" gap={2}>
               <TextField 
                 select 

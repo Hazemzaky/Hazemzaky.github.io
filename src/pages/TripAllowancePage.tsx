@@ -1,9 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box, Tabs, Tab, Paper, Table, TableHead, TableRow, TableCell, TableBody, Button, TextField, MenuItem, Card, CardContent, Typography, Select, InputLabel, FormControl, Dialog, DialogTitle, DialogContent, CircularProgress, IconButton
+  Box, 
+  Tabs, 
+  Tab, 
+  Paper, 
+  Table, 
+  TableHead, 
+  TableRow, 
+  TableCell, 
+  TableBody, 
+  Button, 
+  TextField, 
+  MenuItem, 
+  Card, 
+  CardContent, 
+  Typography, 
+  Select, 
+  InputLabel, 
+  FormControl, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  CircularProgress, 
+  IconButton
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import CheckIcon from '@mui/icons-material/Check';
+import EditIcon from '@mui/icons-material/Edit';
+import api from '../apiBase';
 
 const months = [
   'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'
@@ -41,21 +66,16 @@ const TripAllowancePage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
-  useEffect(() => {
-    fetchMonthData();
-    // eslint-disable-next-line
-  }, [tab]);
+  const [eligibleTrips, setEligibleTrips] = useState<any[]>([]);
+  const [additionalAllowances, setAdditionalAllowances] = useState<{ [tripId: string]: number }>({});
+  const [editingTripId, setEditingTripId] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState('');
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch('/api/payroll/employees');
-      const json = await res.json();
-      setEmployees(Array.isArray(json) ? json : []);
+      const res = await api.get('/payroll/employees');
+      const data = res.data as any;
+      setEmployees(Array.isArray(data) ? data : []);
     } catch {
       setEmployees([]);
     }
@@ -67,10 +87,15 @@ const TripAllowancePage: React.FC = () => {
     try {
       const monthIdx = tab;
       const year = getYearForTab(tab);
-      const res = await fetch(`/api/trip-allowance?month=${monthIdx}&year=${year}`);
-      const json = await res.json();
-      setMonthData(json);
+      console.log('Fetching trip allowance data for month:', monthIdx, 'year:', year);
+      console.log('API URL:', `/trip-allowance?month=${monthIdx}&year=${year}`);
+      const res = await api.get(`/trip-allowance?month=${monthIdx}&year=${year}`);
+      const data = res.data as any;
+      console.log('Received trip allowance data:', data);
+      console.log('Data length:', Array.isArray(data) ? data.length : 'Not an array');
+      setMonthData(Array.isArray(data) ? data : []);
     } catch (err: any) {
+      console.error('Error fetching trip allowance data:', err);
       setError('Failed to load trip allowance data');
       setMonthData([]);
     } finally {
@@ -78,7 +103,38 @@ const TripAllowancePage: React.FC = () => {
     }
   };
 
-  const handleTabChange = (_: any, newValue: number) => setTab(newValue);
+  const fetchEligibleTrips = async () => {
+    try {
+      const monthIdx = tab;
+      const year = getYearForTab(tab);
+      console.log('Fetching eligible trips for month:', monthIdx, 'year:', year);
+      const res = await api.get(`/tracker/trip-allowance-eligible?month=${monthIdx}&year=${year}`);
+      const data = res.data as any;
+      console.log('Received eligible trips:', data);
+      setEligibleTrips(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching eligible trips:', err);
+      setEligibleTrips([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  useEffect(() => {
+    console.log('useEffect triggered - tab changed to:', tab, 'month name:', months[tab]);
+    fetchMonthData();
+    fetchEligibleTrips(); // Also fetch eligible trips when tab changes
+    // eslint-disable-next-line
+  }, [tab]);
+
+  const handleTabChange = (_: any, newValue: number) => {
+    console.log('Tab change requested - old tab:', tab, 'new tab:', newValue);
+    console.log('Old month:', months[tab], 'New month:', months[newValue]);
+    setTab(newValue);
+    console.log('Tab changed to:', months[newValue]);
+  };
 
   const handleFormChange = (e: any) => {
     const { name, value } = e.target;
@@ -103,12 +159,8 @@ const TripAllowancePage: React.FC = () => {
         year,
         allowance: Number(form.allowance),
       };
-      const res = await fetch('/api/trip-allowance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error('Failed to save');
+      const res = await api.post('/trip-allowance', payload);
+      if (res.status !== 200) throw new Error('Failed to save');
       setForm(defaultRow);
       setOpenForm(false);
       fetchMonthData();
@@ -123,8 +175,8 @@ const TripAllowancePage: React.FC = () => {
     setSaving(true);
     setError('');
     try {
-      const res = await fetch(`/api/trip-allowance/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete');
+      const res = await api.delete(`/trip-allowance/${id}`);
+      if (res.status !== 200) throw new Error('Failed to delete');
       fetchMonthData();
     } catch {
       setError('Failed to delete trip allowance record');
@@ -152,6 +204,81 @@ const TripAllowancePage: React.FC = () => {
           Add Data
         </Button>
       </Box>
+      {/* Eligible Tracker Trips for Trip Allowance */}
+      <Paper sx={{ mb: 2, p: 2, overflowX: 'auto' }}>
+        <Typography variant="h6" mb={2}>Eligible Trips (from Tracker)</Typography>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>SR</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Nationality</TableCell>
+              <TableCell>Residency No.</TableCell>
+              <TableCell>EMP</TableCell>
+              <TableCell>Total KM Per Trip</TableCell>
+              <TableCell>Default Allowance</TableCell>
+              <TableCell>Additional Allowance</TableCell>
+              <TableCell>Total Allowance</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {eligibleTrips.map(trip => {
+              const additional = additionalAllowances[trip._id] || 0;
+              const isEditing = editingTripId === trip._id;
+              return (
+                <TableRow key={trip._id}>
+                  <TableCell>{trip.SR}</TableCell>
+                  <TableCell>{trip.name}</TableCell>
+                  <TableCell>{trip.nationality}</TableCell>
+                  <TableCell>{trip.residencyNumber}</TableCell>
+                  <TableCell>{typeof trip.EMP === 'object' && trip.EMP ? `${trip.EMP.name} (${trip.EMP.employeeId})` : trip.EMP}</TableCell>
+                  <TableCell>{trip.totalKmPerTrip}</TableCell>
+                  <TableCell>3</TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={inputValue}
+                        onChange={e => setInputValue(e.target.value)}
+                        sx={{ width: 80 }}
+                      />
+                    ) : (
+                      additional || '-'
+                    )}
+                  </TableCell>
+                  <TableCell>{3 + (additional ? Number(additional) : 0)}</TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <IconButton
+                        color="primary"
+                        onClick={() => {
+                          setAdditionalAllowances(prev => ({ ...prev, [trip._id]: Number(inputValue) }));
+                          setEditingTripId(null);
+                          setInputValue('');
+                        }}
+                      >
+                        <CheckIcon />
+                      </IconButton>
+                    ) : (
+                      <IconButton
+                        color="primary"
+                        onClick={() => {
+                          setEditingTripId(trip._id);
+                          setInputValue(additional ? String(additional) : '');
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Paper>
       {loading ? <CircularProgress /> : (
       <Paper sx={{ p: 2, overflowX: 'auto' }}>
         <Table>

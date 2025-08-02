@@ -12,6 +12,7 @@ import countries from '../utils/countries'; // Assume a countries list with { na
 import api from '../apiBase';
 import dayjs from 'dayjs';
 import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 
 
 const tabLabels = [
@@ -22,7 +23,7 @@ const tabLabels = [
   'Legal Case Management',
   'Company Facility Documents',
   'Dashboard & Reports',
-  'Employee Travel Management',
+  // 'Employee Travel Management', // HIDDEN
 ];
 
 const statusColors: Record<string, any> = {
@@ -56,7 +57,7 @@ const sponsors = [
 const passTypes = [
   { value: 'KOC', label: 'KOC' },
   { value: 'KNPC', label: 'KNPC' },
-  { value: 'GO', label: 'GO' },
+  { value: 'JO', label: 'JO Pass' },
   { value: 'RATQA', label: 'RATQA' },
   { value: 'ABDALI', label: 'ABDALI' },
   { value: 'WANEET', label: 'WANEET' },
@@ -146,6 +147,10 @@ interface FacilityForm {
   otherApprovals: OtherApproval[];
   status: string;
   notes: string;
+  // New fields for security deposit logic
+  hasSecurityDeposit: string;
+  securityDepositAmount: string;
+  securityDepositAmortization: string;
 }
 
 // Add after imports and before AdminPage component
@@ -183,10 +188,37 @@ interface FormData {
   dependentsLocationOther: string;
   notes: string;
   documents: Record<string, any>;
+  passCopies?: (File | string | null)[];
 }
 
 // 1. Add the installment period options at the top:
 const installmentPeriodOptions = [3, 6, 12, 15, 18, 24];
+
+// Add ministry options at the top of the file
+const ministryOptions = [
+  'Ministry of Petroleum',
+  'Ministry of Interior',
+  'Ministry of Foreign Affairs',
+  'Ministry of Municipality',
+  'Ministry A',
+  'Ministry B',
+  'Ministry C',
+];
+
+// Add ministry options at the top of the file
+const legalCaseMinistryOptions = [
+  'Ministry of Justice',
+  'Ministry of Interior',
+  'Ministry A',
+  'Ministry B',
+  'Other',
+];
+const paidOptions = ['Paid', 'Not Paid'];
+const legalRepTypeOptions = ['Internal', 'External'];
+
+// Add security deposit and amortization options at the top
+const yesNoOptions = ['Yes', 'No'];
+const amortizationOptions = Array.from({ length: 60 }, (_, i) => `${i + 1} Month`);
 
 const AdminPage: React.FC = () => {
   const [tab, setTab] = useState(0);
@@ -225,6 +257,7 @@ const AdminPage: React.FC = () => {
     dependentsLocationOther: '',
     notes: '',
     documents: {},
+    passCopies: [],
   });
   const [employees, setEmployees] = useState<any[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -888,12 +921,8 @@ const AdminPage: React.FC = () => {
   const handleAddPass = () => {
     setForm((prev: FormData) => ({
       ...prev,
-      passes: [...prev.passes, {
-        passType: '',
-        issuanceDate: '',
-        expiryDate: '',
-        sponsor: ''
-      }]
+      passes: [...prev.passes, { passType: '', issuanceDate: '', expiryDate: '', sponsor: '' }],
+      passCopies: [...(prev.passCopies || []), null],
     }));
   };
 
@@ -901,7 +930,8 @@ const AdminPage: React.FC = () => {
   const handleRemovePass = (index: number) => {
     setForm((prev: FormData) => ({
       ...prev,
-      passes: prev.passes.filter((_: any, i: number) => i !== index)
+      passes: prev.passes.filter((_: any, i: number) => i !== index),
+      passCopies: (prev.passCopies || []).filter((_: any, i: number) => i !== index),
     }));
   };
 
@@ -942,6 +972,7 @@ const AdminPage: React.FC = () => {
       } else {
         submitData.workPermitCopy = '';
       }
+      submitData.passCopies = form.passCopies ? form.passCopies.map(f => (typeof f === 'object' && f && 'name' in f ? f.name : f)) : [];
       if (editing) {
         await api.put(`/admin/employee-residencies/${editing._id}`, submitData);
         setSuccess('Record updated!');
@@ -1073,6 +1104,10 @@ const AdminPage: React.FC = () => {
   const [correspondences, setCorrespondences] = useState<any[]>([]);
   const [correspondenceForm, setCorrespondenceForm] = useState<any>({
     referenceNumber: '', subject: '', description: '', ministry: '', department: '', contactPerson: '', contactPhone: '', contactEmail: '', submissionDate: '', submissionMethod: 'in_person', requestType: 'application', status: 'submitted', expectedResponseDate: '', actualResponseDate: '', responseReceived: false, responseDetails: '', followUpRequired: false, followUpDate: '', followUpNotes: '', priority: 'medium', assignedTo: '', notes: '', documents: {},
+    assignedEmployee: '', // new
+    hasFee: '',           // new
+    amortization: '',     // new
+    fee: '',              // new
   });
   const [correspondenceOpen, setCorrespondenceOpen] = useState(false);
   const [correspondenceEditing, setCorrespondenceEditing] = useState<any>(null);
@@ -1104,6 +1139,9 @@ const AdminPage: React.FC = () => {
     parties: [{ name: '', type: 'plaintiff', contactInfo: '' }],
     notes: '',
     serial: '',
+    paidStatus: '',
+    legalRepType: '',
+    coId: '',
   });
   const [legalCaseOpen, setLegalCaseOpen] = useState(false);
   const [legalCaseEditing, setLegalCaseEditing] = useState<any>(null);
@@ -1153,11 +1191,20 @@ const AdminPage: React.FC = () => {
         priority: rec.priority || 'medium',
         assignedTo: rec.assignedTo || '',
         notes: rec.notes || '',
+        documents: rec.documents || {},
+        assignedEmployee: rec.assignedEmployee || '',
+        hasFee: rec.hasFee || '',
+        amortization: rec.amortization || '',
+        fee: rec.fee || '',
       });
     } else {
       setCorrespondenceEditing(null);
       setCorrespondenceForm({
         referenceNumber: '', subject: '', description: '', ministry: '', department: '', contactPerson: '', contactPhone: '', contactEmail: '', submissionDate: '', submissionMethod: 'in_person', requestType: 'application', status: 'submitted', expectedResponseDate: '', actualResponseDate: '', responseReceived: false, responseDetails: '', followUpRequired: false, followUpDate: '', followUpNotes: '', priority: 'medium', assignedTo: '', notes: '', documents: {},
+        assignedEmployee: '',
+        hasFee: '',
+        amortization: '',
+        fee: '',
       });
     }
     setCorrespondenceOpen(true);
@@ -1168,15 +1215,16 @@ const AdminPage: React.FC = () => {
     setCorrespondenceEditing(null);
     setCorrespondenceForm({
       referenceNumber: '', subject: '', description: '', ministry: '', department: '', contactPerson: '', contactPhone: '', contactEmail: '', submissionDate: '', submissionMethod: 'in_person', requestType: 'application', status: 'submitted', expectedResponseDate: '', actualResponseDate: '', responseReceived: false, responseDetails: '', followUpRequired: false, followUpDate: '', followUpNotes: '', priority: 'medium', assignedTo: '', notes: '', documents: {},
+      assignedEmployee: '',
+      hasFee: '',
+      amortization: '',
+      fee: '',
     });
   };
 
-  const handleCorrespondenceFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    setCorrespondenceForm({
-      ...correspondenceForm,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    });
+  const handleCorrespondenceFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | React.ChangeEvent<{ name?: string; value: unknown }>) => {
+    const { name, value } = e.target;
+    setCorrespondenceForm((prev: any) => ({ ...prev, [name!]: value }));
   };
 
   const handleCorrespondenceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1279,6 +1327,9 @@ const AdminPage: React.FC = () => {
         parties: rec.parties || [{ name: '', type: 'plaintiff', contactInfo: '' }],
         notes: rec.notes || '',
         serial: rec.serial || '',
+        paidStatus: rec.paidStatus || '',
+        legalRepType: rec.legalRepType || '',
+        coId: rec.coId || '',
       });
     } else {
       setLegalCaseEditing(null);
@@ -1304,6 +1355,9 @@ const AdminPage: React.FC = () => {
         parties: [{ name: '', type: 'plaintiff', contactInfo: '' }],
         notes: '',
         serial: '',
+        paidStatus: '',
+        legalRepType: '',
+        coId: '',
       });
     }
     setLegalCaseOpen(true);
@@ -1334,6 +1388,9 @@ const AdminPage: React.FC = () => {
       parties: [{ name: '', type: 'plaintiff', contactInfo: '' }],
       notes: '',
       serial: '',
+      paidStatus: '',
+      legalRepType: '',
+      coId: '',
     });
   };
 
@@ -1471,11 +1528,19 @@ const AdminPage: React.FC = () => {
         otherApprovals: rec.otherApprovals || [],
         status: rec.status || 'active',
         notes: rec.notes || '',
+        // New fields for security deposit logic
+        hasSecurityDeposit: rec.hasSecurityDeposit || '',
+        securityDepositAmount: rec.securityDepositAmount || '',
+        securityDepositAmortization: rec.securityDepositAmortization || '',
       });
     } else {
       setFacilityEditing(null);
       setFacilityForm({
         facilityName: '', facilityType: 'office', address: '', area: '', rentAgreement: { agreementNumber: '', landlordName: '', landlordContact: '', startDate: '', endDate: '', monthlyRent: '', securityDeposit: '', renewalTerms: '', status: 'active' }, municipalityApproval: { approvalNumber: '', approvalDate: '', expiryDate: '', approvalType: '', status: 'active', renewalProcess: '' }, fireDepartmentApproval: { approvalNumber: '', approvalDate: '', expiryDate: '', inspectionDate: '', status: 'active', findings: '', correctiveActions: [] }, mocApproval: { approvalNumber: '', approvalDate: '', expiryDate: '', approvalType: '', status: 'active' }, otherApprovals: [], status: 'active', notes: '',
+        // New fields for security deposit logic
+        hasSecurityDeposit: '',
+        securityDepositAmount: '',
+        securityDepositAmortization: '',
       });
     }
     setFacilityOpen(true);
@@ -1486,6 +1551,10 @@ const AdminPage: React.FC = () => {
     setFacilityEditing(null);
     setFacilityForm({
       facilityName: '', facilityType: 'office', address: '', area: '', rentAgreement: { agreementNumber: '', landlordName: '', landlordContact: '', startDate: '', endDate: '', monthlyRent: '', securityDeposit: '', renewalTerms: '', status: 'active' }, municipalityApproval: { approvalNumber: '', approvalDate: '', expiryDate: '', approvalType: '', status: 'active', renewalProcess: '' }, fireDepartmentApproval: { approvalNumber: '', approvalDate: '', expiryDate: '', inspectionDate: '', status: 'active', findings: '', correctiveActions: [] }, mocApproval: { approvalNumber: '', approvalDate: '', expiryDate: '', approvalType: '', status: 'active' }, otherApprovals: [], status: 'active', notes: '',
+      // New fields for security deposit logic
+      hasSecurityDeposit: '',
+      securityDepositAmount: '',
+      securityDepositAmortization: '',
     });
   };
 
@@ -1601,6 +1670,10 @@ const AdminPage: React.FC = () => {
     otherApprovals: [],
     status: 'active',
     notes: '',
+    // New fields for security deposit logic
+    hasSecurityDeposit: '',
+    securityDepositAmount: '',
+    securityDepositAmortization: '',
   });
   const [facilityDeleteId, setFacilityDeleteId] = useState<string | null>(null);
   const [newOtherApproval, setNewOtherApproval] = useState({ authority: '', approvalNumber: '', approvalDate: '', expiryDate: '', status: 'active', notes: '' });
@@ -2480,6 +2553,20 @@ const AdminPage: React.FC = () => {
     }));
   };
 
+  const handlePassCopyChange = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    setForm((prev: FormData) => {
+      const newPassCopies = [...(prev.passCopies || [])];
+      newPassCopies[idx] = file;
+      return { ...prev, passCopies: newPassCopies };
+    });
+  };
+
+  // ... add helper at the top ...
+  function isFileWithName(val: unknown): val is File {
+    return typeof val === 'object' && val !== null && 'name' in val && typeof (val as any).name === 'string';
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       <Tabs
@@ -2778,6 +2865,25 @@ const AdminPage: React.FC = () => {
                               fullWidth 
                             />
                           </Box>
+                          <TextField
+                            label="Pass Copy"
+                            name={`passCopy_${index}`}
+                            type="file"
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePassCopyChange(index, e)}
+                            fullWidth
+                            InputLabelProps={{ shrink: true }}
+                          />
+                          {form.passCopies && form.passCopies[index] && (
+                            <Box display="flex" alignItems="center" gap={1} ml={1}>
+                              <AttachFileIcon color="action" fontSize="small" />
+                              {typeof form.passCopies[index] === 'string' && form.passCopies[index] !== '' && (
+                                <Typography variant="caption">{form.passCopies[index] as string}</Typography>
+                              )}
+                              {isFileWithName(form.passCopies[index]) && (
+                                <Typography variant="caption">{(form.passCopies[index] as File).name}</Typography>
+                              )}
+                            </Box>
+                          )}
                         </Box>
                       ))}
                     </Box>
@@ -3172,10 +3278,11 @@ const AdminPage: React.FC = () => {
                   {/* Document Uploads (stubbed) */}
                   <Typography variant="subtitle2" sx={{ mt: 2 }}>Document Uploads (stub - not saved)</Typography>
                   <Box display="flex" gap={2} flexWrap="wrap">
-                    <Button variant="outlined" component="label">Registration Card<input type="file" name="registrationCard" hidden onChange={handleVehicleFileChange} /></Button>
-                    <Button variant="outlined" component="label">Insurance Policy<input type="file" name="insurancePolicy" hidden onChange={handleVehicleFileChange} /></Button>
-                    <Button variant="outlined" component="label">Customs Clearance<input type="file" name="customsClearance" hidden onChange={handleVehicleFileChange} /></Button>
-                    <Button variant="outlined" component="label">Other Documents<input type="file" name="otherDocuments" hidden onChange={handleVehicleFileChange} multiple /></Button>
+                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Rent Agreement<input type="file" name="facilityDocs.rentAgreement" hidden onChange={handleFileChange} /></Button>
+                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Municipality Documents<input type="file" name="facilityDocs.municipality" hidden onChange={handleFileChange} /></Button>
+                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Fire Department Documents<input type="file" name="facilityDocs.fireDept" hidden onChange={handleFileChange} /></Button>
+                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Ministries Documents<input type="file" name="facilityDocs.ministries" hidden onChange={handleFileChange} /></Button>
+                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Other Documents<input type="file" name="facilityDocs.other" hidden onChange={handleFileChange} /></Button>
                   </Box>
                   {vehicleError && <Alert severity="error">{vehicleError}</Alert>}
 
@@ -3365,13 +3472,39 @@ const AdminPage: React.FC = () => {
                   </Box>
                   <TextField label="Description" name="description" value={correspondenceForm.description} onChange={handleCorrespondenceFormChange} fullWidth multiline minRows={2} />
                   <Box display="flex" gap={2}>
-                    <TextField label="Ministry" name="ministry" value={correspondenceForm.ministry} onChange={handleCorrespondenceFormChange} required fullWidth />
+                    <TextField select label="Ministry" name="ministry" value={correspondenceForm.ministry} onChange={handleCorrespondenceFormChange} required fullWidth>
+                      {ministryOptions.map(option => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </TextField>
                     <TextField label="Department" name="department" value={correspondenceForm.department} onChange={handleCorrespondenceFormChange} required fullWidth />
                   </Box>
                   <Box display="flex" gap={2}>
-                    <TextField label="Contact Person" name="contactPerson" value={correspondenceForm.contactPerson} onChange={handleCorrespondenceFormChange} required fullWidth />
+                    <TextField label="Assigned Government Employee" name="contactPerson" value={correspondenceForm.contactPerson} onChange={handleCorrespondenceFormChange} required fullWidth />
                     <TextField label="Contact Phone" name="contactPhone" value={correspondenceForm.contactPhone} onChange={handleCorrespondenceFormChange} required fullWidth />
                     <TextField label="Contact Email" name="contactEmail" value={correspondenceForm.contactEmail} onChange={handleCorrespondenceFormChange} required fullWidth />
+                  </Box>
+                  <Box display="flex" gap={2}>
+                    <TextField select label="Assigned Employee" name="assignedEmployee" value={correspondenceForm.assignedEmployee} onChange={handleCorrespondenceFormChange} fullWidth>
+                      <MenuItem value="">None</MenuItem>
+                      {employees.map(emp => (
+                        <MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField select label="Does The Correspondence Have Any Fee" name="hasFee" value={correspondenceForm.hasFee} onChange={handleCorrespondenceFormChange} fullWidth>
+                      <MenuItem value="no">No</MenuItem>
+                      <MenuItem value="yes">Yes</MenuItem>
+                    </TextField>
+                    {correspondenceForm.hasFee === 'yes' && (
+                      <>
+                        <TextField select label="Amortization" name="amortization" value={correspondenceForm.amortization} onChange={handleCorrespondenceFormChange} fullWidth>
+                          {[...Array(36)].map((_, i) => (
+                            <MenuItem key={i+1} value={`${i+1} Month`}>{`${i+1} Month`}</MenuItem>
+                          ))}
+                        </TextField>
+                        <TextField label="Fee" name="fee" value={correspondenceForm.fee} onChange={handleCorrespondenceFormChange} type="number" fullWidth />
+                      </>
+                    )}
                   </Box>
                   <Box display="flex" gap={2}>
                     <TextField label="Submission Date" name="submissionDate" value={correspondenceForm.submissionDate} onChange={handleCorrespondenceFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
@@ -3380,6 +3513,7 @@ const AdminPage: React.FC = () => {
                       <MenuItem value="email">Email</MenuItem>
                       <MenuItem value="fax">Fax</MenuItem>
                       <MenuItem value="post">Post</MenuItem>
+                      <MenuItem value="online">Online</MenuItem>
                     </TextField>
                   </Box>
                   <Box display="flex" gap={2}>
@@ -3544,11 +3678,21 @@ const AdminPage: React.FC = () => {
                       <MenuItem value="regulatory_violation">Regulatory Violation</MenuItem>
                       <MenuItem value="other">Other</MenuItem>
                     </TextField>
-                    <TextField label="Court" name="court" value={legalCaseForm.court} onChange={handleLegalCaseFormChange} required fullWidth />
-                    <TextField label="Court Location" name="courtLocation" value={legalCaseForm.courtLocation} onChange={handleLegalCaseFormChange} required fullWidth />
+                    <TextField select label="Ministry" name="court" value={legalCaseForm.court} onChange={handleLegalCaseFormChange} required fullWidth>
+                      {legalCaseMinistryOptions.map(option => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField label="Case Review Location" name="courtLocation" value={legalCaseForm.courtLocation} onChange={handleLegalCaseFormChange} required fullWidth />
                   </Box>
                   <Box display="flex" gap={2}>
-                    <TextField label="Filing Date" name="filingDate" value={legalCaseForm.filingDate} onChange={handleLegalCaseFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
+                    <TextField select label="Paid or Not Paid" name="paidStatus" value={legalCaseForm.paidStatus} onChange={handleLegalCaseFormChange} required fullWidth>
+                      {paidOptions.map(option => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Box>
+                  <Box display="flex" gap={2}>
                     <TextField select label="Status" name="status" value={legalCaseForm.status} onChange={handleLegalCaseFormChange} required fullWidth>
                       <MenuItem value="open">Open</MenuItem>
                       <MenuItem value="pending">Pending</MenuItem>
@@ -3571,8 +3715,27 @@ const AdminPage: React.FC = () => {
                   
                   <Typography variant="h6">Legal Representative</Typography>
                   <Box display="flex" gap={2}>
-                    <TextField label="Name" name="legalRepresentative.name" value={legalCaseForm.legalRepresentative.name} onChange={handleLegalCaseFormChange} required fullWidth />
-                    <TextField label="Firm" name="legalRepresentative.firm" value={legalCaseForm.legalRepresentative.firm} onChange={handleLegalCaseFormChange} required fullWidth />
+                    <TextField select label="Type Of Legal Representative" name="legalRepType" value={legalCaseForm.legalRepType} onChange={handleLegalCaseFormChange} required fullWidth>
+                      {legalRepTypeOptions.map(option => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
+                    </TextField>
+                    {legalCaseForm.legalRepType === 'Internal' ? (
+                      <TextField label="Co ID" name="coId" value={legalCaseForm.coId} onChange={e => {
+                        handleLegalCaseFormChange(e);
+                        // Auto-fill name if Co ID matches
+                        const emp = employees.find(emp => emp.employeeId === e.target.value);
+                        if (emp) setLegalCaseForm((prev: any) => ({
+                          ...prev,
+                          legalRepresentative: { ...prev.legalRepresentative, name: emp.name }
+                        }));
+                      }} required fullWidth />
+                    ) : (
+                      <TextField label="Firm" name="legalRepresentative.firm" value={legalCaseForm.legalRepresentative.firm} onChange={handleLegalCaseFormChange} required fullWidth />
+                    )}
+                  </Box>
+                  <Box display="flex" gap={2}>
+                    <TextField label="Name" name="legalRepresentative.name" value={legalCaseForm.legalRepresentative.name} onChange={handleLegalCaseFormChange} required fullWidth disabled={legalCaseForm.legalRepType === 'Internal'} />
                   </Box>
                   <Box display="flex" gap={2}>
                     <TextField label="Phone" name="legalRepresentative.phone" value={legalCaseForm.legalRepresentative.phone} onChange={handleLegalCaseFormChange} required fullWidth />
@@ -3751,13 +3914,21 @@ const AdminPage: React.FC = () => {
                     <TextField label="End Date" name="rentAgreement.endDate" value={facilityForm.rentAgreement.endDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
                   </Box>
                   <Box display="flex" gap={2}>
-                    <TextField label="Security Deposit" name="rentAgreement.securityDeposit" value={facilityForm.rentAgreement.securityDeposit} onChange={handleFacilityFormChange} type="number" required fullWidth />
-                    <TextField select label="Status" name="rentAgreement.status" value={facilityForm.rentAgreement.status} onChange={handleFacilityFormChange} required fullWidth>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="expired">Expired</MenuItem>
-                      <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
-                      <MenuItem value="terminated">Terminated</MenuItem>
+                    <TextField select label="Is There Any Security Deposit?" name="hasSecurityDeposit" value={facilityForm.hasSecurityDeposit} onChange={handleFacilityFormChange} required fullWidth>
+                      {yesNoOptions.map(option => (
+                        <MenuItem key={option} value={option}>{option}</MenuItem>
+                      ))}
                     </TextField>
+                    {facilityForm.hasSecurityDeposit === 'Yes' && (
+                      <>
+                        <TextField label="Amount" name="securityDepositAmount" value={facilityForm.securityDepositAmount} onChange={handleFacilityFormChange} type="number" required fullWidth />
+                        <TextField select label="Amortization" name="securityDepositAmortization" value={facilityForm.securityDepositAmortization} onChange={handleFacilityFormChange} required fullWidth>
+                          {amortizationOptions.map(option => (
+                            <MenuItem key={option} value={option}>{option}</MenuItem>
+                          ))}
+                        </TextField>
+                      </>
+                    )}
                   </Box>
                   <TextField label="Renewal Terms" name="rentAgreement.renewalTerms" value={facilityForm.rentAgreement.renewalTerms} onChange={handleFacilityFormChange} fullWidth multiline minRows={2} />
 
@@ -3776,7 +3947,7 @@ const AdminPage: React.FC = () => {
                       <MenuItem value="expired">Expired</MenuItem>
                       <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
                     </TextField>
-                    <TextField label="Renewal Process" name="municipalityApproval.renewalProcess" value={facilityForm.municipalityApproval.renewalProcess} onChange={handleFacilityFormChange} fullWidth />
+                    <TextField label="Renewal Place" name="municipalityApproval.renewalProcess" value={facilityForm.municipalityApproval.renewalProcess} onChange={handleFacilityFormChange} fullWidth />
                   </Box>
 
                   <Typography variant="h6">Fire Department Approval</Typography>
@@ -3798,7 +3969,7 @@ const AdminPage: React.FC = () => {
                   </Box>
                   <TextField label="Corrective Actions" name="fireDepartmentApproval.correctiveActions" value={facilityForm.fireDepartmentApproval.correctiveActions.join('\n')} onChange={(e) => setFacilityForm({...facilityForm, fireDepartmentApproval: {...facilityForm.fireDepartmentApproval, correctiveActions: e.target.value.split('\n').filter(action => action.trim() !== '')}})} fullWidth multiline minRows={3} />
 
-                  <Typography variant="h6">MOC Approval</Typography>
+                  <Typography variant="h6">Ministry Of (ABC)</Typography>
                   <Box display="flex" gap={2}>
                     <TextField label="Approval Number" name="mocApproval.approvalNumber" value={facilityForm.mocApproval.approvalNumber} onChange={handleFacilityFormChange} fullWidth />
                     <TextField label="Approval Type" name="mocApproval.approvalType" value={facilityForm.mocApproval.approvalType} onChange={handleFacilityFormChange} fullWidth />

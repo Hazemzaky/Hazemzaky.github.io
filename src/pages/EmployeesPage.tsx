@@ -276,6 +276,10 @@ interface Employee {
   workPermitStart?: string;
   workPermitEnd?: string;
   workPermitCopy?: File | string | null;
+  // Add new fields for employee type logic
+  employeeType?: 'Citizen' | 'Foreigner';
+  citizenType?: 'Kuwaiti' | 'Bedoun';
+  residencyNumber?: string;
 }
 
 const benefitOptions = [
@@ -600,6 +604,9 @@ interface EmployeeFormState {
   workPermitStart?: string;
   workPermitEnd?: string;
   workPermitCopy?: string | File | null;
+  employeeType?: 'Citizen' | 'Foreigner' | '';
+  citizenType?: 'Kuwaiti' | 'Bedoun' | '';
+  residencyNumber?: string;
 }
 
 const EmployeesPage: React.FC = () => {
@@ -736,6 +743,9 @@ const EmployeesPage: React.FC = () => {
     workPermitStart: '',
     workPermitEnd: '',
     workPermitCopy: null,
+    employeeType: '',
+    citizenType: '',
+    residencyNumber: '',
   });
   
   const [submitting, setSubmitting] = useState(false);
@@ -1016,6 +1026,9 @@ const EmployeesPage: React.FC = () => {
         workPermitStart: employee.workPermitStart || '',
         workPermitEnd: employee.workPermitEnd || '',
         workPermitCopy: typeof employee.workPermitCopy === 'string' && employee.workPermitCopy ? employee.workPermitCopy : null,
+        employeeType: employee.employeeType || '',
+        citizenType: employee.citizenType || '',
+        residencyNumber: employee.residencyNumber || '',
       });
       
       // Initialize attendance data
@@ -1106,6 +1119,9 @@ const EmployeesPage: React.FC = () => {
         workPermitStart: '',
         workPermitEnd: '',
         workPermitCopy: null,
+        employeeType: '',
+        citizenType: '',
+        residencyNumber: '',
       });
       setTodayAttendance(null);
       setAttendanceHistory([]);
@@ -1197,6 +1213,9 @@ const EmployeesPage: React.FC = () => {
       workPermitStart: '',
       workPermitEnd: '',
       workPermitCopy: null,
+      employeeType: '',
+      citizenType: '',
+      residencyNumber: '',
     });
   };
 
@@ -1387,6 +1406,11 @@ const EmployeesPage: React.FC = () => {
           : typeof form.workPermitCopy === 'string'
             ? form.workPermitCopy
             : '',
+        // Only send relevant fields
+        civilId: form.employeeType === 'Citizen' ? form.civilId : undefined,
+        citizenType: form.employeeType === 'Citizen' ? form.citizenType : undefined,
+        residencyNumber: form.employeeType === 'Foreigner' ? form.residencyNumber : undefined,
+        nationality: form.employeeType === 'Foreigner' ? form.nationality : undefined,
       };
 
       if (editingId) {
@@ -2926,16 +2950,6 @@ const EmployeesPage: React.FC = () => {
                     </Box>
                     <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
                       <TextField 
-                        label="Nationality" 
-                        name="nationality" 
-                        value={form.nationality} 
-                        onChange={handleFormChange} 
-                        fullWidth 
-                        sx={{ mb: 2 }}
-                      />
-                    </Box>
-                    <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                      <TextField 
                         label="Gender" 
                         name="gender" 
                         value={form.gender} 
@@ -2975,16 +2989,6 @@ const EmployeesPage: React.FC = () => {
                         sx={{ mb: 2 }}
                       />
                     </Box>
-                    <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                      <TextField 
-                        label="Civil ID" 
-                        name="civilId" 
-                        value={form.civilId} 
-                        onChange={handleFormChange} 
-                        fullWidth 
-                        sx={{ mb: 2 }}
-                      />
-                    </Box>
                     <Box sx={{ flex: '1 1 100%', width: '100%' }}>
                       <TextField 
                         label="Address" 
@@ -2997,6 +3001,75 @@ const EmployeesPage: React.FC = () => {
                         sx={{ mb: 2 }}
                       />
                     </Box>
+                    <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                      <TextField
+                        select
+                        label="Employee Type"
+                        name="employeeType"
+                        value={form.employeeType || ''}
+                        onChange={handleFormChange}
+                        required
+                        fullWidth
+                        sx={{ mb: 2 }}
+                      >
+                        <MenuItem value="Citizen">Citizen</MenuItem>
+                        <MenuItem value="Foreigner">Foreigner</MenuItem>
+                      </TextField>
+                    </Box>
+                    {/* Conditional fields based on Employee Type */}
+                    {form.employeeType === 'Citizen' && (
+                      <>
+                        <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                          <TextField
+                            label="Civil ID"
+                            name="civilId"
+                            value={form.civilId || ''}
+                            onChange={handleFormChange}
+                            fullWidth
+                            sx={{ mb: 2 }}
+                          />
+                        </Box>
+                        <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                          <TextField
+                            select
+                            label="Citizen Type"
+                            name="citizenType"
+                            value={form.citizenType || ''}
+                            onChange={handleFormChange}
+                            fullWidth
+                            sx={{ mb: 2 }}
+                          >
+                            <MenuItem value="Kuwaiti">Kuwaiti</MenuItem>
+                            <MenuItem value="Bedoun">Bedoun</MenuItem>
+                          </TextField>
+                        </Box>
+                      </>
+                    )}
+                    {form.employeeType === 'Foreigner' && (
+                      <>
+                        <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                          <TextField
+                            label="Residency No."
+                            name="residencyNumber"
+                            value={form.residencyNumber || ''}
+                            onChange={handleFormChange}
+                            fullWidth
+                            sx={{ mb: 2 }}
+                          />
+                        </Box>
+                        <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
+                          <TextField
+                            label="Nationality"
+                            name="nationality"
+                            value={form.nationality || ''}
+                            onChange={handleFormChange}
+                            fullWidth
+                            sx={{ mb: 2 }}
+                          />
+                        </Box>
+                      </>
+                    )}
+                    {/* Removed extra conditional nationality field for non-citizens to avoid duplicate */}
                   </Box>
                 </Box>
               )}

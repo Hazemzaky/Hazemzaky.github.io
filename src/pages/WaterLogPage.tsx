@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, Card, CardContent, Paper, Button, Divider, TextField, MenuItem, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, TablePagination, InputAdornment, Chip, CircularProgress, Alert } from '@mui/material';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
@@ -22,35 +22,26 @@ const statusColors: Record<string, 'success' | 'error' | 'warning' | 'info'> = {
 };
 
 const WaterLogPage: React.FC = () => {
-  // Table state
-  const [logs, setLogs] = useState<any[]>([]);
-  const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [stationFilter, setStationFilter] = useState('');
-  const [clientFilter, setClientFilter] = useState('');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  // Water trips state
+  const [waterTrips, setWaterTrips] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Add Log state
-  const [addOpen, setAddOpen] = useState(false);
-  const [addForm, setAddForm] = useState({
-    dateTime: '',
-    prepaidCard: '', // New field for prepaid card ID
-    cardId: '',
-    client: '',
-    tankerPlateNo: '',
-    station: '',
-    volume: '',
-    unitPrice: '',
-    totalCost: '',
-    filledBy: '',
-    status: 'success',
-  });
-  const [addError, setAddError] = useState('');
-  const [addLoading, setAddLoading] = useState(false);
+  useEffect(() => {
+    const fetchWaterTrips = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await api.get('/tracker/water-trips');
+        setWaterTrips(Array.isArray(res.data) ? res.data : []);
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to fetch water trips');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWaterTrips();
+  }, []);
 
   // Prepaid Card Management state
   const [cards, setCards] = useState<any[]>([]);
@@ -96,62 +87,12 @@ const WaterLogPage: React.FC = () => {
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [alertsError, setAlertsError] = useState('');
 
-  // Fetch logs from backend
-  useEffect(() => {
-    const fetchLogs = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const params: any = {
-          page: page + 1,
-          limit: rowsPerPage,
-        };
-        if (search) params.search = search;
-        if (statusFilter) params.status = statusFilter;
-        if (stationFilter) params.station = stationFilter;
-        if (clientFilter) params.client = clientFilter;
-        const token = localStorage.getItem('token');
-        const res = await api.get('/water-logs', {
-          params,
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = res.data as { logs: any[]; total: number };
-        setLogs(data.logs || []);
-        setTotal(data.total || 0);
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to fetch logs');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchLogs();
-  }, [search, statusFilter, stationFilter, clientFilter, page, rowsPerPage]);
-
-  // Fetch cards
-  useEffect(() => {
-    const fetchCards = async () => {
-      setCardsLoading(true);
-      setCardsError('');
-      try {
-        const token = localStorage.getItem('token');
-        const res = await api.get('/water-logs/prepaid-cards', { headers: { Authorization: `Bearer ${token}` } });
-        setCards(res.data as any[]);
-      } catch (err: any) {
-        setCardsError(err.response?.data?.message || 'Failed to fetch cards');
-      } finally {
-        setCardsLoading(false);
-      }
-    };
-    fetchCards();
-  }, []);
-
   useEffect(() => {
     const fetchAlerts = async () => {
       setAlertsLoading(true);
       setAlertsError('');
       try {
-        const token = localStorage.getItem('token');
-        const res = await api.get('/water-logs/alerts', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get('/water-logs/alerts');
         setAlerts(res.data);
       } catch (err: any) {
         setAlertsError(err.response?.data?.message || 'Failed to fetch alerts');
@@ -207,17 +148,17 @@ const WaterLogPage: React.FC = () => {
   // Export CSV
   const handleExportCSV = () => {
     const headers = ['Date & Time', 'Card ID', 'Client Name', 'Tanker Plate No.', 'Station', 'Volume (Liters)', 'Unit Price', 'Total Cost', 'Filled By', 'Status'];
-    const rows = logs.map(log => [
-      new Date(log.dateTime).toLocaleString(),
-      log.cardId,
-      log.client?.name || '',
-      log.tankerPlateNo,
-      log.station,
-      log.volume,
-      log.unitPrice,
-      log.totalCost,
-      log.filledBy?.name || '',
-      log.status,
+    const rows = waterTrips.map(trip => [
+      trip.date ? new Date(trip.date).toLocaleString() : '',
+      trip.waterCardNo || '',
+      trip.name || '',
+      trip.trailerNumber || '',
+      trip.to || '',
+      trip.gallons || '',
+      '', // Unit Price
+      '', // Total Cost
+      trip.name || '',
+      '', // Status
     ]);
     const csv = [headers, ...rows].map(r => r.map(x => `"${x}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -233,39 +174,6 @@ const WaterLogPage: React.FC = () => {
     window.print();
   };
 
-  const handleAddChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setAddForm(prev => ({ ...prev, [name]: value }));
-    if (name === 'volume' || name === 'unitPrice') {
-      const v = name === 'volume' ? value : addForm.volume;
-      const u = name === 'unitPrice' ? value : addForm.unitPrice;
-      setAddForm(prev => ({ ...prev, totalCost: v && u ? String(Number(v) * Number(u)) : '' }));
-    }
-  };
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAddError('');
-    setAddLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const submitData = {
-        ...addForm,
-        volume: Number(addForm.volume),
-        unitPrice: Number(addForm.unitPrice),
-        totalCost: Number(addForm.totalCost),
-        dateTime: addForm.dateTime ? new Date(addForm.dateTime) : new Date(),
-      };
-      await api.post('/water-logs', submitData, { headers: { Authorization: `Bearer ${token}` } });
-      setAddOpen(false);
-      setAddForm({ dateTime: '', prepaidCard: '', cardId: '', client: '', tankerPlateNo: '', station: '', volume: '', unitPrice: '', totalCost: '', filledBy: '', status: 'success' });
-      setPage(0);
-    } catch (err: any) {
-      setAddError(err.response?.data?.message || 'Failed to add log');
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
   // Add Card handler
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,17 +181,16 @@ const WaterLogPage: React.FC = () => {
     setAddCardError('');
     setAddCardSuccess('');
     try {
-      const token = localStorage.getItem('token');
       await api.post('/water-logs/prepaid-cards', {
         cardId: addCardForm.cardId,
         client: addCardForm.client,
         balance: Number(addCardForm.balance),
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       setAddCardSuccess('Card added successfully!');
       setAddCardOpen(false);
       setAddCardForm({ cardId: '', client: '', balance: '' });
       // Refresh cards
-      const res = await api.get('/water-logs/prepaid-cards', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/water-logs/prepaid-cards');
       setCards(res.data as any[]);
     } catch (err: any) {
       setAddCardError(err.response?.data?.message || 'Failed to add card');
@@ -298,17 +205,16 @@ const WaterLogPage: React.FC = () => {
     setRechargeError('');
     setRechargeSuccess('');
     try {
-      const token = localStorage.getItem('token');
       await api.post('/water-logs/prepaid-cards/recharge', {
         cardId: rechargeCard.cardId,
         amount: Number(rechargeAmount),
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       setRechargeSuccess('Card recharged!');
       setRechargeOpen(false);
       setRechargeAmount('');
       setRechargeCard(null);
       // Refresh cards
-      const res = await api.get('/water-logs/prepaid-cards', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/water-logs/prepaid-cards');
       setCards(res.data as any[]);
     } catch (err: any) {
       setRechargeError(err.response?.data?.message || 'Failed to recharge card');
@@ -320,13 +226,12 @@ const WaterLogPage: React.FC = () => {
   // Block/Activate handler
   const handleBlockActivate = async (card: any, action: 'block' | 'activate') => {
     try {
-      const token = localStorage.getItem('token');
       await api.post('/water-logs/prepaid-cards/block-activate', {
         cardId: card.cardId,
         action,
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      });
       // Refresh cards
-      const res = await api.get('/water-logs/prepaid-cards', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/water-logs/prepaid-cards');
       setCards(res.data as any[]);
     } catch {}
   };
@@ -342,10 +247,8 @@ const WaterLogPage: React.FC = () => {
     if (!cardHistories[cardId]) {
       setHistoryLoading(true);
       try {
-        const token = localStorage.getItem('token');
         const res = await api.get('/water-logs', {
           params: { prepaidCard: cardId },
-          headers: { Authorization: `Bearer ${token}` },
         });
         setCardHistories(prev => ({ ...prev, [cardId]: (res.data as any).logs }));
       } catch {}
@@ -396,91 +299,11 @@ const WaterLogPage: React.FC = () => {
         </Card>
       </Box>
       <Divider sx={{ my: 3 }} />
-      {/* 2. Water Dispensing Logs Table */}
+      {/* 2. Water Dispensing Logs Table (Read-only, from Tracker) */}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-        <Typography variant="h6">Water Dispensing Logs</Typography>
-        <Button variant="contained" color="primary" onClick={() => setAddOpen(true)}>Add Water Dispense Log</Button>
+        <Typography variant="h6">Water Dispensing Logs (from Tracker)</Typography>
       </Box>
-      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add Water Dispense Log</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleAddSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField label="Date & Time" name="dateTime" type="datetime-local" value={addForm.dateTime} onChange={handleAddChange} fullWidth required InputLabelProps={{ shrink: true }} />
-            <TextField
-              select
-              label="Prepaid Card"
-              name="prepaidCard"
-              value={addForm.prepaidCard || ''}
-              onChange={e => {
-                const cardId = e.target.value;
-                setAddForm(prev => {
-                  const card = cards.find(c => c._id === cardId);
-                  return {
-                    ...prev,
-                    prepaidCard: cardId,
-                    cardId: card ? card.cardId : '',
-                    client: card && card.client ? card.client._id || card.client : prev.client,
-                  };
-                });
-              }}
-              fullWidth
-              required
-            >
-              <MenuItem value="">Select Prepaid Card</MenuItem>
-              {cards.map(card => (
-                <MenuItem key={card._id} value={card._id}>
-                  {card.cardId} - {card.client?.name || card.client || '-'}
-                </MenuItem>
-              ))}
-            </TextField>
-            {/* Show card info if selected */}
-            {addForm.prepaidCard && (() => {
-              const card = cards.find((c: any) => c._id === addForm.prepaidCard);
-              if (!card) return null;
-              return (
-                <Box sx={{ mb: 1, ml: 1 }}>
-                  <Typography variant="body2">Balance: <b>{card.balance}</b></Typography>
-                  <Typography variant="body2">Client: <b>{card.client?.name || card.client || '-'}</b></Typography>
-                  <Typography variant="body2">Status: <b>{card.status}</b></Typography>
-                </Box>
-              );
-            })()}
-            <TextField label="Client" name="client" value={addForm.client} onChange={handleAddChange} fullWidth required disabled={!!addForm.prepaidCard} />
-            <TextField label="Tanker Plate No." name="tankerPlateNo" value={addForm.tankerPlateNo} onChange={handleAddChange} fullWidth required />
-            <TextField label="Station" name="station" value={addForm.station} onChange={handleAddChange} fullWidth required />
-            <TextField label="Volume (Liters)" name="volume" value={addForm.volume} onChange={handleAddChange} type="number" fullWidth required />
-            <TextField label="Unit Price" name="unitPrice" value={addForm.unitPrice} onChange={handleAddChange} type="number" fullWidth required />
-            <TextField label="Total Cost" name="totalCost" value={addForm.totalCost} InputProps={{ readOnly: true }} fullWidth required />
-            <TextField label="Filled By" name="filledBy" value={addForm.filledBy} onChange={handleAddChange} fullWidth />
-            <TextField label="Status" name="status" value={addForm.status} onChange={handleAddChange} select fullWidth required>
-              <MenuItem value="success">Success</MenuItem>
-              <MenuItem value="failed">Failed</MenuItem>
-              <MenuItem value="manual">Manual</MenuItem>
-              <MenuItem value="tamper">Tamper</MenuItem>
-            </TextField>
-            {addError && <Alert severity="error">{addError}</Alert>}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddOpen(false)} disabled={addLoading}>Cancel</Button>
-          <Button onClick={handleAddSubmit} variant="contained" color="primary" disabled={addLoading}>Add</Button>
-        </DialogActions>
-      </Dialog>
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Box display="flex" gap={2} mb={2} flexWrap="wrap">
-          <TextField label="Search" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} size="small" InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }} />
-          <TextField label="Status" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }} size="small" select sx={{ minWidth: 120 }}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="success">Success</MenuItem>
-            <MenuItem value="failed">Failed</MenuItem>
-            <MenuItem value="manual">Manual</MenuItem>
-            <MenuItem value="tamper">Tamper</MenuItem>
-          </TextField>
-          <TextField label="Station" value={stationFilter} onChange={e => { setStationFilter(e.target.value); setPage(0); }} size="small" sx={{ minWidth: 120 }} />
-          <TextField label="Client" value={clientFilter} onChange={e => { setClientFilter(e.target.value); setPage(0); }} size="small" sx={{ minWidth: 120 }} />
-          <Button variant="outlined" startIcon={<SaveAltIcon />} onClick={handleExportCSV}>Export CSV</Button>
-          <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>Print</Button>
-        </Box>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}><CircularProgress /></Box>
         ) : error ? (
@@ -490,46 +313,85 @@ const WaterLogPage: React.FC = () => {
             <Table stickyHeader>
               <TableHead>
                 <TableRow>
-                  <TableCell>Date & Time</TableCell>
-                  <TableCell>Card ID</TableCell>
-                  <TableCell>Client Name</TableCell>
-                  <TableCell>Tanker Plate No.</TableCell>
-                  <TableCell>Station</TableCell>
-                  <TableCell>Volume (Liters)</TableCell>
-                  <TableCell>Unit Price</TableCell>
-                  <TableCell>Total Cost</TableCell>
-                  <TableCell>Filled By</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>Water Card No</TableCell>
+                  <TableCell>Gallons</TableCell>
+                  <TableCell>Date</TableCell>
+                  <TableCell>TMR</TableCell>
+                  <TableCell>From</TableCell>
+                  <TableCell>To</TableCell>
+                  <TableCell>Dept Requester</TableCell>
+                  <TableCell>VPN</TableCell>
+                  <TableCell>Trailer Number</TableCell>
+                  <TableCell>Driver Name</TableCell>
+                  <TableCell>Contact</TableCell>
+                  <TableCell>Date Loaded</TableCell>
+                  <TableCell>Returned Date</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {logs.map(log => (
-                  <TableRow key={log._id} sx={{ backgroundColor: log.status === 'success' ? '#e8f5e9' : log.status === 'failed' ? '#ffebee' : log.status === 'manual' ? '#fffde7' : '#e3f2fd' }}>
-                    <TableCell>{new Date(log.dateTime).toLocaleString()}</TableCell>
-                    <TableCell>{log.cardId}</TableCell>
-                    <TableCell>{log.client?.name || ''}</TableCell>
-                    <TableCell>{log.tankerPlateNo}</TableCell>
-                    <TableCell>{log.station}</TableCell>
-                    <TableCell>{log.volume}</TableCell>
-                    <TableCell>{log.unitPrice}</TableCell>
-                    <TableCell>{log.totalCost}</TableCell>
-                    <TableCell>{log.filledBy?.name || ''}</TableCell>
-                    <TableCell><Chip label={log.status} color={statusColors[log.status]} size="small" /></TableCell>
+                {waterTrips.map(trip => (
+                  <TableRow key={trip._id}>
+                    <TableCell>{trip.waterCardNo || '-'}</TableCell>
+                    <TableCell>{trip.gallons || '-'}</TableCell>
+                    <TableCell>{trip.date ? new Date(trip.date).toLocaleString() : '-'}</TableCell>
+                    <TableCell>{trip.TMR || '-'}</TableCell>
+                    <TableCell>{trip.from || '-'}</TableCell>
+                    <TableCell>{trip.to || '-'}</TableCell>
+                    <TableCell>{trip.departmentRequester || '-'}</TableCell>
+                    <TableCell>{trip.VPN || '-'}</TableCell>
+                    <TableCell>{trip.trailerNumber || '-'}</TableCell>
+                    <TableCell>{trip.name || '-'}</TableCell>
+                    <TableCell>{trip.contact || '-'}</TableCell>
+                    <TableCell>{trip.dateLoaded ? new Date(trip.dateLoaded).toLocaleString() : '-'}</TableCell>
+                    <TableCell>{trip.returnedDate ? new Date(trip.returnedDate).toLocaleString() : '-'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </TableContainer>
         )}
-        <TablePagination
-          component="div"
-          count={total}
-          page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-          rowsPerPageOptions={[5, 10, 25, 50]}
-        />
+      </Paper>
+      {/* Water Card Balance Management */}
+      <Typography variant="h6" gutterBottom>Water Card Balance Management</Typography>
+      <Paper sx={{ p: 2, mb: 3 }}>
+        {cardsLoading ? (
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}><CircularProgress /></Box>
+        ) : cardsError ? (
+          <Alert severity="error">{cardsError}</Alert>
+        ) : cards.length === 0 ? (
+          <Typography>No water cards found.</Typography>
+        ) : (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Card ID</TableCell>
+                  <TableCell>Client</TableCell>
+                  <TableCell>Remaining Balance</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Last Used</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {cards.map(card => (
+                  <TableRow key={card._id} sx={{ backgroundColor: card.status === 'Blocked' || card.balance === 0 ? '#ffebee' : undefined }}>
+                    <TableCell>{card.cardId}</TableCell>
+                    <TableCell>{card.client?.name || card.client || '-'}</TableCell>
+                    <TableCell>{card.balance}</TableCell>
+                    <TableCell>
+                      {card.status === 'Blocked' || card.balance === 0 ? (
+                        <Chip label="Expired Card" color="error" size="small" />
+                      ) : (
+                        <Chip label="Active" color="success" size="small" />
+                      )}
+                    </TableCell>
+                    <TableCell>{card.lastUsed ? new Date(card.lastUsed).toLocaleString() : '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
       </Paper>
       {/* 3. Prepaid Card Management */}
       <Typography variant="h6" gutterBottom>Prepaid Card Management</Typography>

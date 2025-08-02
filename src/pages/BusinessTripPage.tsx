@@ -242,13 +242,6 @@ const BusinessTripPage: React.FC = () => {
   const simEntitlement = getPerDiemAndFlightClass(simRole, simRegion);
   const [showEntitlementSimulator, setShowEntitlementSimulator] = useState(false);
 
-  // Frequent Traveler Profile (mocked)
-  const frequentTravelers = [
-    { name: 'John Doe', count: 7, flag: 'High Travel Frequency' },
-    { name: 'Jane Smith', count: 5, flag: 'Over-budgeted 3x this year' },
-    { name: 'Ali Ahmad', count: 4, flag: 'No-Show' },
-  ];
-
   // Trip Repetition Shortcut
   const repeatLastTrip = () => {
     const lastTrip = dashboardTrips.find(t => t.employee === form.employeeId);
@@ -742,25 +735,7 @@ const BusinessTripPage: React.FC = () => {
       </motion.div>
       {/* Frequent Traveler Leaderboard & Smart Suggestions */}
       <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 1200 }}>
-        {/* Frequent Traveler Leaderboard */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={{ flex: '1 1 320px', minWidth: 320 }}>
-          <Box sx={{ background: 'rgba(255,255,255,0.92)', borderRadius: 3, boxShadow: 2, p: 3, mb: 2, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <Box display="flex" alignItems="center" gap={1} mb={2}>
-              <EmojiEventsIcon color="warning" />
-              <Typography variant="h6" fontWeight={700}>Frequent Travelers</Typography>
-            </Box>
-            {frequentTravelers.map((traveler, idx) => (
-              <Box key={traveler.name} display="flex" alignItems="center" gap={2} mb={1}>
-                <Avatar sx={{ bgcolor: idx === 0 ? 'warning.main' : 'primary.main', fontWeight: 700, width: 32, height: 32 }}>{traveler.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}</Avatar>
-                <Typography variant="body2" fontWeight={700}>{traveler.name}</Typography>
-                <Chip label={traveler.flag} color={idx === 0 ? 'warning' : 'primary'} size="small" />
-                <Typography variant="caption" color="text.secondary">Trips: {traveler.count}</Typography>
-              </Box>
-            ))}
-          </Box>
-        </motion.div>
-        {/* Smart Suggestions Panel */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ flex: '1 1 320px', minWidth: 320 }}>
           <Box sx={{ background: 'rgba(255,255,255,0.92)', borderRadius: 3, boxShadow: 2, p: 3, mb: 2, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             <Box display="flex" alignItems="center" gap={1} mb={2}>
               <LightbulbIcon color="info" />
@@ -1536,9 +1511,9 @@ const BusinessTripPage: React.FC = () => {
                       )}
                     </Box>
                   </Box>
-                  {/* Archive Table (mocked for now) */}
+                  {/* Archive Table - Will be populated with real data when available */}
                   <Box sx={{ mt: 3 }}>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Attachment Archive (Sample)</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Attachment Archive</Typography>
                     <TableContainer component={Paper} variant="outlined">
                       <Table size="small">
                         <TableHead>
@@ -1550,18 +1525,13 @@ const BusinessTripPage: React.FC = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {/* Example row, replace with real data if available */}
+                          {/* Real attachment data will be populated here */}
                           <TableRow>
-                            <TableCell>TRIP-001</TableCell>
-                            <TableCell>2024-05-01</TableCell>
-                            <TableCell>Post-Trip Summary</TableCell>
-                            <TableCell>summary.pdf</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>TRIP-001</TableCell>
-                            <TableCell>2024-05-01</TableCell>
-                            <TableCell>Boarding Pass</TableCell>
-                            <TableCell>boardingpass.jpg</TableCell>
+                            <TableCell colSpan={4} align="center">
+                              <Typography variant="body2" color="textSecondary">
+                                No attachments found
+                              </Typography>
+                            </TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>

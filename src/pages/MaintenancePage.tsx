@@ -137,8 +137,11 @@ const MaintenancePage: React.FC = () => {
   const fetchInventoryItems = async () => {
     try {
       const res = await api.get('/inventory/items');
+      console.log('Fetched inventory items:', res.data);
       setInventoryItems(res.data as InventoryItem[]);
-    } catch {}
+    } catch (error) {
+      console.error('Error fetching inventory items:', error);
+    }
   };
 
   // Filter assets based on search
@@ -164,27 +167,41 @@ const MaintenancePage: React.FC = () => {
 
   // Filter inventory items based on search
   const filteredInventoryItems = useMemo(() => {
-    if (!inventorySearchValue.trim()) return inventoryItems;
-    const searchValue = inventorySearchValue.trim().toLowerCase();
+    console.log('Filtering inventory items:', {
+      searchValue: inventorySearchValue,
+      searchType: inventorySearchType,
+      totalItems: inventoryItems.length
+    });
     
-    return inventoryItems.filter(item => {
+    if (!inventorySearchValue.trim()) {
+      console.log('No search value, returning all items');
+      return inventoryItems;
+    }
+    
+    const searchValue = inventorySearchValue.trim().toLowerCase();
+    console.log('Searching for:', searchValue);
+    
+    const filtered = inventoryItems.filter(item => {
       switch (inventorySearchType) {
         case 'description':
-          return item.description.toLowerCase().includes(searchValue);
+          return item.description?.toLowerCase().includes(searchValue);
         case 'type':
-          return item.type.toLowerCase().includes(searchValue);
+          return item.type?.toLowerCase().includes(searchValue);
         case 'location':
           return item.location?.toLowerCase().includes(searchValue);
         case 'all':
         default:
           return (
-            item.description.toLowerCase().includes(searchValue) ||
-            item.type.toLowerCase().includes(searchValue) ||
-            item.location?.toLowerCase().includes(searchValue) ||
-            item.supplier?.toLowerCase().includes(searchValue)
+            (item.description?.toLowerCase() || '').includes(searchValue) ||
+            (item.type?.toLowerCase() || '').includes(searchValue) ||
+            (item.location?.toLowerCase() || '').includes(searchValue) ||
+            (item.supplier?.toLowerCase() || '').includes(searchValue)
           );
       }
     });
+    
+    console.log('Filtered results:', filtered.length);
+    return filtered;
   }, [inventoryItems, inventorySearchType, inventorySearchValue]);
 
   const handleOpen = (m?: Maintenance) => {
@@ -307,8 +324,10 @@ const MaintenancePage: React.FC = () => {
         ...form,
         totalCost,
         totalMaintenanceTime: totalTime,
-        scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime}`,
-        completedDateTime: form.completedDate && form.completedTime ? `${form.completedDate}T${form.completedTime}` : undefined,
+        scheduledDate: form.scheduledDate,
+        scheduledTime: form.scheduledTime,
+        completedDate: form.completedDate || undefined,
+        completedTime: form.completedTime || undefined,
       };
 
       if (editingId) {
@@ -319,22 +338,7 @@ const MaintenancePage: React.FC = () => {
         setSuccess('Job Card created!');
       }
       
-      // If maintenance is completed, deduct inventory
-      if (form.status === 'completed' && form.parts.length > 0) {
-        try {
-          await api.post('/inventory/transactions', {
-            type: 'outbound',
-            maintenanceId: editingId || 'new',
-            parts: form.parts.map((part: MaintenancePart) => ({
-              item: part.item,
-              quantity: part.quantity,
-              notes: `Withdrawn for maintenance: ${form.description}`
-            }))
-          });
-        } catch (err: any) {
-          console.error('Failed to update inventory:', err);
-        }
-      }
+      // Inventory deduction is handled automatically by the backend when status is 'completed'
       
       fetchMaintenance();
       handleClose();
@@ -755,47 +759,41 @@ const MaintenancePage: React.FC = () => {
               />
             </Box>
 
-            {/* Completion (only for completed jobs) */}
-            {(form.status === 'completed' || form.status === 'in_progress') && (
-              <>
-                <Typography variant="h6">Completion</Typography>
-                <Box display="flex" gap={2}>
-                  <TextField 
-                    label="Completed Date" 
-                    name="completedDate" 
-                    value={form.completedDate} 
-                    onChange={handleFormChange} 
-                    type="date" 
-                    InputLabelProps={{ shrink: true }} 
-                    fullWidth 
-                  />
-                  <TextField 
-                    label="Completed Time" 
-                    name="completedTime" 
-                    value={form.completedTime} 
-                    onChange={handleFormChange} 
-                    type="time" 
-                    InputLabelProps={{ shrink: true }} 
-                    fullWidth 
-                  />
-                </Box>
-              </>
-            )}
+            {/* Completion */}
+            <Typography variant="h6">Completion</Typography>
+            <Box display="flex" gap={2}>
+              <TextField 
+                label="Completed Date" 
+                name="completedDate" 
+                value={form.completedDate} 
+                onChange={handleFormChange} 
+                type="date" 
+                InputLabelProps={{ shrink: true }} 
+                fullWidth 
+              />
+              <TextField 
+                label="Completed Time" 
+                name="completedTime" 
+                value={form.completedTime} 
+                onChange={handleFormChange} 
+                type="time" 
+                InputLabelProps={{ shrink: true }} 
+                fullWidth 
+              />
+            </Box>
 
             {/* Parts Selection */}
             <Typography variant="h6">Parts Required</Typography>
-            {selectedAsset && (
-              <>
-                <TextField 
-                  select 
-                  label="Will you need parts from inventory?" 
-                  value={needsParts} 
-                  onChange={e => setNeedsParts(e.target.value as 'yes' | 'no')} 
-                  fullWidth
-                >
-                  <MenuItem value="no">No</MenuItem>
-                  <MenuItem value="yes">Yes</MenuItem>
-                </TextField>
+            <TextField 
+              select 
+              label="Will you need parts from inventory?" 
+              value={needsParts} 
+              onChange={(e) => setNeedsParts(e.target.value as 'yes' | 'no')} 
+              fullWidth
+            >
+              <MenuItem value="no">No</MenuItem>
+              <MenuItem value="yes">Yes</MenuItem>
+            </TextField>
 
                 {needsParts === 'yes' && (
                   <>
@@ -805,7 +803,7 @@ const MaintenancePage: React.FC = () => {
                         select 
                         label="Search by" 
                         value={inventorySearchType} 
-                        onChange={e => setInventorySearchType(e.target.value as any)} 
+                        onChange={(e) => setInventorySearchType(e.target.value as any)} 
                         sx={{ minWidth: 150 }}
                       >
                         <MenuItem value="all">All Items</MenuItem>
@@ -816,11 +814,39 @@ const MaintenancePage: React.FC = () => {
                       <TextField 
                         label="Search Value" 
                         value={inventorySearchValue} 
-                        onChange={e => setInventorySearchValue(e.target.value)} 
+                        onChange={(e) => setInventorySearchValue(e.target.value)} 
                         sx={{ flex: 1 }}
                         placeholder={`Enter ${inventorySearchType === 'all' ? 'any item detail' : inventorySearchType}`}
                       />
+                      <Button 
+                        variant="outlined" 
+                        onClick={() => setInventorySearchValue('')}
+                        size="small"
+                      >
+                        Clear
+                      </Button>
+                      <Button 
+                        variant="contained" 
+                        onClick={() => {
+                          console.log('Search triggered:', {
+                            searchType: inventorySearchType,
+                            searchValue: inventorySearchValue,
+                            totalItems: inventoryItems.length,
+                            filteredItems: filteredInventoryItems.length
+                          });
+                        }}
+                        size="small"
+                      >
+                        Search
+                      </Button>
                     </Box>
+                    
+                    {/* Show search results count */}
+                    {inventorySearchValue.trim() && (
+                      <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
+                        Found {filteredInventoryItems.length} items matching "{inventorySearchValue}"
+                      </Typography>
+                    )}
 
                     <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 2 }}>
                       <Typography variant="subtitle2">Selected Parts</Typography>
@@ -852,13 +878,25 @@ const MaintenancePage: React.FC = () => {
                             value={partForm.item} 
                             onChange={handlePartFormChange} 
                             fullWidth 
+                            helperText={`${filteredInventoryItems.length} items available`}
                           >
                             <MenuItem value="">Select Part</MenuItem>
-                            {filteredInventoryItems.map(item => (
-                              <MenuItem key={item._id} value={item._id}>
-                                {item.description} - Stock: {item.quantity} {item.uom} - {item.type}
-                              </MenuItem>
-                            ))}
+                            {filteredInventoryItems.length === 0 ? (
+                              <MenuItem disabled>No items found</MenuItem>
+                            ) : (
+                              filteredInventoryItems.map(item => (
+                                <MenuItem key={item._id} value={item._id}>
+                                  <Box>
+                                    <Typography variant="body2" fontWeight="bold">
+                                      {item.description}
+                                    </Typography>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Stock: {item.quantity} {item.uom} | Type: {item.type} | Location: {item.location || 'N/A'}
+                                    </Typography>
+                                  </Box>
+                                </MenuItem>
+                              ))
+                            )}
                           </TextField>
                           <TextField 
                             label="Quantity" 
@@ -885,8 +923,6 @@ const MaintenancePage: React.FC = () => {
                     </Typography>
                   </>
                 )}
-              </>
-            )}
 
             <TextField label="Notes" name="notes" value={form.notes} onChange={handleFormChange} fullWidth multiline minRows={2} />
             {error && <Alert severity="error">{error}</Alert>}
