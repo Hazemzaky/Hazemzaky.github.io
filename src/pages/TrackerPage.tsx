@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box, Typography, Tabs, Tab, Paper, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, Table, TableHead, TableRow, TableCell, TableBody, Alert, IconButton, MenuItem, Snackbar
+  Box, Typography, Tabs, Tab, Paper, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions, Card, CardContent, Table, TableHead, TableRow, TableCell, TableBody, Alert, IconButton, MenuItem, Snackbar, useTheme, alpha, Avatar, Badge, Divider, LinearProgress, CircularProgress
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import RouteIcon from '@mui/icons-material/Route';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
 const monthLabels = [
@@ -24,6 +29,7 @@ const getCurrentYear = () => {
 };
 
 const TrackerPage: React.FC = () => {
+  const muiTheme = useTheme();
   const [tab, setTab] = useState(0);
   const [data, setData] = useState<{ [month: string]: any[] }>({});
   const [loading, setLoading] = useState(false);
@@ -453,8 +459,44 @@ const TrackerPage: React.FC = () => {
     numericFields.forEach(f => { totals[f] = 0; });
     rows.forEach(row => {
       numericFields.forEach(f => {
+        // Use the same field mapping as table rendering
         const key = f.replace(/ /g, '').replace(/\//g, '_').replace(/\./g, '').replace(/-/g, '').replace(/KWD/g, 'KWD');
-        totals[f] += Number(row[key] || row[f] || 0);
+        const fieldMapping: { [key: string]: string } = {
+          'Name': 'name',
+          'Nationality': 'nationality',
+          'Passport': 'passport',
+          'ResidencyNumber': 'residencyNumber',
+          'Contact': 'contact',
+          'DateLoaded': 'dateLoaded',
+          'TimeLoaded': 'timeLoaded',
+          'ReturnedDate': 'returnedDate',
+          'ReturnedTime': 'returnedTime',
+          'DurationTripTime': 'durationTripTime',
+          'DaysInMission': 'daysInMission',
+          'KMatOrigin': 'kmAtOrigin',
+          'KMOnceReturned': 'kmOnceReturned',
+          'TotalKMPerTrip': 'totalKmPerTrip',
+          'TripAllowanceInKWD': 'tripAllowanceInKWD',
+          'WaterCardNo': 'waterCardNo',
+          'Gallons': 'gallons',
+          'DepartureMonth': 'departureMonth',
+          'DepartmentRequester': 'departmentRequester',
+          'InvoicedDate': 'invoicedDate',
+          'OTM_PO': 'OTM_PO',
+          'TrailerNumber': 'trailerNumber',
+          'TrailerType': 'trailerType',
+          'Date': 'date',
+          'From': 'from',
+          'To': 'to',
+          'Field': 'field',
+          'VPN': 'VPN',
+          'SR': 'SR',
+          'TMR': 'TMR'
+        };
+        const formKey = fieldMapping[key] || key;
+        const value = Number(row[formKey] || row[f] || 0);
+        totals[f] += value;
+        console.log(`Totals calculation - Field: ${f}, Key: ${key}, FormKey: ${formKey}, Value: ${value}, Running Total: ${totals[f]}`);
       });
     });
     return totals;
@@ -464,20 +506,217 @@ const TrackerPage: React.FC = () => {
   const totals = getTotals(rows);
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom>Tracker</Typography>
-      <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 2 }}>
-        {monthLabels.map((m, i) => <Tab key={m} label={m} />)}
-      </Tabs>
-      <Box mb={2}>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpenDialog()}>Add Data</Button>
-      </Box>
-      {loading ? (
-        <Typography>Loading...</Typography>
-      ) : error ? (
-        <Alert severity="error">{error}</Alert>
-      ) : (
-        <Paper sx={{ p: 2, overflowX: 'auto', maxHeight: '70vh', overflowY: 'auto' }}>
+    <Box sx={{ 
+      p: 3, 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(muiTheme.palette.primary.main, 0.05)} 0%, ${alpha(muiTheme.palette.secondary.main, 0.05)} 100%)`
+    }}>
+      <AnimatePresence>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${muiTheme.palette.primary.main} 0%, ${muiTheme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: muiTheme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <RouteIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Trip Tracker
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Comprehensive trip tracking and mission management system
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+                </motion.div>
+
+        {/* Summary KPI Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+            {[
+              {
+                title: 'Total Trips',
+                value: rows.length,
+                icon: <RouteIcon />,
+                color: muiTheme.palette.primary.main,
+                bgColor: alpha(muiTheme.palette.primary.main, 0.1)
+              },
+              {
+                title: 'Total Gallons',
+                value: totals['Gallons'] || 0,
+                icon: <TimelineIcon />,
+                color: muiTheme.palette.success.main,
+                bgColor: alpha(muiTheme.palette.success.main, 0.1)
+              },
+              {
+                title: 'Total KM',
+                value: totals['Total KM Per Trip'] || 0,
+                icon: <LocalShippingIcon />,
+                color: muiTheme.palette.warning.main,
+                bgColor: alpha(muiTheme.palette.warning.main, 0.1)
+              },
+              {
+                title: 'Total Allowance',
+                value: `KWD ${totals['Trip Allowance In KWD'] || 0}`,
+                icon: <AssessmentIcon />,
+                color: muiTheme.palette.secondary.main,
+                bgColor: alpha(muiTheme.palette.secondary.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 200px', 
+                    minWidth: 200,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: muiTheme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+        </motion.div>
+
+        {/* Tabs Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <Paper 
+            sx={{ 
+              mb: 2,
+              background: alpha(muiTheme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+              borderRadius: muiTheme.shape.borderRadius
+            }}
+          >
+            <Tabs value={tab} onChange={handleTabChange} sx={{ mb: 2 }}>
+              {monthLabels.map((m, i) => <Tab key={m} label={m} />)}
+            </Tabs>
+          </Paper>
+        </motion.div>
+
+        {/* Action Button */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+        >
+          <Box mb={2}>
+            <Button 
+              variant="contained" 
+              startIcon={<AddIcon />} 
+              onClick={() => handleOpenDialog()}
+              sx={{
+                background: `linear-gradient(135deg, ${muiTheme.palette.primary.main} 0%, ${muiTheme.palette.primary.dark} 100%)`,
+                boxShadow: `0 4px 14px ${alpha(muiTheme.palette.primary.main, 0.4)}`,
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${muiTheme.palette.primary.dark} 0%, ${muiTheme.palette.primary.main} 100%)`,
+                  boxShadow: `0 6px 20px ${alpha(muiTheme.palette.primary.main, 0.6)}`,
+                  transform: 'translateY(-1px)'
+                }
+              }}
+            >
+              Add Data
+            </Button>
+          </Box>
+        </motion.div>
+              {/* Main Content Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.0 }}
+        >
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+              <CircularProgress size={40} />
+            </Box>
+          ) : error ? (
+            <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+          ) : (
+            <Paper sx={{ 
+              p: 3, 
+              overflowX: 'auto', 
+              maxHeight: '70vh', 
+              overflowY: 'auto',
+              background: alpha(muiTheme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+              borderRadius: muiTheme.shape.borderRadius
+            }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -549,22 +788,103 @@ const TrackerPage: React.FC = () => {
               })}
             </TableBody>
           </Table>
-          <Card sx={{ mt: 2, p: 2, background: '#f5f5f5' }}>
-            <CardContent>
-              <Typography variant="subtitle1">Totals for this month:</Typography>
-              <Box display="flex" gap={3} flexWrap="wrap">
-                {numericFields.map(f => (
-                  <Box key={f} minWidth={120}><b>{f}:</b> {totals[f]}</Box>
-                ))}
+              <Card sx={{ 
+                mt: 2, 
+                p: 3, 
+                background: alpha(muiTheme.palette.info.main, 0.05),
+                border: `1px solid ${alpha(muiTheme.palette.info.main, 0.2)}`,
+                borderRadius: muiTheme.shape.borderRadius
+              }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: muiTheme.palette.info.main, mb: 2 }}>
+                    📊 Totals for {month}
+                  </Typography>
+                  <Box display="flex" gap={3} flexWrap="wrap">
+                    {numericFields.map(f => (
+                      <Box key={f} sx={{ 
+                        minWidth: 120, 
+                        p: 1.5, 
+                        background: alpha(muiTheme.palette.info.main, 0.1),
+                        borderRadius: 1,
+                        border: `1px solid ${alpha(muiTheme.palette.info.main, 0.2)}`
+                      }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: muiTheme.palette.info.main }}>
+                          {f}:
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: muiTheme.palette.info.main }}>
+                          {totals[f]}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Paper>
+          )}
+        </motion.div>
+              {/* Add/Edit Data Dialog */}
+        <Dialog 
+          open={dialogOpen} 
+          onClose={handleCloseDialog} 
+          maxWidth="md" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: muiTheme.shape.borderRadius,
+              background: alpha(muiTheme.palette.background.paper, 0.95),
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+              boxShadow: muiTheme.shadows[24]
+            }
+          }}
+        >
+          <DialogTitle 
+            sx={{ 
+              background: `linear-gradient(135deg, ${alpha(muiTheme.palette.primary.main, 0.15)} 0%, ${alpha(muiTheme.palette.secondary.main, 0.1)} 100%)`,
+              color: muiTheme.palette.primary.main,
+              borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.2)}`,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 2 }}>
+              <Avatar sx={{ bgcolor: muiTheme.palette.primary.main, width: 40, height: 40 }}>
+                <AddIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                  {dialogMode === 'add' ? 'Add New Trip' : 'Edit Trip'}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  {dialogMode === 'add' ? 'Create new trip entry' : 'Update existing trip details'}
+                </Typography>
               </Box>
-            </CardContent>
-          </Card>
-        </Paper>
-      )}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{dialogMode === 'add' ? 'Add Data' : 'Edit Data'}</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -20, 
+              right: -20, 
+              width: 80, 
+              height: 80, 
+              borderRadius: '50%', 
+              background: alpha(muiTheme.palette.primary.main, 0.1),
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -15, 
+              left: -15, 
+              width: 60, 
+              height: 60, 
+              borderRadius: '50%', 
+              background: muiTheme.palette.secondary.main,
+              zIndex: 1
+            }} />
+          </DialogTitle>
+                  <DialogContent sx={{ mt: 2, p: 3 }}>
+            <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Box display="flex" gap={2} flexWrap="wrap">
               {trackerFields.map((f, idx) => {
                 if (f === 'Trailer Type') {
@@ -874,12 +1194,61 @@ const TrackerPage: React.FC = () => {
             {error && <Alert severity="error">{error}</Alert>}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained">{dialogMode === 'add' ? 'Add' : 'Update'}</Button>
+        <DialogActions 
+          sx={{ 
+            p: 3, 
+            background: `linear-gradient(135deg, ${alpha(muiTheme.palette.background.default, 0.8)} 0%, ${alpha(muiTheme.palette.background.paper, 0.9)} 100%)`,
+            borderTop: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+            gap: 2
+          }}
+        >
+          <Button 
+            onClick={handleCloseDialog}
+            variant="outlined"
+            sx={{
+              borderColor: muiTheme.palette.text.secondary,
+              color: muiTheme.palette.text.secondary,
+              '&:hover': {
+                borderColor: muiTheme.palette.text.primary,
+                color: muiTheme.palette.text.primary,
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            sx={{
+              background: `linear-gradient(135deg, ${muiTheme.palette.primary.main} 0%, ${muiTheme.palette.primary.dark} 100%)`,
+              boxShadow: `0 4px 14px ${alpha(muiTheme.palette.primary.main, 0.4)}`,
+              '&:hover': {
+                background: `linear-gradient(135deg, ${muiTheme.palette.primary.dark} 0%, ${muiTheme.palette.primary.main} 100%)`,
+                boxShadow: `0 6px 20px ${alpha(muiTheme.palette.primary.main, 0.6)}`,
+                transform: 'translateY(-1px)'
+              }
+            }}
+          >
+            {dialogMode === 'add' ? 'Add' : 'Update'}
+          </Button>
         </DialogActions>
       </Dialog>
-      <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess('')} message={success} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} />
+
+      {/* Success Snackbar */}
+      <Snackbar 
+        open={!!success} 
+        autoHideDuration={3000} 
+        onClose={() => setSuccess('')} 
+        message={success} 
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          '& .MuiSnackbarContent-root': {
+            background: muiTheme.palette.success.main,
+            color: 'white'
+          }
+        }}
+      />
+      </AnimatePresence>
     </Box>
   );
 };

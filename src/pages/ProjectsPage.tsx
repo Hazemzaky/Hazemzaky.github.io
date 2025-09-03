@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import api from '../apiBase';
 import HierarchicalCategorySelector from '../components/HierarchicalCategorySelector';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Chip, FormControl, InputLabel, Select, OutlinedInput, CircularProgress, Link
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, MenuItem, Chip, FormControl, InputLabel, Select, OutlinedInput, CircularProgress, Link, Card, CardContent, Avatar
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -11,6 +11,12 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
+import { AnimatePresence, motion } from 'framer-motion';
+import BusinessIcon from '@mui/icons-material/Business';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 // REMOVE: import { differenceInDays, differenceInHours, parseISO, isValid } from 'date-fns';
 
 interface Asset {
@@ -104,8 +110,8 @@ function getRentalDuration(startDate: string, startTime: string, endDate: string
   const days = Math.floor(msDiff / (1000 * 60 * 60 * 24));
   const totalMinutes = Math.floor(msDiff / (1000 * 60));
   let timingValue = 8;
-  if (timing.startsWith('12')) timingValue = 12;
-  if (timing.startsWith('24')) timingValue = 24;
+  if (timing && timing.startsWith('12')) timingValue = 12;
+  if (timing && timing.startsWith('24')) timingValue = 24;
   const totalHours = timingValue * days;
   return { days, totalHours, minutes: totalMinutes };
 }
@@ -137,6 +143,13 @@ const ProjectsPage: React.FC = () => {
     subSubCategory: '',
     subSubSubCategory: '',
     subSubSubSubCategory: ''
+  } as {
+    type?: string;
+    mainCategory?: string;
+    subCategory?: string;
+    subSubCategory?: string;
+    subSubSubCategory?: string;
+    subSubSubSubCategory?: string;
   });
 
   // New state for customer type and clients
@@ -144,6 +157,8 @@ const ProjectsPage: React.FC = () => {
   const [clientList, setClientList] = useState<any[]>([]);
   const [clientLoading, setClientLoading] = useState(false);
   const [selectedClientInfo, setSelectedClientInfo] = useState<any>(null);
+
+  const theme = useTheme();
 
   useEffect(() => {
     fetchProjects();
@@ -155,20 +170,20 @@ const ProjectsPage: React.FC = () => {
   useEffect(() => {
     let filtered = availableAssets;
     
-    if (assetCategoryFilters.type) {
+    if (assetCategoryFilters.type && assetCategoryFilters.type !== '') {
       filtered = filtered.filter(asset => asset.mainCategory && 
-        getMainCategoriesForType(assetCategoryFilters.type).includes(asset.mainCategory));
+        getMainCategoriesForType(assetCategoryFilters.type!).includes(asset.mainCategory));
     }
     
-    if (assetCategoryFilters.mainCategory) {
+    if (assetCategoryFilters.mainCategory && assetCategoryFilters.mainCategory !== '') {
       filtered = filtered.filter(asset => asset.mainCategory === assetCategoryFilters.mainCategory);
     }
     
-    if (assetCategoryFilters.subCategory) {
+    if (assetCategoryFilters.subCategory && assetCategoryFilters.subCategory !== '') {
       filtered = filtered.filter(asset => asset.subCategory === assetCategoryFilters.subCategory);
     }
     
-    if (assetCategoryFilters.subSubCategory) {
+    if (assetCategoryFilters.subSubCategory && assetCategoryFilters.subSubCategory !== '') {
       filtered = filtered.filter(asset => asset.subSubCategory === assetCategoryFilters.subSubCategory);
     }
     
@@ -562,83 +577,342 @@ const ProjectsPage: React.FC = () => {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const rentalDuration = getRentalDuration(form.startDate, form.startTime, form.endDate, form.endTime, form.timing);
+  const rentalDuration = getRentalDuration(form.startDate, form.startTime, form.endDate, form.endTime, form.workHours);
 
   return (
-    <Box p={3}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Projects/ Clients</Typography>
-        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => handleOpen()}>
-          Add Project
-        </Button>
-      </Box>
-      <Paper sx={{ p: 2, overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
+    <Box sx={{ 
+      p: 3, 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+    }}>
+      <AnimatePresence>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: theme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <BusinessIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Project Management
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Comprehensive project tracking and client management
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={() => handleOpen()}
+                  startIcon={<AddIcon />}
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                  }}
+                >
+                  Add Project
+                </Button>
+              </Box>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+        </motion.div>
+
+        {/* Summary Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+            {[
+              {
+                title: 'Total Projects',
+                value: projects.length,
+                icon: <BusinessIcon />,
+                color: theme.palette.primary.main,
+                bgColor: alpha(theme.palette.primary.main, 0.1)
+              },
+              {
+                title: 'Active Projects',
+                value: projects.filter(p => p.status === 'active' || p.status === 'in_progress').length,
+                icon: <TrendingUpIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              },
+              {
+                title: 'Completed Projects',
+                value: projects.filter(p => p.status === 'completed').length,
+                icon: <CheckCircleIcon />,
+                color: theme.palette.info.main,
+                bgColor: alpha(theme.palette.info.main, 0.1)
+              },
+              {
+                title: 'Total Revenue',
+                value: projects.reduce((sum, p) => sum + (p.revenue || 0), 0).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
+                icon: <AttachMoneyIcon />,
+                color: theme.palette.secondary.main,
+                bgColor: alpha(theme.palette.secondary.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 200px', 
+                    minWidth: 200,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map(row => (
-              <tr key={row.id} style={{ background: row.index % 2 === 0 ? '#fafafa' : '#fff' }}>
-                {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
+          </Box>
+        </motion.div>
+
+        {/* Projects Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <Paper 
+            sx={{ 
+              p: 2, 
+              overflowX: 'auto',
+              background: alpha(theme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
+              📋 Project Overview
+            </Typography>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <th key={header.id} style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </th>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      </Paper>
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.map(row => (
+                  <tr key={row.id} style={{ 
+                    background: row.index % 2 === 0 ? alpha(theme.palette.background.default, 0.5) : alpha(theme.palette.background.paper, 0.8)
+                  }}>
+                    {row.getVisibleCells().map(cell => (
+                      <td key={cell.id} style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
+            {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          </Paper>
+        </motion.div>
+      </AnimatePresence>
+
       {/* Add/Edit Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>{editingId ? 'Edit Project' : 'Add Project'}</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            {/* Customer Type Dropdown */}
-            <Box display="flex" gap={2} mb={2}>
-              <FormControl fullWidth>
-                <InputLabel>Type Of The Customer</InputLabel>
-                <Select
-                  value={customerType}
-                  label="Type Of The Customer"
-                  onChange={e => setCustomerType(e.target.value as 'contract' | 'quotation')}
-                >
-                  <MenuItem value="contract">Contract Based</MenuItem>
-                  <MenuItem value="quotation">Quotation Based</MenuItem>
-                </Select>
-              </FormControl>
+      <Dialog 
+        open={open} 
+        onClose={handleClose} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: theme.shape.borderRadius,
+            background: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(20px)',
+            border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            boxShadow: theme.shadows[24]
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+            color: theme.palette.primary.main,
+            borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 2 }}>
+            <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+              <BusinessIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {editingId ? 'Edit Project' : 'Add New Project'}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                {editingId ? 'Update project details and settings' : 'Create a new project with comprehensive details'}
+              </Typography>
             </Box>
-            {/* Company Name Dropdown */}
-            <Box display="flex" gap={2} mb={2}>
-              <FormControl fullWidth required>
-                <InputLabel>Company Name</InputLabel>
-                <Select
-                  value={form.customer}
-                  label="Company Name"
-                  onChange={e => setForm({ ...form, customer: e.target.value })}
-                  disabled={clientLoading || clientList.length === 0}
-                >
-                  {clientLoading && <MenuItem value=""><CircularProgress size={20} /></MenuItem>}
-                  {!clientLoading && clientList.length === 0 && <MenuItem value="">No clients found</MenuItem>}
-                  {clientList.map(client => (
-                    <MenuItem key={client._id} value={client._id}>{client.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            {/* Department Name Field */}
-            <Box display="flex" gap={2} mb={2}>
+          </Box>
+          
+          {/* Decorative background elements */}
+          <Box sx={{ 
+            position: 'absolute', 
+            top: -20, 
+            right: -20, 
+            width: 80, 
+            height: 80, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.primary.main, 0.1),
+            zIndex: 1
+          }} />
+          <Box sx={{ 
+            position: 'absolute', 
+            bottom: -15, 
+            left: -15, 
+            width: 60, 
+            height: 60, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.secondary.main, 0.08),
+            zIndex: 1
+          }} />
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2, p: 3 }}>
+          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Customer Information Section */}
+            <Box sx={{ 
+              p: 2, 
+              background: alpha(theme.palette.primary.main, 0.05),
+              borderRadius: 2,
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.primary.main }}>
+                🏢 Customer Information
+              </Typography>
+              <Box display="flex" gap={2} sx={{ mb: 2 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Type Of The Customer</InputLabel>
+                  <Select
+                    value={customerType}
+                    label="Type Of The Customer"
+                    onChange={e => setCustomerType(e.target.value as 'contract' | 'quotation')}
+                    size="medium"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: theme.palette.primary.main,
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: theme.palette.primary.main,
+                        },
+                      },
+                    }}
+                  >
+                    <MenuItem value="contract">Contract Based</MenuItem>
+                    <MenuItem value="quotation">Quotation Based</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box display="flex" gap={2} sx={{ mb: 2 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Company Name</InputLabel>
+                  <Select
+                    value={form.customer}
+                    label="Company Name"
+                    onChange={e => setForm({ ...form, customer: e.target.value })}
+                    disabled={clientLoading || clientList.length === 0}
+                    size="medium"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&:hover fieldset': {
+                          borderColor: theme.palette.primary.main,
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: theme.palette.primary.main,
+                        },
+                      },
+                    }}
+                  >
+                    {clientLoading && <MenuItem value=""><CircularProgress size={20} /></MenuItem>}
+                    {!clientLoading && clientList.length === 0 && <MenuItem value="">No clients found</MenuItem>}
+                    {clientList.map(client => (
+                      <MenuItem key={client._id} value={client._id}>{client.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
               <TextField 
                 label="Department Name" 
                 name="department" 
@@ -646,196 +920,738 @@ const ProjectsPage: React.FC = () => {
                 onChange={handleFormChange} 
                 required 
                 fullWidth 
+                size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.primary.main,
+                    },
+                  },
+                }}
               />
             </Box>
+
             {/* Client Info Box */}
             {selectedClientInfo && (
-              <Box sx={{ background: '#e3f2fd', borderRadius: 2, p: 2, mb: 2, border: '1px solid #90caf9' }}>
-                <Typography variant="subtitle1" fontWeight={700} color="primary.main">Client Information</Typography>
-                <Typography><b>Name:</b> {selectedClientInfo.name}</Typography>
-                <Typography><b>Type:</b> {selectedClientInfo.type === 'contract' ? 'Contract Based' : 'Quotation Based'}</Typography>
+              <Box sx={{ 
+                background: alpha(theme.palette.info.main, 0.1), 
+                borderRadius: 2, 
+                p: 2, 
+                mb: 2, 
+                border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <Typography variant="subtitle1" fontWeight={700} color="info.main" sx={{ mb: 2 }}>
+                  📋 Client Information
+                </Typography>
+                <Typography sx={{ mb: 1 }}><b>Name:</b> {selectedClientInfo.name}</Typography>
+                <Typography sx={{ mb: 1 }}><b>Type:</b> {selectedClientInfo.type === 'contract' ? 'Contract Based' : 'Quotation Based'}</Typography>
                 {selectedClientInfo.type === 'contract' && selectedClientInfo.contractData && (
                   <>
-                    <Typography><b>Contract Period:</b> {selectedClientInfo.contractData.startDate ? new Date(selectedClientInfo.contractData.startDate).toLocaleDateString() : ''} - {selectedClientInfo.contractData.endDate ? new Date(selectedClientInfo.contractData.endDate).toLocaleDateString() : ''}</Typography>
-                    <Typography><b>Payment Terms:</b> {selectedClientInfo.contractData.paymentTerms}</Typography>
-                    <Typography><b>Status:</b> {selectedClientInfo.contractData.status}</Typography>
+                    <Typography sx={{ mb: 1 }}><b>Contract Period:</b> {selectedClientInfo.contractData.startDate ? new Date(selectedClientInfo.contractData.startDate).toLocaleDateString() : ''} - {selectedClientInfo.contractData.endDate ? new Date(selectedClientInfo.contractData.endDate).toLocaleDateString() : ''}</Typography>
+                    <Typography sx={{ mb: 1 }}><b>Payment Terms:</b> {selectedClientInfo.contractData.paymentTerms}</Typography>
+                    <Typography sx={{ mb: 1 }}><b>Status:</b> {selectedClientInfo.contractData.status}</Typography>
                     {selectedClientInfo.contractData.contractFile && (
-                      <Typography><b>Contract File:</b> <Link href={`/${selectedClientInfo.contractData.contractFile}`} target="_blank" rel="noopener">View File</Link></Typography>
+                      <Typography sx={{ mb: 1 }}><b>Contract File:</b> <Link href={`/${selectedClientInfo.contractData.contractFile}`} target="_blank" rel="noopener">View File</Link></Typography>
                     )}
-                    <Typography><b>Price List:</b></Typography>
+                    <Typography sx={{ mb: 1 }}><b>Price List:</b></Typography>
                     <ul style={{ margin: 0, paddingLeft: 20 }}>
                       {selectedClientInfo.contractData.priceList?.map((item: any, idx: number) => (
-                        <li key={idx}>{item.description} | {item.rentType} | {item.workHours} | Drivers/Operators: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}</li>
+                        <li key={idx}>
+                          <Typography variant="body2">
+                            {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
+                          </Typography>
+                        </li>
                       ))}
                     </ul>
                   </>
                 )}
                 {selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData && (
                   <>
-                    <Typography><b>Payment Terms:</b> {selectedClientInfo.quotationData.paymentTerms}</Typography>
-                    <Typography><b>Payment Method:</b> {selectedClientInfo.quotationData.paymentMethod}</Typography>
-                    <Typography><b>Status:</b> {selectedClientInfo.quotationData.approvalStatus}</Typography>
+                    <Typography sx={{ mb: 1 }}><b>Payment Terms:</b> {selectedClientInfo.quotationData.paymentTerms}</Typography>
+                    <Typography sx={{ mb: 1 }}><b>Payment Method:</b> {selectedClientInfo.quotationData.paymentMethod}</Typography>
+                    <Typography sx={{ mb: 1 }}><b>Status:</b> {selectedClientInfo.quotationData.approvalStatus}</Typography>
                     {selectedClientInfo.quotationData.quotationFile && (
-                      <Typography><b>Quotation File:</b> <Link href={`/${selectedClientInfo.quotationData.quotationFile}`} target="_blank" rel="noopener">View File</Link></Typography>
+                      <Typography sx={{ mb: 1 }}><b>Quotation File:</b> <Link href={`/${selectedClientInfo.quotationData.quotationFile}`} target="_blank" rel="noopener">View File</Link></Typography>
                     )}
-                    <Typography><b>Line Items:</b></Typography>
+                    <Typography sx={{ mb: 1 }}><b>Line Items:</b></Typography>
                     <ul style={{ margin: 0, paddingLeft: 20 }}>
                       {selectedClientInfo.quotationData.lines?.map((item: any, idx: number) => (
-                        <li key={idx}>{item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}</li>
+                        <li key={idx}>
+                          <Typography variant="body2">
+                            {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
+                          </Typography>
+                        </li>
                       ))}
                     </ul>
                   </>
                 )}
+                
+                {/* Decorative background elements */}
+                <Box sx={{ 
+                  position: 'absolute', 
+                  top: -15, 
+                  right: -15, 
+                  width: 60, 
+                  height: 60, 
+                  borderRadius: '50%', 
+                  background: alpha(theme.palette.info.main, 0.1),
+                  zIndex: 0
+                }} />
               </Box>
             )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-              <div style={{ flex: '1 1 100%' }}>
-                <TextField label="Equipment Description" name="equipmentDescription" value={form.equipmentDescription} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 100%' }}>
-                <FormControl fullWidth required>
-                  <InputLabel>Price List Item</InputLabel>
-                  <Select
-                    value={form.priceListDescription}
-                    onChange={(e) => {
-                      const selectedDescription = e.target.value;
-                      console.log('Price list selection changed:', selectedDescription);
-                      handlePriceListSelection(selectedDescription);
-                    }}
-                    input={<OutlinedInput label="Price List Item" />}
-                  >
-                    <MenuItem value="">
-                      <em>Select a price list item...</em>
+
+            {/* Equipment Details Section */}
+            <Box sx={{ 
+              p: 2, 
+              background: alpha(theme.palette.warning.main, 0.05),
+              borderRadius: 2,
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.warning.main }}>
+                🚜 Equipment & Pricing Details
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <TextField 
+                  label="Equipment Description" 
+                  name="equipmentDescription" 
+                  value={form.equipmentDescription} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.warning.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.warning.main,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+              <FormControl fullWidth required>
+                <InputLabel>Price List Item</InputLabel>
+                <Select
+                  value={form.priceListDescription}
+                  onChange={(e) => {
+                    const selectedDescription = e.target.value;
+                    console.log('Price list selection changed:', selectedDescription);
+                    handlePriceListSelection(selectedDescription);
+                  }}
+                  input={<OutlinedInput label="Price List Item" />}
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.warning.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.warning.main,
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="">
+                    <em>Select a price list item...</em>
+                  </MenuItem>
+                  {selectedClientInfo && selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList?.map((item: any, idx: number) => (
+                    <MenuItem key={`contract-${idx}`} value={item.description}>
+                      {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
                     </MenuItem>
-                    {selectedClientInfo && selectedClientInfo.type === 'contract' && selectedClientInfo.contractData?.priceList?.map((item: any, idx: number) => (
-                      <MenuItem key={`contract-${idx}`} value={item.description}>
-                        {item.description} | {item.rentType} | {item.workHours} | Drivers: {item.driversOperators} | Unit Price: {item.unitPrice} | Overtime: {item.overtime}
-                      </MenuItem>
-                    ))}
-                    {selectedClientInfo && selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines?.map((item: any, idx: number) => (
-                      <MenuItem key={`quotation-${idx}`} value={item.description}>
-                        {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Total Basic Hours" name="totalBasicHours" type="number" value={form.totalBasicHours} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Total Overtime Hours" name="totalOvertimeHours" type="number" value={form.totalOvertimeHours} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Overall Hours" name="overallHours" type="number" value={form.overallHours} onChange={handleFormChange} required fullWidth InputProps={{ readOnly: true }} />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Overtime Hours Cost" name="overtimeHoursCost" type="number" value={form.overtimeHoursCost} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Overtime Hours" name="overtimeHours" type="number" value={form.overtimeHours} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Overtime Price" name="overtimePrice" type="number" value={form.overtimePrice} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Rent Type" name="rentType" value={form.rentType} onChange={handleFormChange} required fullWidth select>
+                  ))}
+                  {selectedClientInfo && selectedClientInfo.type === 'quotation' && selectedClientInfo.quotationData?.lines?.map((item: any, idx: number) => (
+                    <MenuItem key={`quotation-${idx}`} value={item.description}>
+                      {item.description} | Unit Price: {item.unitPrice} | Worktime: {item.worktime} | Qty: {item.quantity} | Total: {item.total}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Hours & Pricing Section */}
+            <Box sx={{ 
+              p: 2, 
+              background: alpha(theme.palette.success.main, 0.05),
+              borderRadius: 2,
+              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.success.main }}>
+                ⏰ Hours & Pricing Configuration
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <TextField 
+                  label="Total Basic Hours" 
+                  name="totalBasicHours" 
+                  type="number" 
+                  value={form.totalBasicHours} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                    },
+                  }}
+                />
+                <TextField 
+                  label="Total Overtime Hours" 
+                  name="totalOvertimeHours" 
+                  type="number" 
+                  value={form.totalOvertimeHours} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <TextField 
+                  label="Overall Hours" 
+                  name="overallHours" 
+                  type="number" 
+                  value={form.overallHours} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  InputProps={{ readOnly: true }}
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                    },
+                  }}
+                />
+                <TextField 
+                  label="Overtime Hours Cost" 
+                  name="overtimeHoursCost" 
+                  type="number" 
+                  value={form.overtimeHoursCost} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <TextField 
+                  label="Overtime Hours" 
+                  name="overtimeHours" 
+                  type="number" 
+                  value={form.overtimeHours} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                    },
+                  }}
+                />
+                <TextField 
+                  label="Overtime Price" 
+                  name="overtimePrice" 
+                  type="number" 
+                  value={form.overtimePrice} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.success.main,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+
+            {/* Project Settings Section */}
+            <Box sx={{ 
+              p: 2, 
+              background: alpha(theme.palette.info.main, 0.05),
+              borderRadius: 2,
+              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.info.main }}>
+                ⚙️ Project Settings & Configuration
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <TextField 
+                  label="Rent Type" 
+                  name="rentType" 
+                  value={form.rentType} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth 
+                  select
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                    },
+                  }}
+                >
                   <MenuItem value="monthly">Monthly</MenuItem>
                   <MenuItem value="call_out">Call Out</MenuItem>
                 </TextField>
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Operators" name="operators" value={form.operators} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Work Hours" name="workHours" value={form.workHours} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Unit Price" name="unitPrice" type="number" value={form.unitPrice} onChange={handleFormChange} required fullWidth />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Status" name="status" value={form.status} onChange={handleFormChange} fullWidth select>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="completed">Completed</MenuItem>
-                  <MenuItem value="cancelled">Cancelled</MenuItem>
-                </TextField>
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Start Date" name="startDate" type="date" value={form.startDate} onChange={handleFormChange} sx={{ minWidth: 300 }} />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="Start Time" name="startTime" type="time" value={form.startTime} onChange={handleFormChange} />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="End Date" name="endDate" type="date" value={form.endDate} onChange={handleFormChange} sx={{ minWidth: 300 }} />
-              </div>
-              <div style={{ flex: '1 1 48%' }}>
-                <TextField label="End Time" name="endTime" type="time" value={form.endTime} onChange={handleFormChange} />
-              </div>
-              {/* Rental Duration Summary Box */}
-              <Box sx={{ background: '#f3e5f5', borderRadius: 2, p: 2, mb: 2, border: '1px solid #ce93d8' }}>
-                <Typography variant="subtitle1" fontWeight={700} color="secondary.main">Total Duration</Typography>
-                <Typography>Start: <b>{form.startDate} {form.startTime}</b></Typography>
-                <Typography>End: <b>{form.endDate} {form.endTime}</b></Typography>
-                <Typography>Total Days: <b>{rentalDuration.days}</b></Typography>
-                <Typography>Total Basic Hours: <b>{form.totalBasicHours}</b></Typography>
-                <Typography>Total Overtime Hours: <b>{form.totalOvertimeHours}</b></Typography>
-                <Typography>Overall Hours: <b>{form.overallHours}</b></Typography>
-                <Typography>Total Overtime Hours Cost: <b>{form.overtimeHoursCost}</b></Typography>
+                <TextField 
+                  label="Operators" 
+                  name="operators" 
+                  value={form.operators} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                    },
+                  }}
+                />
               </Box>
-              <div style={{ flex: '1 1 100%' }}>
-                <Typography variant="subtitle2" gutterBottom>Asset Selection</Typography>
-                <Box mb={2}>
-                  <HierarchicalCategorySelector
-                    value={assetCategoryFilters}
-                    onChange={handleAssetCategoryFilterChange}
-                  />
-                </Box>
-                
-                <FormControl fullWidth>
-                  <InputLabel>Assign Assets</InputLabel>
-                  <Select
-                    multiple
-                    value={form.assignedAssets}
-                    onChange={handleAssetChange}
-                    input={<OutlinedInput label="Assign Assets" />}
-                    renderValue={(selected: string[]) => (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                        {selected.map((value: string) => {
-                          const asset = availableAssets.find(a => a._id === value);
-                          return (
-                            <Chip key={value} label={asset?.description || value} size="small" />
-                          );
-                        })}
-                      </Box>
-                    )}
-                  >
-                    {filteredAssets.map((asset) => (
-                      <MenuItem key={asset._id} value={asset._id}>
-                        {asset.description} - {asset.mainCategory} {'>'} {asset.subCategory} 
-                        {asset.subSubCategory && ` > ${asset.subSubCategory}`}
-                        {asset.plateNumber && ` (${asset.plateNumber})`}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </div>
-              <div style={{ flex: '1 1 100%' }}>
-                <TextField label="Revenue" name="revenue" value={form.revenue} onChange={handleFormChange} type="number" fullWidth />
-              </div>
-              <div style={{ flex: '1 1 100%' }}>
-                <TextField label="Description" name="description" value={form.description} onChange={handleFormChange} fullWidth multiline minRows={2} />
-              </div>
-              <div style={{ flex: '1 1 100%' }}>
-                <TextField label="Notes" name="notes" value={form.notes} onChange={handleFormChange} fullWidth multiline minRows={2} />
-              </div>
-            </div>
-            {error && <Alert severity="error">{error}</Alert>}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <TextField 
+                  label="Work Hours" 
+                  name="workHours" 
+                  value={form.workHours} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                    },
+                  }}
+                />
+                <TextField 
+                  label="Unit Price" 
+                  name="unitPrice" 
+                  type="number" 
+                  value={form.unitPrice} 
+                  onChange={handleFormChange} 
+                  required 
+                  fullWidth
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.info.main,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+              <TextField 
+                label="Status" 
+                name="status" 
+                value={form.status} 
+                onChange={handleFormChange} 
+                fullWidth 
+                select
+                size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.info.main,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.info.main,
+                    },
+                  },
+                }}
+              >
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="completed">Completed</MenuItem>
+                <MenuItem value="cancelled">Cancelled</MenuItem>
+              </TextField>
+            </Box>
+
+            {/* Timeline Section */}
+            <Box sx={{ 
+              p: 2, 
+              background: alpha(theme.palette.secondary.main, 0.05),
+              borderRadius: 2,
+              border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.secondary.main }}>
+                📅 Project Timeline & Schedule
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+                <TextField 
+                  label="Start Date" 
+                  name="startDate" 
+                  type="date" 
+                  value={form.startDate} 
+                  onChange={handleFormChange} 
+                  InputLabelProps={{ shrink: true }}
+                  size="medium"
+                  sx={{
+                    minWidth: 300,
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                    },
+                  }}
+                />
+                <TextField 
+                  label="Start Time" 
+                  name="startTime" 
+                  type="time" 
+                  value={form.startTime} 
+                  onChange={handleFormChange}
+                  InputLabelProps={{ shrink: true }}
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                <TextField 
+                  label="End Date" 
+                  name="endDate" 
+                  type="date" 
+                  value={form.endDate} 
+                  onChange={handleFormChange} 
+                  InputLabelProps={{ shrink: true }}
+                  size="medium"
+                  sx={{
+                    minWidth: 300,
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                    },
+                  }}
+                />
+                <TextField 
+                  label="End Time" 
+                  name="endTime" 
+                  type="time" 
+                  value={form.endTime} 
+                  onChange={handleFormChange}
+                  InputLabelProps={{ shrink: true }}
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.secondary.main,
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+
+            {/* Rental Duration Summary Box */}
+            <Box sx={{ 
+              background: alpha(theme.palette.secondary.main, 0.1), 
+              borderRadius: 2, 
+              p: 2, 
+              mb: 2, 
+              border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <Typography variant="subtitle1" fontWeight={700} color="secondary.main" sx={{ mb: 2 }}>
+                📊 Total Duration Summary
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
+                <Typography><b>Start:</b> {form.startDate} {form.startTime}</Typography>
+                <Typography><b>End:</b> {form.endDate} {form.endTime}</Typography>
+                <Typography><b>Total Days:</b> {rentalDuration.days}</Typography>
+                <Typography><b>Total Basic Hours:</b> {form.totalBasicHours}</Typography>
+                <Typography><b>Total Overtime Hours:</b> {form.totalOvertimeHours}</Typography>
+                <Typography><b>Overall Hours:</b> {form.overallHours}</Typography>
+                <Typography><b>Total Overtime Hours Cost:</b> {form.overtimeHoursCost}</Typography>
+              </Box>
+              
+              {/* Decorative background elements */}
+              <Box sx={{ 
+                position: 'absolute', 
+                top: -15, 
+                right: -15, 
+                width: 60, 
+                height: 60, 
+                borderRadius: '50%', 
+                background: alpha(theme.palette.secondary.main, 0.1),
+                zIndex: 0
+              }} />
+            </Box>
+
+            {/* Asset Selection Section */}
+            <Box sx={{ 
+              p: 2, 
+              background: alpha(theme.palette.warning.main, 0.05),
+              borderRadius: 2,
+              border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.warning.main }}>
+                🚗 Asset Assignment & Selection
+              </Typography>
+              <Box mb={2}>
+                <HierarchicalCategorySelector
+                  value={assetCategoryFilters}
+                  onChange={handleAssetCategoryFilterChange}
+                />
+              </Box>
+              
+              <FormControl fullWidth>
+                <InputLabel>Assign Assets</InputLabel>
+                <Select
+                  multiple
+                  value={form.assignedAssets}
+                  onChange={handleAssetChange}
+                  input={<OutlinedInput label="Assign Assets" />}
+                  size="medium"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: theme.palette.warning.main,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: theme.palette.warning.main,
+                      },
+                    },
+                  }}
+                  renderValue={(selected: string[]) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {selected.map((value: string) => {
+                        const asset = availableAssets.find(a => a._id === value);
+                        return (
+                          <Chip key={value} label={asset?.description || value} size="small" />
+                        );
+                      })}
+                    </Box>
+                  )}
+                >
+                  {filteredAssets.map((asset) => (
+                    <MenuItem key={asset._id} value={asset._id}>
+                      {asset.description} - {asset.mainCategory} {'>'} {asset.subCategory} 
+                      {asset.subSubCategory && ` > ${asset.subSubCategory}`}
+                      {asset.plateNumber && ` (${asset.plateNumber})`}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Financial & Notes Section */}
+            <Box sx={{ 
+              p: 2, 
+              background: alpha(theme.palette.success.main, 0.05),
+              borderRadius: 2,
+              border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.success.main }}>
+                💰 Financial Details & Additional Information
+              </Typography>
+              <TextField 
+                label="Revenue" 
+                name="revenue" 
+                value={form.revenue} 
+                onChange={handleFormChange} 
+                type="number" 
+                fullWidth
+                size="medium"
+                sx={{ mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.success.main,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.success.main,
+                    },
+                  },
+                }}
+              />
+              <TextField 
+                label="Description" 
+                name="description" 
+                value={form.description} 
+                onChange={handleFormChange} 
+                fullWidth 
+                multiline 
+                minRows={2}
+                size="medium"
+                sx={{ mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.success.main,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.success.main,
+                    },
+                  },
+                }}
+              />
+              <TextField 
+                label="Notes" 
+                name="notes" 
+                value={form.notes} 
+                onChange={handleFormChange} 
+                fullWidth 
+                multiline 
+                minRows={2}
+                size="medium"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: theme.palette.success.main,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.success.main,
+                    },
+                  },
+                }}
+              />
+            </Box>
+
+            {error && (
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  mt: 2,
+                  '& .MuiAlert-icon': {
+                    color: theme.palette.error.main
+                  }
+                }}
+              >
+                {error}
+              </Alert>
+            )}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">{editingId ? 'Update' : 'Create'}</Button>
+        
+        <DialogActions 
+          sx={{ 
+            p: 3, 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.background.default, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+            borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            gap: 2
+          }}
+        >
+          <Button 
+            onClick={handleClose} 
+            disabled={false}
+            variant="outlined"
+            sx={{
+              borderColor: theme.palette.text.secondary,
+              color: theme.palette.text.secondary,
+              '&:hover': {
+                borderColor: theme.palette.text.primary,
+                color: theme.palette.text.primary,
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            color="primary" 
+            disabled={false}
+            sx={{
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+              boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
+              '&:hover': {
+                background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.6)}`,
+                transform: 'translateY(-1px)'
+              },
+              '&:disabled': {
+                background: theme.palette.action.disabledBackground,
+                color: theme.palette.action.disabled
+              }
+            }}
+          >
+            {editingId ? 'Update Project' : 'Create Project'}
+          </Button>
         </DialogActions>
       </Dialog>
       {/* Delete Confirmation Dialog */}

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../apiBase';
 import {
-  Box, Button, Card, CardContent, Typography, Paper, TextField, MenuItem, Snackbar, Alert, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Grid, LinearProgress
+  Box, Button, Card, CardContent, Typography, Paper, TextField, MenuItem, Snackbar, Alert, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip, Grid, LinearProgress, useTheme, alpha, Avatar, Badge, Divider
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -10,9 +10,14 @@ import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import InventoryIcon from '@mui/icons-material/Inventory';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, ComposedChart } from 'recharts';
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
 import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
+import { motion, AnimatePresence } from 'framer-motion';
+import theme from '../theme';
 
 interface Asset {
   _id: string;
@@ -263,276 +268,712 @@ const DepreciationDashboard: React.FC = () => {
   const COLORS = ['#1976d2', '#388e3c', '#fbc02d', '#d32f2f', '#6d4c41', '#0288d1'];
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom>Depreciation Dashboard</Typography>
-
-      {/* KPI Cards */}
-      <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#1976d2', color: '#fff' }}>
-          <CardContent>
-            <Typography variant="subtitle2">Total Assets</Typography>
-            <Typography variant="h4">{kpis.totalAssets}</Typography>
-            <Typography variant="caption">Depreciable Assets</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#d32f2f', color: '#fff' }}>
-          <CardContent>
-            <Typography variant="subtitle2">Total Purchase Value</Typography>
-            <Typography variant="h4">{kpis.totalPurchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-            <Typography variant="caption">Original Cost</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#388e3c', color: '#fff' }}>
-          <CardContent>
-            <Typography variant="subtitle2">Total Book Value</Typography>
-            <Typography variant="h4">{kpis.totalBookValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-            <Typography variant="caption">Current Value</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250, background: '#fbc02d', color: '#fff' }}>
-          <CardContent>
-            <Typography variant="subtitle2">Total Depreciation</Typography>
-            <Typography variant="h4">{kpis.totalDepreciation.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-            <Typography variant="caption">{kpis.averageDepreciationRate.toFixed(1)}% of Purchase Value</Typography>
-          </CardContent>
-        </Card>
-      </Box>
-
-      {/* Asset Status Cards */}
-      <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
-        <Card sx={{ flex: '1 1 300px', minWidth: 300 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="primary">Fully Depreciated</Typography>
-            <Typography variant="h5" color="error">{kpis.fullyDepreciated}</Typography>
-            <Typography variant="caption">Assets at salvage value</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 300px', minWidth: 300 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="primary">Partially Depreciated</Typography>
-            <Typography variant="h5" color="warning.main">{kpis.partiallyDepreciated}</Typography>
-            <Typography variant="caption">Assets in depreciation period</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 300px', minWidth: 300 }}>
-          <CardContent>
-            <Typography variant="subtitle2" color="primary">Not Depreciated</Typography>
-            <Typography variant="h5" color="success.main">{kpis.notDepreciated}</Typography>
-            <Typography variant="caption">New or recently acquired</Typography>
-          </CardContent>
-        </Card>
-      </Box>
-
-      {/* Filters */}
-      <Box display="flex" gap={2} mb={3} flexWrap="wrap" alignItems="center">
-        <TextField 
-          select 
-          label="Asset Type" 
-          value={filterType} 
-          onChange={e => setFilterType(e.target.value)} 
-          sx={{ minWidth: 180 }}
+    <Box sx={{ 
+      p: 3, 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+    }}>
+      <AnimatePresence>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <MenuItem value="">All Types</MenuItem>
-          {Array.from(new Set(assets.map(a => a.type))).map(t => (
-            <MenuItem key={t} value={t}>{t}</MenuItem>
-          ))}
-        </TextField>
-        <TextField 
-          select 
-          label="Status" 
-          value={filterStatus} 
-          onChange={e => setFilterStatus(e.target.value)} 
-          sx={{ minWidth: 180 }}
-        >
-          <MenuItem value="">All Statuses</MenuItem>
-          {Array.from(new Set(assets.map(a => a.status))).map(s => (
-            <MenuItem key={s} value={s}>{s}</MenuItem>
-          ))}
-        </TextField>
-        <TextField 
-          label="From Date" 
-          type="date" 
-          value={dateFrom} 
-          onChange={e => setDateFrom(e.target.value)} 
-          sx={{ minWidth: 160 }} 
-          InputLabelProps={{ shrink: true }} 
-        />
-        <TextField 
-          label="To Date" 
-          type="date" 
-          value={dateTo} 
-          onChange={e => setDateTo(e.target.value)} 
-          sx={{ minWidth: 160 }} 
-          InputLabelProps={{ shrink: true }} 
-        />
-        <Button variant="outlined" startIcon={<SaveAltIcon />} onClick={handleExportCSV}>Export CSV</Button>
-        <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>Print</Button>
-      </Box>
-
-      {/* Charts Section */}
-      <Box display="flex" flexDirection="column" gap={3} mb={3}>
-        {/* Charts Row 1 */}
-        <Box display="flex" gap={3} flexWrap="wrap">
-          {/* Depreciation by Type */}
-          <Paper sx={{ p: 2, height: 300, flex: '1 1 400px', minWidth: 400 }}>
-            <Typography variant="h6" gutterBottom>Depreciation by Asset Type</Typography>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={depreciationByType}>
-                <XAxis dataKey="type" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="purchaseValue" fill="#1976d2" name="Purchase Value" />
-                <Bar dataKey="bookValue" fill="#388e3c" name="Book Value" />
-                <Bar dataKey="depreciation" fill="#d32f2f" name="Depreciation" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-
-          {/* Depreciation Trend */}
-          <Paper sx={{ p: 2, height: 300, flex: '1 1 400px', minWidth: 400 }}>
-            <Typography variant="h6" gutterBottom>Depreciation Trend (Last 12 Months)</Typography>
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={depreciationTrend}>
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area type="monotone" dataKey="depreciation" stroke="#1976d2" fill="#1976d2" fillOpacity={0.3} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </Paper>
-        </Box>
-
-        {/* Asset Lifecycle */}
-        <Paper sx={{ p: 2, height: 400 }}>
-          <Typography variant="h6" gutterBottom>Asset Lifecycle Analysis</Typography>
-          <ResponsiveContainer width="100%" height={350}>
-            <ComposedChart data={assetLifecycleData.slice(0, 10)}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="purchaseValue" fill="#1976d2" name="Purchase Value" />
-              <Bar dataKey="bookValue" fill="#388e3c" name="Book Value" />
-              <Line type="monotone" dataKey="depreciationPercentage" stroke="#d32f2f" name="Depreciation %" />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </Paper>
-      </Box>
-
-      {/* Assets Table */}
-      <Paper sx={{ p: 2, overflowX: 'auto' }}>
-        <Typography variant="h6" gutterBottom>Asset Depreciation Details</Typography>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Asset</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Serial Number</th> {/* New column */}
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Type</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Purchase Value</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Book Value</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Depreciation</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Depreciation %</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Remaining Life</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Daily Depreciation</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Status</th>
-              <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredAssets.map((asset, idx) => {
-              const bookValue = calculateBookValue(asset);
-              const depreciationAmount = asset.purchaseValue - bookValue;
-              const depreciationPercentage = calculateDepreciationPercentage(asset);
-              const remainingLife = calculateRemainingLife(asset);
-              const dailyDepreciation = calculateDailyDepreciation(asset);
-              
-              let statusColor = 'success';
-              if (bookValue <= asset.salvageValue) statusColor = 'error';
-              else if (depreciationPercentage > 50) statusColor = 'warning';
-              
-              return (
-                <tr key={asset._id} style={{ background: idx % 2 === 0 ? '#fafafa' : '#fff' }}>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee', color: '#1976d2', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => handleAssetDetail(asset)}>
-                    {asset.description}
-                  </td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.serial || asset.serialNumber || '-'}</td> {/* Serial Number */}
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.type}</td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.purchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{bookValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{depreciationAmount.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                    <Box display="flex" alignItems="center" gap={1}>
-                      <Box sx={{ width: 60, height: 8, bgcolor: '#eee', borderRadius: 2, overflow: 'hidden' }}>
-                        <Box sx={{ width: `${depreciationPercentage}%`, height: 8, bgcolor: statusColor === 'error' ? '#d32f2f' : statusColor === 'warning' ? '#fbc02d' : '#1976d2' }} />
-                      </Box>
-                      <Typography variant="caption">{depreciationPercentage.toFixed(1)}%</Typography>
-                    </Box>
-                  </td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{remainingLife.toFixed(1)} months</td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{dailyDepreciation.toFixed(2)}</td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                    <Chip 
-                      label={bookValue <= asset.salvageValue ? 'Fully Depreciated' : depreciationPercentage > 50 ? 'Partially Depreciated' : 'Not Depreciated'} 
-                      color={statusColor as any} 
-                      size="small" 
-                    />
-                  </td>
-                  <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                    <Button size="small" variant="outlined" onClick={() => handleAssetDetail(asset)}>
-                      Details
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      </Paper>
-
-      {/* Asset Detail Dialog */}
-      <Dialog open={assetDetailOpen} onClose={() => setAssetDetailOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Asset Depreciation Details</DialogTitle>
-        <DialogContent>
-          {selectedAsset && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="h6" gutterBottom>{selectedAsset.description}</Typography>
-              <Box display="flex" gap={3} flexWrap="wrap">
-                <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                  <Typography variant="subtitle2">Asset Information</Typography>
-                  <Typography>Type: {selectedAsset.type}</Typography>
-                  <Typography>Brand: {selectedAsset.brand}</Typography>
-                  <Typography>Purchase Date: {selectedAsset.purchaseDate ? new Date(selectedAsset.purchaseDate).toLocaleDateString() : '-'}</Typography>
-                  <Typography>Useful Life: {selectedAsset.usefulLifeMonths} months</Typography>
-                  <Typography>Salvage Value: {selectedAsset.salvageValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-                </Box>
-                <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                  <Typography variant="subtitle2">Depreciation Analysis</Typography>
-                  <Typography>Purchase Value: {selectedAsset.purchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-                  <Typography>Current Book Value: {calculateBookValue(selectedAsset).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-                  <Typography>Total Depreciation: {(selectedAsset.purchaseValue - calculateBookValue(selectedAsset)).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-                  <Typography>Depreciation %: {calculateDepreciationPercentage(selectedAsset).toFixed(1)}%</Typography>
-                  <Typography>Remaining Life: {calculateRemainingLife(selectedAsset).toFixed(1)} months</Typography>
-                  <Typography>Daily Depreciation: {calculateDailyDepreciation(selectedAsset).toFixed(2)}</Typography>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: theme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                  <AssessmentIcon sx={{ fontSize: 32 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                    Depreciation Dashboard
+                  </Typography>
+                  <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                    Comprehensive asset depreciation analysis and reporting
+                  </Typography>
                 </Box>
               </Box>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle2" gutterBottom>Depreciation Progress</Typography>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+        </motion.div>
+
+        {/* KPI Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
+            {[
+              {
+                title: 'Total Assets',
+                value: kpis.totalAssets,
+                subtitle: 'Depreciable Assets',
+                icon: <InventoryIcon />,
+                color: theme.palette.primary.main,
+                bgColor: alpha(theme.palette.primary.main, 0.1)
+              },
+              {
+                title: 'Total Purchase Value',
+                value: kpis.totalPurchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
+                subtitle: 'Original Cost',
+                icon: <AttachMoneyIcon />,
+                color: theme.palette.error.main,
+                bgColor: alpha(theme.palette.error.main, 0.1)
+              },
+              {
+                title: 'Total Book Value',
+                value: kpis.totalBookValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
+                subtitle: 'Current Value',
+                icon: <TrendingUpIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              },
+              {
+                title: 'Total Depreciation',
+                value: kpis.totalDepreciation.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
+                subtitle: `${kpis.averageDepreciationRate.toFixed(1)}% of Purchase Value`,
+                icon: <TrendingDownIcon />,
+                color: theme.palette.warning.main,
+                bgColor: alpha(theme.palette.warning.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 250px', 
+                    minWidth: 250,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: card.color, mb: 1 }}>
+                      {card.value}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: card.color, opacity: 0.8 }}>
+                      {card.subtitle}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+        </motion.div>
+
+        {/* Asset Status Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
+            {[
+              {
+                title: 'Fully Depreciated',
+                value: kpis.fullyDepreciated,
+                subtitle: 'Assets at salvage value',
+                icon: <TrendingDownIcon />,
+                color: theme.palette.error.main,
+                bgColor: alpha(theme.palette.error.main, 0.1)
+              },
+              {
+                title: 'Partially Depreciated',
+                value: kpis.partiallyDepreciated,
+                subtitle: 'Assets in depreciation period',
+                icon: <TrendingUpIcon />,
+                color: theme.palette.warning.main,
+                bgColor: alpha(theme.palette.warning.main, 0.1)
+              },
+              {
+                title: 'Not Depreciated',
+                value: kpis.notDepreciated,
+                subtitle: 'New or recently acquired',
+                icon: <TrendingUpIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.8 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 300px', 
+                    minWidth: 300,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 6px 20px ${alpha(card.color, 0.2)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color, mb: 1 }}>
+                      {card.value}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: card.color, opacity: 0.8 }}>
+                      {card.subtitle}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+        </motion.div>
+
+        {/* Filters Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.0 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: alpha(theme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
+              🔍 Filters & Export Options
+            </Typography>
+            
+            <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">
+              <TextField 
+                select 
+                label="Asset Type" 
+                value={filterType} 
+                onChange={e => setFilterType(e.target.value)} 
+                sx={{ minWidth: 180 }}
+                size="small"
+              >
+                <MenuItem value="">All Types</MenuItem>
+                {Array.from(new Set(assets.map(a => a.type))).map(t => (
+                  <MenuItem key={t} value={t}>{t}</MenuItem>
+                ))}
+              </TextField>
+              <TextField 
+                select 
+                label="Status" 
+                value={filterStatus} 
+                onChange={e => setFilterStatus(e.target.value)} 
+                sx={{ minWidth: 180 }}
+                size="small"
+              >
+                <MenuItem value="">All Statuses</MenuItem>
+                {Array.from(new Set(assets.map(a => a.status))).map(s => (
+                  <MenuItem key={s} value={s}>{s}</MenuItem>
+                ))}
+              </TextField>
+              <TextField 
+                label="From Date" 
+                type="date" 
+                value={dateFrom} 
+                onChange={e => setDateFrom(e.target.value)} 
+                sx={{ minWidth: 160 }} 
+                InputLabelProps={{ shrink: true }}
+                size="small"
+              />
+              <TextField 
+                label="To Date" 
+                type="date" 
+                value={dateTo} 
+                onChange={e => setDateTo(e.target.value)} 
+                sx={{ minWidth: 160 }} 
+                InputLabelProps={{ shrink: true }}
+                size="small"
+              />
+              <Button 
+                variant="outlined" 
+                startIcon={<SaveAltIcon />} 
+                onClick={handleExportCSV}
+                sx={{ borderColor: theme.palette.primary.main, color: theme.palette.primary.main }}
+              >
+                Export CSV
+              </Button>
+              <Button 
+                variant="outlined" 
+                startIcon={<PrintIcon />} 
+                onClick={handlePrint}
+                sx={{ borderColor: theme.palette.secondary.main, color: theme.palette.secondary.main }}
+              >
+                Print
+              </Button>
+            </Box>
+          </Paper>
+        </motion.div>
+
+        {/* Charts Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+        >
+          <Box display="flex" flexDirection="column" gap={3} mb={3}>
+            {/* Charts Row 1 */}
+            <Box display="flex" gap={3} flexWrap="wrap">
+              {/* Depreciation by Type */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.4 }}
+              >
+                <Paper 
+                  sx={{ 
+                    p: 2, 
+                    height: 300, 
+                    flex: '1 1 400px', 
+                    minWidth: 400,
+                    background: alpha(theme.palette.background.paper, 0.8),
+                    backdropFilter: 'blur(10px)',
+                    border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: theme.shadows[8]
+                    }
+                  }}
+                >
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                    📊 Depreciation by Asset Type
+                  </Typography>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={depreciationByType}>
+                      <XAxis dataKey="type" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="purchaseValue" fill={theme.palette.primary.main} name="Purchase Value" />
+                      <Bar dataKey="bookValue" fill={theme.palette.success.main} name="Book Value" />
+                      <Bar dataKey="depreciation" fill={theme.palette.error.main} name="Depreciation" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Paper>
+              </motion.div>
+
+              {/* Depreciation Trend */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.6 }}
+              >
+                <Paper 
+                  sx={{ 
+                    p: 2, 
+                    height: 300, 
+                    flex: '1 1 400px', 
+                    minWidth: 400,
+                    background: alpha(theme.palette.background.paper, 0.8),
+                    backdropFilter: 'blur(10px)',
+                    border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: theme.shadows[8]
+                    }
+                  }}
+                >
+                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                    📈 Depreciation Trend (Last 12 Months)
+                  </Typography>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <AreaChart data={depreciationTrend}>
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Area type="monotone" dataKey="depreciation" stroke={theme.palette.primary.main} fill={theme.palette.primary.main} fillOpacity={0.3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Paper>
+              </motion.div>
+            </Box>
+
+            {/* Asset Lifecycle */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4, delay: 1.8 }}
+            >
+              <Paper 
+                sx={{ 
+                  p: 2, 
+                  height: 400,
+                  background: alpha(theme.palette.background.paper, 0.8),
+                  backdropFilter: 'blur(10px)',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: theme.shadows[8]
+                  }
+                }}
+              >
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                  🔄 Asset Lifecycle Analysis
+                </Typography>
+                <ResponsiveContainer width="100%" height={350}>
+                  <ComposedChart data={assetLifecycleData.slice(0, 10)}>
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="purchaseValue" fill={theme.palette.primary.main} name="Purchase Value" />
+                    <Bar dataKey="bookValue" fill={theme.palette.success.main} name="Book Value" />
+                    <Line type="monotone" dataKey="depreciationPercentage" stroke={theme.palette.error.main} name="Depreciation %" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </Paper>
+            </motion.div>
+          </Box>
+        </motion.div>
+
+        {/* Assets Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 2.0 }}
+        >
+          <Paper 
+            sx={{ 
+              p: 2, 
+              overflowX: 'auto',
+              background: alpha(theme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: theme.palette.text.primary, mb: 3 }}>
+              📋 Asset Depreciation Details
+            </Typography>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Asset</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Serial Number</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Type</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Purchase Value</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Book Value</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Depreciation</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Depreciation %</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Remaining Life</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Daily Depreciation</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Status</th>
+                  <th style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAssets.map((asset, idx) => {
+                  const bookValue = calculateBookValue(asset);
+                  const depreciationAmount = asset.purchaseValue - bookValue;
+                  const depreciationPercentage = calculateDepreciationPercentage(asset);
+                  const remainingLife = calculateRemainingLife(asset);
+                  const dailyDepreciation = calculateDailyDepreciation(asset);
+                  
+                  let statusColor = 'success';
+                  if (bookValue <= asset.salvageValue) statusColor = 'error';
+                  else if (depreciationPercentage > 50) statusColor = 'warning';
+                  
+                  return (
+                    <tr key={asset._id} style={{ 
+                      background: idx % 2 === 0 ? alpha(theme.palette.background.default, 0.5) : alpha(theme.palette.background.paper, 0.8)
+                    }}>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee', color: theme.palette.primary.main, cursor: 'pointer', textDecoration: 'underline' }} onClick={() => handleAssetDetail(asset)}>
+                        {asset.description}
+                      </td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.serial || asset.serialNumber || '-'}</td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.type}</td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{asset.purchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{bookValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{depreciationAmount.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box sx={{ width: 60, height: 8, bgcolor: alpha(theme.palette.divider, 0.3), borderRadius: 2, overflow: 'hidden' }}>
+                            <Box sx={{ 
+                              width: `${depreciationPercentage}%`, 
+                              height: 8, 
+                              bgcolor: statusColor === 'error' ? theme.palette.error.main : statusColor === 'warning' ? theme.palette.warning.main : theme.palette.primary.main 
+                            }} />
+                          </Box>
+                          <Typography variant="caption">{depreciationPercentage.toFixed(1)}%</Typography>
+                        </Box>
+                      </td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{remainingLife.toFixed(1)} months</td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>{dailyDepreciation.toFixed(2)}</td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                        <Chip 
+                          label={bookValue <= asset.salvageValue ? 'Fully Depreciated' : depreciationPercentage > 50 ? 'Partially Depreciated' : 'Not Depreciated'} 
+                          color={statusColor as any} 
+                          size="small" 
+                          variant="outlined"
+                        />
+                      </td>
+                      <td style={{ padding: 8, borderBottom: '1px solid #eee' }}>
+                        <Button 
+                          size="small" 
+                          variant="outlined" 
+                          onClick={() => handleAssetDetail(asset)}
+                          sx={{
+                            borderColor: theme.palette.primary.main,
+                            color: theme.palette.primary.main,
+                            '&:hover': {
+                              borderColor: theme.palette.primary.dark,
+                              color: theme.palette.primary.dark,
+                            }
+                          }}
+                        >
+                          Details
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
+            {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          </Paper>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Asset Detail Dialog */}
+      <Dialog 
+        open={assetDetailOpen} 
+        onClose={() => setAssetDetailOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: theme.shape.borderRadius,
+            background: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(20px)',
+            border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            boxShadow: theme.shadows[24]
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.15)} 0%, ${alpha(theme.palette.info.light, 0.1)} 100%)`,
+            color: theme.palette.info.main,
+            borderBottom: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 2 }}>
+            <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}>
+              <AssessmentIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                Asset Depreciation Details
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                Comprehensive depreciation analysis
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Decorative background elements */}
+          <Box sx={{ 
+            position: 'absolute', 
+            top: -20, 
+            right: -20, 
+            width: 80, 
+            height: 80, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.info.main, 0.1),
+            zIndex: 1
+          }} />
+          <Box sx={{ 
+            position: 'absolute', 
+            bottom: -15, 
+            left: -15, 
+            width: 60, 
+            height: 60, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.info.light, 0.08),
+            zIndex: 1
+          }} />
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2, p: 3 }}>
+          {selectedAsset && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: theme.palette.text.primary, mb: 3 }}>
+                {selectedAsset.description}
+              </Typography>
+              
+              <Box display="flex" gap={3} flexWrap="wrap" sx={{ mb: 3 }}>
+                {/* Asset Information Section */}
+                <Box sx={{ 
+                  flex: '1 1 300px', 
+                  minWidth: 300,
+                  p: 2,
+                  background: alpha(theme.palette.background.default, 0.5),
+                  borderRadius: 2,
+                  border: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+                }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.text.primary }}>
+                    📋 Asset Information
+                  </Typography>
+                  <Typography sx={{ mb: 1 }}>Type: {selectedAsset.type}</Typography>
+                  <Typography sx={{ mb: 1 }}>Brand: {selectedAsset.brand}</Typography>
+                  <Typography sx={{ mb: 1 }}>Purchase Date: {selectedAsset.purchaseDate ? new Date(selectedAsset.purchaseDate).toLocaleDateString() : '-'}</Typography>
+                  <Typography sx={{ mb: 1 }}>Useful Life: {selectedAsset.usefulLifeMonths} months</Typography>
+                  <Typography sx={{ mb: 1 }}>Salvage Value: {selectedAsset.salvageValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                </Box>
+                
+                {/* Depreciation Analysis Section */}
+                <Box sx={{ 
+                  flex: '1 1 300px', 
+                  minWidth: 300,
+                  p: 2,
+                  background: alpha(theme.palette.info.main, 0.05),
+                  borderRadius: 2,
+                  border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`
+                }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2, color: theme.palette.info.main }}>
+                    📊 Depreciation Analysis
+                  </Typography>
+                  <Typography sx={{ mb: 1 }}>Purchase Value: {selectedAsset.purchaseValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography sx={{ mb: 1 }}>Current Book Value: {calculateBookValue(selectedAsset).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography sx={{ mb: 1 }}>Total Depreciation: {(selectedAsset.purchaseValue - calculateBookValue(selectedAsset)).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography sx={{ mb: 1 }}>Depreciation %: {calculateDepreciationPercentage(selectedAsset).toFixed(1)}%</Typography>
+                  <Typography sx={{ mb: 1 }}>Remaining Life: {calculateRemainingLife(selectedAsset).toFixed(1)} months</Typography>
+                  <Typography sx={{ mb: 1 }}>Daily Depreciation: {calculateDailyDepreciation(selectedAsset).toFixed(2)}</Typography>
+                </Box>
+              </Box>
+              
+              {/* Depreciation Progress Section */}
+              <Box sx={{ 
+                p: 2,
+                background: alpha(theme.palette.success.main, 0.05),
+                borderRadius: 2,
+                border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+              }}>
+                <Typography variant="subtitle2" gutterBottom sx={{ fontWeight: 600, mb: 2, color: theme.palette.success.main }}>
+                  📈 Depreciation Progress
+                </Typography>
                 <LinearProgress 
                   variant="determinate" 
                   value={calculateDepreciationPercentage(selectedAsset)} 
-                  sx={{ height: 10, borderRadius: 5 }}
-                  color={calculateBookValue(selectedAsset) <= selectedAsset.salvageValue ? 'error' : 'primary'}
+                  sx={{ 
+                    height: 12, 
+                    borderRadius: 6,
+                    bgcolor: alpha(theme.palette.divider, 0.3),
+                    '& .MuiLinearProgress-bar': {
+                      bgcolor: calculateBookValue(selectedAsset) <= selectedAsset.salvageValue ? theme.palette.error.main : theme.palette.primary.main
+                    }
+                  }}
                 />
+                <Typography variant="caption" sx={{ mt: 1, display: 'block', color: theme.palette.text.secondary }}>
+                  {calculateDepreciationPercentage(selectedAsset).toFixed(1)}% Complete
+                </Typography>
               </Box>
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAssetDetailOpen(false)}>Close</Button>
+        
+        <DialogActions 
+          sx={{ 
+            p: 3, 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.background.default, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+            borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+          }}
+        >
+          <Button 
+            onClick={() => setAssetDetailOpen(false)}
+            variant="outlined"
+            sx={{
+              borderColor: theme.palette.text.secondary,
+              color: theme.palette.text.secondary,
+              '&:hover': {
+                borderColor: theme.palette.text.primary,
+                color: theme.palette.text.primary,
+              }
+            }}
+          >
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 

@@ -16,6 +16,7 @@ import PeriodsPage from './pages/PeriodsPage';
 import EmployeesPage from './pages/EmployeesPage';
 import EmployeeProfilePage from './pages/EmployeeProfilePage';
 import PayrollPage from './pages/PayrollPage';
+import AttendancePage from './pages/AttendancePage';
 import ReimbursementsPage from './pages/ReimbursementsPage';
 import LeavePage from './pages/LeavePage';
 import FuelLogsPage from './pages/FuelLogsPage';
@@ -65,6 +66,7 @@ import AccountingReportsPage from './pages/AccountingReportsPage';
 import AccountingSidebar from './components/AccountingSidebar';
 import PnLPage from './pages/PnLPage';
 import ReconciliationPage from './pages/ReconciliationPage';
+import DocumentManagementPage from './pages/DocumentManagementPage';
 
 const TaxesPage = () => <div style={{ padding: 32 }}><h2>Taxes Page (Coming Soon)</h2></div>;
 const AccountingSettingsPage = () => <div style={{ padding: 32 }}><h2>Accounting Settings Page (Coming Soon)</h2></div>;
@@ -118,6 +120,7 @@ const App: React.FC = () => {
               <Route path="/employees" element={<EmployeesPage />} />
               <Route path="/employees/:id" element={<EmployeeProfilePage />} />
               <Route path="/payroll" element={<PayrollPage />} />
+              <Route path="/attendance" element={<AttendancePage />} />
               <Route path="/reimbursements" element={<ReimbursementsPage />} />
               <Route path="/leave" element={<LeavePage />} />
               <Route path="/fuel-logs" element={<FuelLogsPage />} />
@@ -152,6 +155,7 @@ const App: React.FC = () => {
               <Route path="/accounting/reports" element={<AccountingReportsPage />} />
               <Route path="/accounting/pnl" element={<PnLPage />} />
               <Route path="/accounting/reconciliation" element={<ReconciliationPage />} />
+              <Route path="/documents" element={<DocumentManagementPage />} />
               <Route path="/accounting/taxes" element={<TaxesPage />} />
               <Route path="/accounting/settings" element={<AccountingSettingsPage />} />
               <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />

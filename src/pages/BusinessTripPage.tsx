@@ -19,21 +19,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Chip from '@mui/material/Chip';
-import {
-  ClipboardListIcon,
-  PaperAirplaneIcon,
-  CurrencyDollarIcon,
-  PaperClipIcon,
-  ChartBarIcon,
-  LightningBoltIcon,
-  CheckCircleIcon,
-  DocumentReportIcon,
-  CalendarIcon,
-  GlobeAltIcon,
-  UserGroupIcon,
-  RefreshIcon,
-  ExclamationIcon
-} from '@heroicons/react/outline';
+
 import {
   getBusinessTrips,
   createBusinessTrip,
@@ -47,10 +33,8 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import api from '../apiBase';
 // 1. Import Framer Motion, react-icons, and MUI theme utilities
-import { motion } from 'framer-motion';
-import { FaPlaneDeparture, FaHotel, FaMoneyBillWave, FaUserAstronaut, FaCalendarAlt, FaCheckCircle, FaExclamationTriangle, FaSuitcaseRolling } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme, alpha } from '@mui/material/styles';
-import { FaSearch } from 'react-icons/fa';
 // 1. Add state for stepper
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
@@ -81,6 +65,17 @@ import DateRangeIcon from '@mui/icons-material/DateRange';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
+import LuggageIcon from '@mui/icons-material/Luggage';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
+import SearchIcon from '@mui/icons-material/Search';
+import Alert from '@mui/material/Alert';
+import WarningIcon from '@mui/icons-material/Warning';
+import ErrorIcon from '@mui/icons-material/Error';
+import InfoIcon from '@mui/icons-material/Info';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const TRIP_TYPES = [
   "Internal Meeting & Visiting Offices",
@@ -123,11 +118,11 @@ function getStatusColor(status: string) {
 
 // Add a helper to render a valid ReactElement for Chip icon
 function renderStatusIcon(statusColor: string) {
-  if (statusColor === 'success') return <span>{FaCheckCircle({ style: { color: '#43a047' } })}</span>;
-  if (statusColor === 'primary') return <span>{FaUserAstronaut({ style: { color: '#1976d2' } })}</span>;
-  if (statusColor === 'warning') return <span>{FaExclamationTriangle({ style: { color: '#ffa726' } })}</span>;
-  if (statusColor === 'error') return <span>{FaExclamationTriangle({ style: { color: '#e53935' } })}</span>;
-  if (statusColor === 'info') return <span>{FaCalendarAlt({ style: { color: '#0288d1' } })}</span>;
+  if (statusColor === 'success') return <span><CheckCircleIcon sx={{ color: '#43a047' }} /></span>;
+  if (statusColor === 'primary') return <span><PersonAddIcon sx={{ color: '#1976d2' }} /></span>;
+  if (statusColor === 'warning') return <span><WarningIcon sx={{ color: '#ffa726' }} /></span>;
+  if (statusColor === 'error') return <span><ErrorIcon sx={{ color: '#e53935' }} /></span>;
+  if (statusColor === 'info') return <span><InfoIcon sx={{ color: '#0288d1' }} /></span>;
   return undefined;
 }
 
@@ -151,6 +146,7 @@ const STATUS_CHIP_OPTIONS: Record<string, { color: any; icon: React.ReactNode }>
 };
 
 const BusinessTripPage: React.FC = () => {
+  const theme = useTheme();
   // --- State for form ---
   const [employees, setEmployees] = useState<any[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
@@ -169,13 +165,18 @@ const BusinessTripPage: React.FC = () => {
     seminarFileName: '',
     perDiem: 0,
     flightClass: '',
-    overrideFlightClass: false,
-    overrideFlightClassValue: '',
     travelArrangedBy: '',
     totalPerDiem: 0,
     perDiemPaid: false,
     perDiemPaymentDate: '',
     status: 'Draft',
+    // Reset amortization fields
+    costAmortization: false,
+    amortizationPeriod: '',
+    amortizationStartDate: '',
+    amortizationEndDate: '',
+    totalTripCost: 0,
+    customPeriod: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [openDialog, setOpenDialog] = useState(false);
@@ -260,13 +261,14 @@ const BusinessTripPage: React.FC = () => {
   };
 
   // Compliance Alert System
-  const complianceAlerts: string[] = [];
-  if (flightQuotes.length < 2) complianceAlerts.push('Less than 2 flight quotes uploaded.');
-  if (form.overrideFlightClass && form.flightClass !== form.overrideFlightClassValue) complianceAlerts.push('Flight class changed manually. Justification required.');
-  if (form.departureDate && !form.perDiemPaid) {
-    const dep = new Date(form.departureDate);
-    if (dep > new Date()) complianceAlerts.push('Per diem not marked as paid before departure.');
-  }
+  // Remove compliance alerts since smart suggestions are removed
+  // const complianceAlerts: string[] = [];
+  // if (flightQuotes.length < 2) complianceAlerts.push('Less than 2 flight quotes uploaded.');
+  // if (form.tripType === 'Seminar' && !form.seminarFile) complianceAlerts.push('Seminar registration upload required.');
+  // if (form.departureDate && !form.perDiemPaid) {
+  //   const dep = new Date(form.departureDate);
+  //   if (dep > new Date()) complianceAlerts.push('Per diem not marked as paid before departure.');
+  // }
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -404,7 +406,6 @@ const BusinessTripPage: React.FC = () => {
         ...f,
         perDiem,
         flightClass,
-        overrideFlightClassValue: flightClass,
       }));
     }
   }, [form.employeeRole, form.region]);
@@ -436,16 +437,37 @@ const BusinessTripPage: React.FC = () => {
     console.log('Submitting trip', form);
     try {
       const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (key === 'employee') return; // Skip the employee name
-        if (value instanceof File) {
-          formData.append(key, value);
-        } else if (value !== null && value !== undefined) {
-          formData.append(key, value as any);
+      formData.append('employeeId', form.employeeId);
+      formData.append('tripType', form.tripType);
+      formData.append('region', form.region);
+      formData.append('departureDate', form.departureDate);
+      formData.append('returnDate', form.returnDate);
+      formData.append('requiresVisa', form.requiresVisa.toString());
+      formData.append('perDiem', form.perDiem.toString());
+      formData.append('flightClass', form.flightClass);
+      formData.append('travelArrangedBy', form.travelArrangedBy);
+      formData.append('totalPerDiem', form.totalPerDiem.toString());
+      formData.append('perDiemPaid', form.perDiemPaid.toString());
+      if (form.perDiemPaid && form.perDiemPaymentDate) {
+        formData.append('perDiemPaymentDate', form.perDiemPaymentDate);
+      }
+      formData.append('status', form.status);
+      
+      // Add amortization fields
+      formData.append('costAmortization', form.costAmortization.toString());
+      if (form.costAmortization) {
+        formData.append('totalTripCost', form.totalTripCost.toString());
+        formData.append('amortizationPeriod', form.amortizationPeriod);
+        if (form.amortizationPeriod === 'custom' && form.customPeriod) {
+          formData.append('customPeriod', form.customPeriod.toString());
         }
-      });
-      // Explicitly append the employee ObjectId
-      formData.append('employee', form.employeeId);
+        if (form.amortizationStartDate) {
+          formData.append('amortizationStartDate', form.amortizationStartDate);
+        }
+        if (form.amortizationEndDate) {
+          formData.append('amortizationEndDate', form.amortizationEndDate);
+        }
+      }
       hotelQuotes.forEach((file, idx) => formData.append(`hotelQuotes`, file));
       flightQuotes.forEach((file, idx) => formData.append(`flightQuotes`, file));
       receipts.forEach((r, idx) => {
@@ -562,13 +584,18 @@ const BusinessTripPage: React.FC = () => {
       seminarFileName: trip.seminarFileName || '',
       perDiem: trip.perDiem || 0,
       flightClass: trip.flightClass || '',
-      overrideFlightClass: trip.overrideFlightClass || false,
-      overrideFlightClassValue: trip.overrideFlightClassValue || '',
       travelArrangedBy: trip.travelArrangedBy || '',
       totalPerDiem: trip.totalPerDiem || 0,
       perDiemPaid: trip.perDiemPaid || false,
       perDiemPaymentDate: trip.perDiemPaymentDate || '',
       status: trip.status || 'Draft',
+      // Set amortization fields from trip data
+      costAmortization: trip.costAmortization || false,
+      amortizationPeriod: trip.amortizationPeriod || '',
+      amortizationStartDate: trip.amortizationStartDate || '',
+      amortizationEndDate: trip.amortizationEndDate || '',
+      totalTripCost: trip.totalTripCost || 0,
+      customPeriod: trip.customPeriod || '',
     });
     // Set other related state as needed (details, arrangementType, agent, etc.)
     setOpenDialog(true);
@@ -588,7 +615,6 @@ const BusinessTripPage: React.FC = () => {
   };
 
   // --- Render ---
-  const theme = useTheme();
   // Helper to map statusColor to a valid palette key (must be inside component to access theme)
   function getPaletteColor(statusColor: string): keyof typeof theme.palette {
     if (statusColor === 'default') return 'grey';
@@ -607,338 +633,503 @@ const BusinessTripPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{
+    <Box sx={{ 
+      p: 3, 
       minHeight: '100vh',
-      width: '100%',
-      background: 'linear-gradient(120deg, #e0eafc 0%, #cfdef3 40%, #a1c4fd 100%)',
-      backgroundAttachment: 'fixed',
-      py: { xs: 2, md: 6 },
-      px: { xs: 0, md: 0 },
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
-      {/* Animated Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, type: 'spring', stiffness: 80 }}
-        style={{ width: '100%', maxWidth: 1200, marginBottom: 32 }}
-      >
-        <Box display="flex" alignItems="center" gap={3} mb={3}>
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1 }}
+      <AnimatePresence>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: theme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
           >
-            {FaSuitcaseRolling({ size: 56, color: '#764ba2' })}
-          </motion.div>
-          <Typography variant="h3" fontWeight={800} sx={{
-            background: 'linear-gradient(90deg, #1976d2 30%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            mb: 0.5
-          }}>Business Trip Management</Typography>
-          <motion.div whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.97 }} style={{ marginLeft: 'auto' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              startIcon={<AssignmentIcon />}
-              sx={{ borderRadius: 3, fontWeight: 700, px: 3, py: 1.5, fontSize: 18, boxShadow: 3 }}
-              onClick={() => setOpenDialog(true)}
-            >
-              New Trip Request
-            </Button>
-          </motion.div>
-        </Box>
-        {/* Stat Cards */}
-        <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
-          <motion.div whileHover={{ scale: 1.04 }} style={{ flex: '1 1 200px', minWidth: 200 }}>
-            <Box sx={{
-              background: 'rgba(255,255,255,0.85)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: 3,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              p: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-            }}>
-              <GroupIcon sx={{ fontSize: 36, color: '#1976d2' }} />
-              <Box>
-                <Typography variant="h4" fontWeight={700}>{dashboardStats.totalTrips}</Typography>
-                <Typography variant="body2" color="text.secondary">Total Trips</Typography>
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <LuggageIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Business Trip Management
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Comprehensive travel planning and expense management
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={() => setOpenDialog(true)}
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                  }}
+                  startIcon={<AssignmentIcon />}
+                >
+                  New Trip Request
+                </Button>
               </Box>
             </Box>
-          </motion.div>
-          <motion.div whileHover={{ scale: 1.04 }} style={{ flex: '1 1 200px', minWidth: 200 }}>
-            <Box sx={{
-              background: 'rgba(255,255,255,0.85)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: 3,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              p: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-            }}>
-              <HourglassEmptyIcon sx={{ fontSize: 36, color: '#ffa726' }} />
-              <Box>
-                <Typography variant="h4" fontWeight={700}>{dashboardStats.pendingApprovals}</Typography>
-                <Typography variant="body2" color="text.secondary">Pending Approvals</Typography>
-              </Box>
-            </Box>
-          </motion.div>
-          <motion.div whileHover={{ scale: 1.04 }} style={{ flex: '1 1 200px', minWidth: 200 }}>
-            <Box sx={{
-              background: 'rgba(255,255,255,0.85)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: 3,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              p: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-            }}>
-              <DoneAllIcon sx={{ fontSize: 36, color: '#43a047' }} />
-              <Box>
-                <Typography variant="h4" fontWeight={700}>{completedCount}</Typography>
-                <Typography variant="body2" color="text.secondary">Completed</Typography>
-              </Box>
-            </Box>
-          </motion.div>
-          <motion.div whileHover={{ scale: 1.04 }} style={{ flex: '1 1 200px', minWidth: 200 }}>
-            <Box sx={{
-              background: 'rgba(255,255,255,0.85)',
-              backdropFilter: 'blur(10px)',
-              borderRadius: 3,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
-              border: '1px solid rgba(255,255,255,0.2)',
-              p: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 2,
-            }}>
-              <TaskAltIcon sx={{ fontSize: 36, color: '#1976d2' }} />
-              <Box>
-                <Typography variant="h4" fontWeight={700}>{approvedCount}</Typography>
-                <Typography variant="body2" color="text.secondary">Approved</Typography>
-              </Box>
-            </Box>
-          </motion.div>
-        </Box>
-      </motion.div>
-      {/* Frequent Traveler Leaderboard & Smart Suggestions */}
-      <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap', justifyContent: 'center', width: '100%', maxWidth: 1200 }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={{ flex: '1 1 320px', minWidth: 320 }}>
-          <Box sx={{ background: 'rgba(255,255,255,0.92)', borderRadius: 3, boxShadow: 2, p: 3, mb: 2, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <Box display="flex" alignItems="center" gap={1} mb={2}>
-              <LightbulbIcon color="info" />
-              <Typography variant="h6" fontWeight={700}>Smart Suggestions</Typography>
-            </Box>
-            {complianceAlerts.length === 0 ? (
-              <Typography variant="body2" color="success.main">All compliance checks passed!</Typography>
-            ) : (
-              complianceAlerts.map((alert, idx) => (
-                <motion.div key={alert} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * idx }}>
-                  <Chip icon={<LightbulbIcon color="warning" sx={{ fontSize: 18 }} />} label={alert} color="warning" sx={{ mb: 1, fontWeight: 600 }} />
-                </motion.div>
-              ))
-            )}
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+        </motion.div>
+
+        {/* Summary Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+            {[
+              {
+                title: 'Total Trips',
+                value: dashboardStats.totalTrips,
+                icon: <GroupIcon />,
+                color: theme.palette.primary.main,
+                bgColor: alpha(theme.palette.primary.main, 0.1)
+              },
+              {
+                title: 'Pending Approvals',
+                value: dashboardStats.pendingApprovals,
+                icon: <HourglassEmptyIcon />,
+                color: theme.palette.warning.main,
+                bgColor: alpha(theme.palette.warning.main, 0.1)
+              },
+              {
+                title: 'Completed',
+                value: completedCount,
+                icon: <DoneAllIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              },
+              {
+                title: 'Approved',
+                value: approvedCount,
+                icon: <TaskAltIcon />,
+                color: theme.palette.info.main,
+                bgColor: alpha(theme.palette.info.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 200px', 
+                    minWidth: 200,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
           </Box>
         </motion.div>
-      </Box>
-      {/* Trip Table */}
-      <Box sx={{ width: '100%', mt: 3, mb: 3, p: 2, bgcolor: 'rgba(255,255,255,0.10)', borderRadius: 4, boxShadow: 4, backdropFilter: 'blur(8px)' }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-          <Typography variant="h6" color="primary">Trips</Typography>
-          <TextField
-            variant="outlined"
-            size="small"
-            placeholder="Search trips..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            sx={{ bgcolor: 'rgba(255,255,255,0.25)', borderRadius: 2, minWidth: 220, boxShadow: 1 }}
-            InputProps={{ startAdornment: FaSearch({ style: { marginRight: 8, color: '#888' } }) }}
-          />
-        </Box>
-        {/* Quick filter bar above table */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Typography variant="subtitle1" fontWeight={700} color="primary.main">Filter by:</Typography>
-          <Button size="small" variant={statusFilter === '' ? 'contained' : 'outlined'} onClick={() => setStatusFilter('')}>All Status</Button>
-          {Object.keys(STATUS_CHIP_OPTIONS).map(status => (
-            <Button
-              key={status}
-              size="small"
-              variant={statusFilter === status ? 'contained' : 'outlined'}
-              color={STATUS_CHIP_OPTIONS[status].color}
-              onClick={() => setStatusFilter(status)}
-              startIcon={STATUS_CHIP_OPTIONS[status].icon}
-              sx={{ borderRadius: 2, fontWeight: 600 }}
-            >
-              {status}
-            </Button>
-          ))}
-          <TextField
-            select
-            size="small"
-            label="Employee"
-            value={employeeFilter}
-            onChange={e => setEmployeeFilter(e.target.value)}
-            sx={{ minWidth: 160, background: 'rgba(255,255,255,0.8)', borderRadius: 2 }}
-            InputProps={{ startAdornment: <PersonIcon color="primary" sx={{ mr: 1 }} /> }}
+
+        {/* Search and Filters */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: alpha(theme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
           >
-            <MenuItem value="">All Employees</MenuItem>
-            {employees.map((emp: any) => (
-              <MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>
-            ))}
-          </TextField>
-          <TextField
-            type="month"
-            size="small"
-            label="Departure Month"
-            value={dateFilter}
-            onChange={e => setDateFilter(e.target.value)}
-            sx={{ minWidth: 160, background: 'rgba(255,255,255,0.8)', borderRadius: 2 }}
-            InputProps={{ startAdornment: <DateRangeIcon color="primary" sx={{ mr: 1 }} /> }}
-          />
-        </Box>
-        {/* Enhanced table */}
-        <TableContainer sx={{ borderRadius: 4, boxShadow: 3, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)' }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow sx={{ background: 'linear-gradient(90deg, #1976d2 0%, #764ba2 100%)', '& .MuiTableCell-head': { color: 'white', fontWeight: 700 } }}>
-                <TableCell>Employee</TableCell>
-                <TableCell>Trip Type</TableCell>
-                <TableCell>Region</TableCell>
-                <TableCell>Departure</TableCell>
-                <TableCell>Return</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredTrips.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <Typography variant="body2" color="text.secondary">No trips found.</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTrips.map((trip, idx) => (
-                  <motion.tr
-                    key={trip._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.03 * idx }}
-                    whileHover={{ scale: 1.01, backgroundColor: 'rgba(25,118,210,0.07)' }}
-                    style={{ cursor: 'pointer' }}
+            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
+              🔍 Search & Filters
+            </Typography>
+            
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+              <TextField 
+                label="Search trips..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+                placeholder="Search trips..."
+                sx={{ minWidth: 300 }}
+                size="small"
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1 }} />,
+                }}
+              />
+              
+              {/* Quick filter bar */}
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button 
+                  size="small" 
+                  variant={statusFilter === '' ? 'contained' : 'outlined'} 
+                  onClick={() => setStatusFilter('')}
+                  sx={{ borderRadius: 2, fontWeight: 600 }}
+                >
+                  All Status
+                </Button>
+                {Object.keys(STATUS_CHIP_OPTIONS).map(status => (
+                  <Button
+                    key={status}
+                    size="small"
+                    variant={statusFilter === status ? 'contained' : 'outlined'}
+                    color={STATUS_CHIP_OPTIONS[status].color}
+                    onClick={() => setStatusFilter(status)}
+                    startIcon={STATUS_CHIP_OPTIONS[status].icon}
+                    sx={{ borderRadius: 2, fontWeight: 600 }}
                   >
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar sx={{ width: 32, height: 32, bgcolor: '#1976d2', fontWeight: 700 }}>
-                          {trip.employeeName ? trip.employeeName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : '?'}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontWeight={700}>{trip.employeeName || '-'}</Typography>
-                          <Typography variant="caption" color="text.secondary">{trip.employeeRole || ''}</Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{trip.tripType}</TableCell>
-                    <TableCell>{trip.region}</TableCell>
-                    <TableCell>{trip.departureDate ? new Date(trip.departureDate).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>{trip.returnDate ? new Date(trip.returnDate).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>
+                    {status}
+                  </Button>
+                ))}
+              </Box>
+              
+              <TextField
+                select
+                size="small"
+                label="Employee"
+                value={employeeFilter}
+                onChange={e => setEmployeeFilter(e.target.value)}
+                sx={{ minWidth: 160 }}
+                InputProps={{ startAdornment: <PersonIcon sx={{ mr: 1 }} /> }}
+              >
+                <MenuItem value="">All Employees</MenuItem>
+                {employees.map((emp: any) => (
+                  <MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>
+                ))}
+              </TextField>
+              
+              <TextField
+                type="month"
+                size="small"
+                label="Departure Month"
+                value={dateFilter}
+                onChange={e => setDateFilter(e.target.value)}
+                sx={{ minWidth: 160 }}
+                InputProps={{ startAdornment: <DateRangeIcon sx={{ mr: 1 }} /> }}
+              />
+            </Box>
+          </Paper>
+        </motion.div>
+
+        {/* Trips Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              overflowX: 'auto',
+              background: alpha(theme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
+              📊 Business Trips Overview
+            </Typography>
+            
+            {loadingTrips ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight={400}>
+                <CircularProgress size={60} />
+              </Box>
+            ) : (
+              <TableContainer>
+                <Table stickyHeader>
+                  <TableHead>
+                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.1) }}>
+                      <TableCell sx={{ fontWeight: 600 }}>Employee</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Trip Type</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Region</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Departure</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Return</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Per Diem</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Flight Class</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Cost Amortization</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {filteredTrips.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={10} align="center">
+                          <Typography variant="body2" color="text.secondary">No trips found.</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredTrips.map((trip, idx) => (
+                        <motion.tr
+                          key={trip._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.03 * idx }}
+                          whileHover={{ scale: 1.01, backgroundColor: 'rgba(25,118,210,0.07)' }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <TableCell>
+                            <Box display="flex" alignItems="center" gap={1}>
+                              <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.primary.main, fontWeight: 700 }}>
+                                {trip.employeeName ? trip.employeeName.split(' ').map((n: string) => n[0]).join('').toUpperCase() : '?'}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" fontWeight={700}>{trip.employeeName || '-'}</Typography>
+                                <Typography variant="caption" color="text.secondary">{trip.employeeRole || ''}</Typography>
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell>{trip.tripType}</TableCell>
+                          <TableCell>{trip.region}</TableCell>
+                          <TableCell>{trip.departureDate ? new Date(trip.departureDate).toLocaleDateString() : '-'}</TableCell>
+                          <TableCell>{trip.returnDate ? new Date(trip.returnDate).toLocaleDateString() : '-'}</TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                              KD {trip.perDiem}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>{trip.flightClass}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={trip.status}
+                              color={STATUS_CHIP_OPTIONS[trip.status as keyof typeof STATUS_CHIP_OPTIONS]?.color || 'default'}
+                              icon={getStatusIcon(trip.status)}
+                              sx={{ fontWeight: 700, borderRadius: 2, px: 1.5 }}
+                            />
+                          </TableCell>
+                          <TableCell>{trip.costAmortization ? 'Yes' : 'No'}</TableCell>
+                          <TableCell align="right">
+                            <Tooltip title="View Trip">
+                              <IconButton color="primary" onClick={() => navigate(`/business-trips/${trip._id}`)}>
+                                <VisibilityIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Edit Trip">
+                              <IconButton color="success" onClick={() => handleEditTrip(trip)}>
+                                <EditIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete Trip">
+                              <IconButton color="error" onClick={() => handleDeleteTrip(trip._id)}>
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </motion.tr>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+            {apiError && <Alert severity="error" sx={{ mt: 2 }}>{apiError}</Alert>}
+          </Paper>
+        </motion.div>
+
+        {/* Trip Cards View */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.0 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4, justifyContent: 'center' }}>
+            {dashboardTrips.map((trip, idx) => (
+              <motion.div
+                key={trip._id || idx}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <Card sx={{ 
+                  minWidth: 320, 
+                  maxWidth: 400, 
+                  borderRadius: 4, 
+                  boxShadow: 6, 
+                  background: alpha(theme.palette.background.paper, 0.9),
+                  backdropFilter: 'blur(8px)', 
+                  border: `1px solid ${alpha(theme.palette.primary.light, 0.15)}`,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: theme.shadows[12]
+                  }
+                }}>
+                  <CardContent>
+                    <Box display="flex" alignItems="center" gap={2} mb={1}>
+                      <FlightTakeoffIcon sx={{ fontSize: 28, color: theme.palette.primary.main }} />
+                      <Typography variant="h6" fontWeight={700}>{getEmployeeName(trip.employee)}</Typography>
                       <Chip
                         label={trip.status}
-                        color={STATUS_CHIP_OPTIONS[trip.status as keyof typeof STATUS_CHIP_OPTIONS]?.color || 'default'}
-                        icon={getStatusIcon(trip.status)}
-                        sx={{ fontWeight: 700, borderRadius: 2, px: 1.5 }}
+                        color={getStatusColor(trip.status)}
+                        size="small"
+                        icon={trip.status === 'Approved' ? <TaskAltIcon sx={{ color: '#1976d2', fontSize: 16, mr: 0.5 }} /> : undefined}
+                        sx={{ ml: 'auto' }}
                       />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Tooltip title="View Trip">
-                        <IconButton color="primary" onClick={() => navigate(`/business-trips/${trip._id}`)}>
-                          <VisibilityIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit Trip">
-                        <IconButton color="success" onClick={() => handleEditTrip(trip)}>
-                          <EditIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete Trip">
-                        <IconButton color="error" onClick={() => handleDeleteTrip(trip._id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </motion.tr>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        {/* Timeline/Calendar strip */}
-        <Box sx={{ mt: 4, p: 2, borderRadius: 3, background: 'rgba(255,255,255,0.13)', boxShadow: 2, display: 'flex', overflowX: 'auto', gap: 3 }}>
-          {filteredTrips.slice(0, 10).map((trip, idx) => {
-            const statusColor = getStatusColor(trip.status);
-            return (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: idx * 0.05 }}
-              >
-                <Box sx={{ minWidth: 120, p: 2, borderRadius: 3, background: 'rgba(255,255,255,0.18)', boxShadow: 1, textAlign: 'center', border: `2px solid ${(theme.palette[getPaletteColor(statusColor)] as any).main || '#ccc'}` }}>
-                  <Typography variant="caption" color="text.secondary">{trip.departureDate}</Typography>
-                  <Box sx={{ mt: 1, mb: 1 }}>
-                    {FaPlaneDeparture({ size: 28, color: (theme.palette[getPaletteColor(statusColor)] as any).main || '#1976d2' })}
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">Type: <b>{trip.tripType}</b></Typography>
+                    <Typography variant="body2" color="text.secondary">Region: <b>{trip.region}</b></Typography>
+                    <Typography variant="body2" color="text.secondary">Country: <b>{trip.country || '-'}</b></Typography>
+                    <Typography variant="body2" color="text.secondary">Airport/City: <b>{trip.airportOrCity || '-'}</b></Typography>
+                    <Typography variant="body2" color="text.secondary">Departure: <b>{trip.departureDate}</b></Typography>
+                    <Typography variant="body2" color="text.secondary">Return: <b>{trip.returnDate}</b></Typography>
+                    <Typography variant="body2" color="text.secondary">Per Diem: <b>KD {trip.perDiem}</b></Typography>
+                  </CardContent>
+                  <Box display="flex" justifyContent="flex-end" gap={1} p={2}>
+                    <Button
+                      variant="outlined"
+                      color="primary"
+                      size="small"
+                      onClick={() => handleEditTrip(trip)}
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      size="small" 
+                      onClick={() => navigate(`/business-trips/${trip._id}`)}
+                    >
+                      View Trip
+                    </Button>
                   </Box>
-                  <Typography variant="body2" fontWeight={700}>{getEmployeeName(trip.employee)}</Typography>
-                  <Chip
-                    label={trip.status}
-                    color={statusColor}
-                    size="small"
-                    icon={trip.status === 'Approved' ? <TaskAltIcon sx={{ color: '#1976d2', fontSize: 16, mr: 0.5 }} /> : undefined}
-                    sx={{ mt: 1 }}
-                  />
-                </Box>
+                </Card>
               </motion.div>
-            );
-          })}
-        </Box>
-      </Box>
-      {/* Trip Request Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth PaperProps={{
-        sx: {
-          borderRadius: 8,
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 60%, rgba(118,75,162,0.13) 100%)',
-          boxShadow: '0 16px 64px rgba(76,110,245,0.18)',
-          backdropFilter: 'blur(18px)',
-          border: '1.5px solid rgba(255,255,255,0.25)',
-          overflow: 'hidden',
-        }
-      }}>
-        <DialogTitle sx={{
-          background: 'linear-gradient(90deg, #1976d2 0%, #764ba2 100%)',
-          color: 'white',
-          borderRadius: '8px 8px 0 0',
-          px: 4, py: 3
-        }}>
-          <Box display="flex" alignItems="center" gap={2}>
-            <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.1 }}>
-              {FaPlaneDeparture({ size: 32, color: 'white' })}
-            </motion.div>
-            <Typography variant="h5" fontWeight={800} sx={{ letterSpacing: 1 }}>New Business Trip Request</Typography>
+            ))}
           </Box>
-          <Box mt={2}>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Trip Request Dialog */}
+      <Dialog 
+        open={openDialog} 
+        onClose={() => setOpenDialog(false)} 
+        maxWidth="md" 
+        fullWidth 
+        PaperProps={{
+          sx: {
+            borderRadius: theme.shape.borderRadius,
+            background: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(20px)',
+            border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            boxShadow: theme.shadows[24]
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+            color: theme.palette.primary.main,
+            borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 2 }}>
+            <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+              <FlightTakeoffIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                New Business Trip Request
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                Create comprehensive travel request with approval workflow
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Decorative background elements */}
+          <Box sx={{ 
+            position: 'absolute', 
+            top: -20, 
+            right: -20, 
+            width: 80, 
+            height: 80, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.primary.main, 0.1),
+            zIndex: 1
+          }} />
+          <Box sx={{ 
+            position: 'absolute', 
+            bottom: -15, 
+            left: -15, 
+            width: 60, 
+            height: 60, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.secondary.main, 0.08),
+            zIndex: 1
+          }} />
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2, p: 3 }}>
+          <Box sx={{ mb: 3 }}>
             <Stepper activeStep={activeStep} alternativeLabel>
               {steps.map((label, idx) => (
                 <Step key={label}>
@@ -959,8 +1150,7 @@ const BusinessTripPage: React.FC = () => {
               ))}
             </Stepper>
           </Box>
-        </DialogTitle>
-        <DialogContent>
+
           <motion.div
             key={activeStep}
             initial={{ opacity: 0, x: 40 }}
@@ -1195,28 +1385,6 @@ const BusinessTripPage: React.FC = () => {
                         <Typography variant="caption" color="text.secondary">Flight Class</Typography>
                         <Typography variant="h6" color="primary">{form.flightClass}</Typography>
                       </Box>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <input
-                          type="checkbox"
-                          checked={form.overrideFlightClass}
-                          onChange={handleChange}
-                          id="flight-class-override"
-                          aria-label="Override flight class"
-                        />
-                        <label htmlFor="flight-class-override" style={{ fontSize: 14 }}>Override</label>
-                        {form.overrideFlightClass && (
-                          <Select
-                            name="overrideFlightClassValue"
-                            value={form.overrideFlightClassValue}
-                            onChange={handleSelectChange}
-                            size="small"
-                            sx={{ ml: 1 }}
-                            aria-label="Select flight class override"
-                          >
-                            {FLIGHT_CLASSES.map(fc => <MenuItem key={fc} value={fc} aria-label={`Select ${fc}`}>{fc}</MenuItem>)}
-                          </Select>
-                        )}
-                      </Box>
                     </Box>
                   </Box>
                   {/* The Flight & Hotel Arrangement section is moved to Step 2 */}
@@ -1331,8 +1499,8 @@ const BusinessTripPage: React.FC = () => {
               {/* Step 3: Per Diem */}
               {activeStep === 2 && (
                 <>
-                  <Typography variant="subtitle1" color="primary" mb={2}>Preview and confirm your per diem.</Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                  <Typography variant="subtitle1" color="primary" mb={2}>Preview and confirm your per diem and cost management.</Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center', mb: 3 }}>
                     <Box>
                       <Typography variant="caption" color="text.secondary">Total Per Diem</Typography>
                       <Typography variant="h5" color="success.main" fontWeight="bold">
@@ -1353,7 +1521,7 @@ const BusinessTripPage: React.FC = () => {
                       />
                     </Box>
                     {form.perDiemPaid && (
-                      <Box sx={{ flex: 1, minWidth: 220 }}>
+                      <Box sx={{ flex: '1', minWidth: 220 }}>
                         <TextField
                           label="Payment Date"
                           name="perDiemPaymentDate"
@@ -1366,6 +1534,124 @@ const BusinessTripPage: React.FC = () => {
                           aria-label="Select per diem payment date"
                           aria-required="true"
                         />
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {/* Cost Amortization Section */}
+                  <Box sx={{ width: '100%', mt: 3, p: 3, bgcolor: 'grey.50', borderRadius: 2, boxShadow: 1 }}>
+                    <Typography variant="h6" color="primary" gutterBottom>Cost Amortization</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Choose how to amortize the total trip cost over time
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'center', mb: 2 }}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            name="costAmortization"
+                            checked={form.costAmortization}
+                            onChange={handleChange}
+                            aria-label="Enable cost amortization"
+                          />
+                        }
+                        label="Enable Cost Amortization"
+                      />
+                    </Box>
+                    
+                    {form.costAmortization && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                        <TextField
+                          label="Total Trip Cost (KD)"
+                          name="totalTripCost"
+                          type="number"
+                          value={form.totalTripCost}
+                          onChange={handleChange}
+                          fullWidth
+                          sx={{ minWidth: 200 }}
+                          inputProps={{ min: 0, step: 0.01 }}
+                          aria-label="Enter total trip cost"
+                        />
+                        
+                        <TextField
+                          select
+                          label="Amortization Period"
+                          name="amortizationPeriod"
+                          value={form.amortizationPeriod}
+                          onChange={handleChange}
+                          fullWidth
+                          sx={{ minWidth: 200 }}
+                          aria-label="Select amortization period"
+                        >
+                          <MenuItem value="">Select Period</MenuItem>
+                          <MenuItem value="monthly">Monthly</MenuItem>
+                          <MenuItem value="quarterly">Quarterly</MenuItem>
+                          <MenuItem value="semi_annually">Semi-Annually</MenuItem>
+                          <MenuItem value="annually">Annually</MenuItem>
+                          <MenuItem value="custom">Custom Period</MenuItem>
+                        </TextField>
+                        
+                        {form.amortizationPeriod === 'custom' && (
+                          <>
+                            <TextField
+                              label="Custom Period (months)"
+                              name="customPeriod"
+                              type="number"
+                              value={form.customPeriod || ''}
+                              onChange={handleChange}
+                              sx={{ minWidth: 200 }}
+                              inputProps={{ min: 1, max: 120 }}
+                              aria-label="Enter custom period in months"
+                            />
+                          </>
+                        )}
+                        
+                        <TextField
+                          label="Amortization Start Date"
+                          name="amortizationStartDate"
+                          type="date"
+                          value={form.amortizationStartDate}
+                          onChange={handleChange}
+                          fullWidth
+                          sx={{ minWidth: 200 }}
+                          InputLabelProps={{ shrink: true }}
+                          aria-label="Select amortization start date"
+                        />
+                        
+                        <TextField
+                          label="Amortization End Date"
+                          name="amortizationEndDate"
+                          type="date"
+                          value={form.amortizationEndDate}
+                          onChange={handleChange}
+                          fullWidth
+                          sx={{ minWidth: 200 }}
+                          InputLabelProps={{ shrink: true }}
+                          aria-label="Select amortization end date"
+                        />
+                      </Box>
+                    )}
+                    
+                    {/* Amortization Preview */}
+                    {form.costAmortization && form.totalTripCost && form.amortizationPeriod && (
+                      <Box sx={{ mt: 3, p: 2, bgcolor: 'primary.50', borderRadius: 2, border: '1px solid', borderColor: 'primary.200' }}>
+                        <Typography variant="subtitle2" color="primary" gutterBottom>Amortization Preview</Typography>
+                        <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">Total Cost</Typography>
+                            <Typography variant="h6" color="primary">KD {form.totalTripCost}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">Period</Typography>
+                            <Typography variant="h6" color="primary">{form.amortizationPeriod}</Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary">Monthly Amount</Typography>
+                            <Typography variant="h6" color="success.main">
+                              KD {form.totalTripCost > 0 ? (form.totalTripCost / 12).toFixed(2) : '0.00'}
+                            </Typography>
+                          </Box>
+                        </Box>
                       </Box>
                     )}
                   </Box>
@@ -1592,6 +1878,33 @@ const BusinessTripPage: React.FC = () => {
                       <Typography variant="subtitle2">Boarding Pass: {boardingPass ? boardingPass.name : 'N/A'}</Typography>
                       <Typography variant="subtitle2">Signed Claim Form: {signedClaimForm ? signedClaimForm.name : 'N/A'}</Typography>
                     </Box>
+                    <Box sx={{ flex: '1', minWidth: 300 }}>
+                      <Typography variant="subtitle2">Per Diem & Cost Management</Typography>
+                      <Typography variant="subtitle2">Per Diem Rate: KD {form.perDiem}/day</Typography>
+                      <Typography variant="subtitle2">Flight Class: {form.flightClass}</Typography>
+                      <Typography variant="subtitle2">Travel Arranged By: {form.travelArrangedBy || 'N/A'}</Typography>
+                      <Typography variant="subtitle2">Total Per Diem: KD {form.totalPerDiem.toFixed(2)}</Typography>
+                      <Typography variant="subtitle2">Per Diem Paid: {form.perDiemPaid ? 'Yes' : 'No'}</Typography>
+                      {form.perDiemPaid && form.perDiemPaymentDate && (
+                        <Typography variant="subtitle2">Payment Date: {new Date(form.perDiemPaymentDate).toLocaleDateString()}</Typography>
+                      )}
+                      <Typography variant="subtitle2">Cost Amortization: {form.costAmortization ? 'Yes' : 'No'}</Typography>
+                      {form.costAmortization && (
+                        <>
+                          <Typography variant="subtitle2">Total Trip Cost: KD {form.totalTripCost?.toFixed(2) || '0.00'}</Typography>
+                          <Typography variant="subtitle2">Amortization Period: {form.amortizationPeriod || 'N/A'}</Typography>
+                          {form.amortizationPeriod === 'custom' && form.customPeriod && (
+                            <Typography variant="subtitle2">Custom Period: {form.customPeriod} months</Typography>
+                          )}
+                          {form.amortizationStartDate && (
+                            <Typography variant="subtitle2">Start Date: {new Date(form.amortizationStartDate).toLocaleDateString()}</Typography>
+                          )}
+                          {form.amortizationEndDate && (
+                            <Typography variant="subtitle2">End Date: {new Date(form.amortizationEndDate).toLocaleDateString()}</Typography>
+                          )}
+                        </>
+                      )}
+                    </Box>
                   </Box>
                   {apiError && <Typography color="error" sx={{ mt: 2 }}>{apiError}</Typography>}
                 </>
@@ -1607,33 +1920,57 @@ const BusinessTripPage: React.FC = () => {
           </motion.div>
         </DialogContent>
       </Dialog>
+
+      {/* Floating Action Button */}
       <Fab
         color="primary"
         aria-label="Open Entitlement Simulator"
-        sx={{ position: 'fixed', bottom: 32, right: 32, zIndex: 1300, boxShadow: 6 }}
+        sx={{ 
+          position: 'fixed', 
+          bottom: 32, 
+          right: 32, 
+          zIndex: 1300, 
+          boxShadow: 6,
+          bgcolor: theme.palette.primary.main,
+          '&:hover': {
+            bgcolor: theme.palette.primary.dark,
+            transform: 'scale(1.1)'
+          }
+        }}
         onClick={() => setShowEntitlementSimulator(true)}
       >
-        {FaUserAstronaut({ size: 28 })}
+        <PersonAddIcon sx={{ fontSize: 28 }} />
       </Fab>
+
+      {/* Entitlement Simulator Dialog */}
       <Dialog
         open={showEntitlementSimulator}
         onClose={() => setShowEntitlementSimulator(false)}
         maxWidth="xs"
         PaperProps={{
           sx: {
-            borderRadius: 5,
-            background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 60%, ${alpha(theme.palette.primary.light, 0.18)})`,
-            boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-            backdropFilter: 'blur(16px)',
+            borderRadius: theme.shape.borderRadius,
+            background: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(20px)',
             border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            boxShadow: theme.shadows[24],
             p: 3,
             minWidth: 320,
           }
         }}
       >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1 }}>
+        <DialogTitle sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          pb: 1,
+          background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.15)} 0%, ${alpha(theme.palette.info.light, 0.1)} 100%)`,
+          color: theme.palette.info.main,
+          borderRadius: theme.shape.borderRadius,
+          mb: 2
+        }}>
           <Box display="flex" alignItems="center" gap={1}>
-            {FaUserAstronaut({ size: 24 })}
+            <PersonAddIcon sx={{ fontSize: 24 }} />
             <Typography variant="h6" color="primary">Entitlement Simulator</Typography>
           </Box>
           <IconButton onClick={() => setShowEntitlementSimulator(false)} size="small" aria-label="Close">
@@ -1641,82 +1978,35 @@ const BusinessTripPage: React.FC = () => {
           </IconButton>
         </DialogTitle>
         <DialogContent>
-          <TextField select label="Role" value={simRole} onChange={e => setSimRole(e.target.value)} fullWidth sx={{ mb: 1 }} aria-label="Select entitlement role">
+          <TextField 
+            select 
+            label="Role" 
+            value={simRole} 
+            onChange={e => setSimRole(e.target.value)} 
+            fullWidth 
+            sx={{ mb: 2 }} 
+            aria-label="Select entitlement role"
+          >
             {Object.keys(PER_DIEM_MATRIX).map(role => <MenuItem key={role} value={role} aria-label={`Select ${role}`}>{role}</MenuItem>)}
           </TextField>
-          <TextField select label="Region" value={simRegion} onChange={e => setSimRegion(e.target.value)} fullWidth sx={{ mb: 2 }} aria-label="Select entitlement region">
+          <TextField 
+            select 
+            label="Region" 
+            value={simRegion} 
+            onChange={e => setSimRegion(e.target.value)} 
+            fullWidth 
+            sx={{ mb: 3 }} 
+            aria-label="Select entitlement region"
+          >
             {REGIONS.map(region => <MenuItem key={region} value={region} aria-label={`Select ${region}`}>{region}</MenuItem>)}
           </TextField>
-          <Typography variant="body2" sx={{ mb: 1 }}>Per Diem: <b>KD {simEntitlement.perDiem}</b></Typography>
-          <Typography variant="body2" sx={{ mb: 1 }}>Flight Class: <b>{simEntitlement.flightClass}</b></Typography>
-          <Typography variant="body2">Visa Required: <b>{['Europe','America'].includes(simRegion) ? 'Yes' : 'No'}</b></Typography>
+          <Box sx={{ p: 2, background: alpha(theme.palette.success.main, 0.1), borderRadius: 2, border: `1px solid ${alpha(theme.palette.success.main, 0.2)}` }}>
+            <Typography variant="body2" sx={{ mb: 1 }}>Per Diem: <b>KD {simEntitlement.perDiem}</b></Typography>
+            <Typography variant="body2" sx={{ mb: 1 }}>Flight Class: <b>{simEntitlement.flightClass}</b></Typography>
+            <Typography variant="body2">Visa Required: <b>{['Europe','America'].includes(simRegion) ? 'Yes' : 'No'}</b></Typography>
+          </Box>
         </DialogContent>
       </Dialog>
-      {/* Below the dashboard cards, add: */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4, justifyContent: 'center' }}>
-        {dashboardTrips.map((trip, idx) => (
-          <Card key={trip._id || idx} sx={{ minWidth: 320, maxWidth: 400, borderRadius: 4, boxShadow: 6, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', border: `1px solid ${alpha(theme.palette.primary.light, 0.15)}` }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" gap={2} mb={1}>
-                {FaPlaneDeparture({ size: 28, color: theme.palette.primary.main })}
-                <Typography variant="h6" fontWeight={700}>{getEmployeeName(trip.employee)}</Typography>
-                <Chip
-                  label={trip.status}
-                  color={getStatusColor(trip.status)}
-                  size="small"
-                  icon={trip.status === 'Approved' ? <TaskAltIcon sx={{ color: '#1976d2', fontSize: 16, mr: 0.5 }} /> : undefined}
-                  sx={{ ml: 'auto' }}
-                />
-              </Box>
-              <Typography variant="body2" color="text.secondary">Type: <b>{trip.tripType}</b></Typography>
-              <Typography variant="body2" color="text.secondary">Region: <b>{trip.region}</b></Typography>
-              <Typography variant="body2" color="text.secondary">Country: <b>{trip.country || '-'}</b></Typography>
-              <Typography variant="body2" color="text.secondary">Airport/City: <b>{trip.airportOrCity || '-'}</b></Typography>
-              <Typography variant="body2" color="text.secondary">Departure: <b>{trip.departureDate}</b></Typography>
-              <Typography variant="body2" color="text.secondary">Return: <b>{trip.returnDate}</b></Typography>
-              <Typography variant="body2" color="text.secondary">Per Diem: <b>KD {trip.perDiem}</b></Typography>
-            </CardContent>
-            <Box display="flex" justifyContent="flex-end" gap={1} p={2}>
-              <Button
-                variant="outlined"
-                color="primary"
-                size="small"
-                onClick={() => {
-                  setEditingTripId(trip._id);
-                  setForm({
-                    employeeId: trip.employeeId || '',
-                    employee: trip.employee || '', // <-- set employee name
-                    employeeRole: trip.employeeRole || '',
-                    tripType: trip.tripType || '',
-                    region: trip.region || '',
-                    agendaFile: null,
-                    agendaFileName: trip.agendaFileName || '',
-                    departureDate: trip.departureDate || '',
-                    returnDate: trip.returnDate || '',
-                    requiresVisa: trip.requiresVisa || false,
-                    seminarFile: null,
-                    seminarFileName: trip.seminarFileName || '',
-                    perDiem: trip.perDiem || 0,
-                    flightClass: trip.flightClass || '',
-                    overrideFlightClass: trip.overrideFlightClass || false,
-                    overrideFlightClassValue: trip.overrideFlightClassValue || '',
-                    travelArrangedBy: trip.travelArrangedBy || '',
-                    totalPerDiem: trip.totalPerDiem || 0,
-                    perDiemPaid: trip.perDiemPaid || false,
-                    perDiemPaymentDate: trip.perDiemPaymentDate || '',
-                    status: trip.status || 'Draft',
-                  });
-                  // Set other related state as needed (details, arrangementType, agent, etc.)
-                  setOpenDialog(true);
-                }}
-              >
-                Edit
-              </Button>
-              <Button variant="contained" color="primary" size="small" onClick={() => navigate(`/business-trips/${trip._id}`)}>View Trip</Button>
-            </Box>
-          </Card>
-        ))}
-      </Box>
     </Box>
   );
 };

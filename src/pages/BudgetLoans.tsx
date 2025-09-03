@@ -1,245 +1,610 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, TextField, IconButton, Snackbar, Alert, MenuItem, Collapse } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import { useFiscalYear } from '../context/FiscalYearContext';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { getLoans, saveLoansBulk } from '../services/budgetApi';
+import {
+  Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, FormControl, InputLabel, Select, MenuItem, Collapse
+} from '@mui/material';
+import {
+  AccountBalance as AccountBalanceIcon,
+  Save as SaveIcon,
+  Refresh as RefreshIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  MonetizationOn as MoneyIcon,
+  Business as BusinessIcon,
+  Assessment as AssessmentIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon,
+  TrendingUp as TrendingUpIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
+} from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../apiBase';
 
-const months = [
-  'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'
-];
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const defaultLoan = () => ({
-  name: '',
-  amount: '',
-  start: months[0],
-  rate: '',
+  description: '',
+  principal: '',
+  interestRate: '',
   term: '',
-  type: 'annuity',
-  notes: '',
-  expanded: false,
+  startMonth: 'Jan',
+  paymentType: 'monthly',
+  expanded: false
 });
-
-const loanTypes = [
-  { value: 'annuity', label: 'Annuity' },
-  { value: 'straight', label: 'Straight-Line' },
-];
 
 function getMonthIdx(m: string) {
   return months.indexOf(m);
 }
 
-// Amortization calculation
 function getAmortization(loan: any) {
-  const amount = parseFloat(loan.amount) || 0;
-  const rate = (parseFloat(loan.rate) || 0) / 100 / 12;
+  const principal = parseFloat(loan.principal) || 0;
+  const rate = parseFloat(loan.interestRate) || 0;
   const term = parseInt(loan.term) || 0;
-  if (!amount || !term) return [];
-  let schedule = [];
-  let balance = amount;
-  if (loan.type === 'annuity') {
-    // Annuity formula
-    const payment = rate === 0 ? amount / term : (amount * rate) / (1 - Math.pow(1 + rate, -term));
-    for (let i = 0; i < term; i++) {
-      const interest = balance * rate;
-      const principal = payment - interest;
-      balance -= principal;
-      schedule.push({
-        month: i + 1,
-        payment: payment,
-        principal: principal,
-        interest: interest,
-        balance: Math.max(balance, 0),
-      });
-    }
-  } else {
-    // Straight-line
-    const principal = amount / term;
-    for (let i = 0; i < term; i++) {
-      const interest = (amount - principal * i) * rate;
-      const payment = principal + interest;
-      balance -= principal;
-      schedule.push({
-        month: i + 1,
-        payment: payment,
-        principal: principal,
-        interest: interest,
-        balance: Math.max(balance, 0),
-      });
-    }
+  const startMonth = getMonthIdx(loan.startMonth);
+  
+  if (!principal || !rate || !term) return Array(12).fill(0);
+  
+  const monthlyRate = rate / 100 / 12;
+  const payment = principal * (monthlyRate * Math.pow(1 + monthlyRate, term)) / (Math.pow(1 + monthlyRate, term) - 1);
+  
+  const schedule = Array(12).fill(0);
+  let remainingPrincipal = principal;
+  
+  for (let i = startMonth; i < 12 && i < startMonth + term; i++) {
+    const interest = remainingPrincipal * monthlyRate;
+    const principalPayment = payment - interest;
+    schedule[i] = payment;
+    remainingPrincipal -= principalPayment;
   }
+  
   return schedule;
 }
 
 const BudgetLoans: React.FC = () => {
-  const { fiscalYear } = useFiscalYear();
-  const [loans, setLoans] = useState<any[]>([defaultLoan()]);
-  const [success, setSuccess] = useState('');
+  const [loans, setLoans] = useState([defaultLoan()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const theme = useTheme();
 
   useEffect(() => {
+    fetchBudgetLoans();
+  }, []);
+
+  const fetchBudgetLoans = async () => {
     setLoading(true);
-    setError('');
-    getLoans(fiscalYear)
-      .then(res => {
-        if (Array.isArray(res.data)) {
-          setLoans(res.data.length > 0 ? res.data : [defaultLoan()]);
-        } else {
-          setLoans([defaultLoan()]);
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.response?.data?.message || 'Failed to load loans data');
-        setLoans([defaultLoan()]);
-        setLoading(false);
-      });
-  }, [fiscalYear]);
-
-  const handleLoanChange = (idx: number, field: string, value: any) => {
-    setLoans(loans => loans.map((l, i) => i === idx ? { ...l, [field]: value } : l));
-  };
-  const handleAddLoan = () => setLoans([...loans, defaultLoan()]);
-  const handleRemoveLoan = (idx: number) => setLoans(loans => loans.filter((_, i) => i !== idx));
-  const handleToggleExpand = (idx: number) => setLoans(loans => loans.map((l, i) => i === idx ? { ...l, expanded: !l.expanded } : l));
-
-  // For each loan, map amortization to fiscal year months
-  function getLoanMonthlyOutflow(loan: any) {
-    const startIdx = getMonthIdx(loan.start);
-    const schedule = getAmortization(loan);
-    const outflow = Array(12).fill(0);
-    for (let i = 0; i < schedule.length; i++) {
-      const mIdx = (startIdx + i) % 12;
-      if (mIdx >= 0 && mIdx < 12) outflow[mIdx] += schedule[i].payment;
-    }
-    return outflow;
-  }
-  // Combined outflow per month
-  const monthTotals = months.map((_, mIdx) => loans.reduce((sum, loan) => sum + (getLoanMonthlyOutflow(loan)[mIdx] || 0), 0));
-  const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
-  // Chart data
-  const chartData = months.map((m, i) => ({ month: m, outflow: monthTotals[i] }));
-
-  const handleSave = async () => {
-    setLoading(true);
-    setError('');
     try {
-      await saveLoansBulk(fiscalYear, loans);
-      setSuccess('Loan forecast saved!');
+      const response = await api.get('/budget-loans');
+      // Ensure response.data is always an array
+      const data = Array.isArray(response.data) ? response.data : [];
+      setLoans(data.length > 0 ? data : [defaultLoan()]);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save loans data');
+      setError(err.response?.data?.message || 'Failed to fetch budget loans');
+      setLoans([defaultLoan()]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleLoanChange = (idx: number, field: string, value: any) => {
+    const newLoans = [...loans];
+    // Use type assertion for dynamic property access
+    (newLoans[idx] as any)[field] = value;
+    setLoans(newLoans);
+  };
+
+  const handleAddLoan = () => setLoans([...loans, defaultLoan()]);
+
+  const handleRemoveLoan = (idx: number) => setLoans(loans => loans.filter((_, i) => i !== idx));
+
+  const handleToggleExpand = (idx: number) => setLoans(loans => loans.map((l, i) => i === idx ? { ...l, expanded: !l.expanded } : l));
+
+  function getLoanMonthlyOutflow(loan: any) {
+    const schedule = getAmortization(loan);
+    return schedule.reduce((sum, payment) => sum + payment, 0);
+  }
+
+  const getTotalPrincipal = () => loans.reduce((sum, loan) => sum + (parseFloat(loan.principal) || 0), 0);
+
+  const getTotalPayments = () => loans.reduce((sum, loan) => sum + getLoanMonthlyOutflow(loan), 0);
+
+  const getTotalInterest = () => {
+    return loans.reduce((sum, loan) => {
+      const principal = parseFloat(loan.principal) || 0;
+      const rate = parseFloat(loan.interestRate) || 0;
+      const term = parseInt(loan.term) || 0;
+      
+      if (!principal || !rate || !term) return sum;
+      
+      const monthlyRate = rate / 100 / 12;
+      const payment = principal * (monthlyRate * Math.pow(1 + monthlyRate, term)) / (Math.pow(1 + monthlyRate, term) - 1);
+      const totalPayments = payment * term;
+      
+      return sum + (totalPayments - principal);
+    }, 0);
+  };
+
+  const handleSave = async () => {
+    try {
+      await api.post('/budget-loans', { loans });
+      setSuccess('Budget loans saved successfully!');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save budget loans');
+    }
+  };
+
   return (
-    <Box>
-      {loading && <Alert severity="info" sx={{ mb: 2 }}>Loading...</Alert>}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <Card sx={{ maxWidth: 1200, margin: '0 auto', mb: 3 }}>
-        <CardContent>
-          <Typography variant="h5" gutterBottom>Loan Management ({fiscalYear}/{(fiscalYear+1).toString().slice(-2)})</Typography>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Start</TableCell>
-                <TableCell>Rate (%)</TableCell>
-                <TableCell>Term (mo)</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Notes</TableCell>
-                <TableCell>Amortization</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loans.map((l, idx) => (
-                <React.Fragment key={idx}>
-                  <TableRow>
-                    <TableCell><TextField value={l.name} onChange={e => handleLoanChange(idx, 'name', e.target.value)} placeholder="Loan Name" size="small" /></TableCell>
-                    <TableCell><TextField value={l.amount} onChange={e => handleLoanChange(idx, 'amount', e.target.value)} size="small" type="number" inputProps={{ min: 0 }} sx={{ width: 100 }} /></TableCell>
-                    <TableCell>
-                      <TextField select value={l.start} onChange={e => handleLoanChange(idx, 'start', e.target.value)} size="small">
-                        {months.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-                      </TextField>
-                    </TableCell>
-                    <TableCell><TextField value={l.rate} onChange={e => handleLoanChange(idx, 'rate', e.target.value)} size="small" type="number" inputProps={{ min: 0, step: 0.01 }} sx={{ width: 80 }} /></TableCell>
-                    <TableCell><TextField value={l.term} onChange={e => handleLoanChange(idx, 'term', e.target.value)} size="small" type="number" inputProps={{ min: 1 }} sx={{ width: 80 }} /></TableCell>
-                    <TableCell>
-                      <TextField select value={l.type} onChange={e => handleLoanChange(idx, 'type', e.target.value)} size="small">
-                        {loanTypes.map(opt => <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>)}
-                      </TextField>
-                    </TableCell>
-                    <TableCell><TextField value={l.notes} onChange={e => handleLoanChange(idx, 'notes', e.target.value)} size="small" /></TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleToggleExpand(idx)}>{l.expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton>
-                    </TableCell>
-                    <TableCell><IconButton onClick={() => handleRemoveLoan(idx)} disabled={loans.length === 1}><DeleteIcon /></IconButton></TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={9} sx={{ p: 0, border: 0 }}>
-                      <Collapse in={l.expanded} timeout="auto" unmountOnExit>
-                        <Box sx={{ p: 2, background: '#f9f9f9' }}>
-                          <Typography variant="subtitle1">Amortization Table</Typography>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Month</TableCell>
-                                <TableCell>Payment</TableCell>
-                                <TableCell>Principal</TableCell>
-                                <TableCell>Interest</TableCell>
-                                <TableCell>Balance</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {getAmortization(l).map((row, i) => (
-                                <TableRow key={i}>
-                                  <TableCell>{row.month}</TableCell>
-                                  <TableCell>{row.payment.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                                  <TableCell>{row.principal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                                  <TableCell>{row.interest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                                  <TableCell>{row.balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </Box>
-                      </Collapse>
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
-              ))}
-            </TableBody>
-          </Table>
-          <Box display="flex" gap={2} mt={2}>
-            <Button variant="outlined" startIcon={<AddIcon />} onClick={handleAddLoan}>Add Loan</Button>
-            <Button variant="contained" onClick={handleSave} disabled={loading}>{loading ? 'Saving...' : 'Save Loans'}</Button>
+    <Box sx={{ 
+      p: 3, 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+    }}>
+      <AnimatePresence>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: theme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <AccountBalanceIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Loan Budget
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Plan and forecast loan payments with amortization schedules
+                    </Typography>
+                  </Box>
+                </Box>
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  onClick={handleSave}
+                  startIcon={<SaveIcon />}
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                  }}
+                >
+                  Save Budget
+                </Button>
+              </Box>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+        </motion.div>
+
+        {/* Summary Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+            {[
+              {
+                title: 'Total Principal',
+                value: `$${getTotalPrincipal().toLocaleString()}`,
+                icon: <MoneyIcon />,
+                color: theme.palette.primary.main,
+                bgColor: alpha(theme.palette.primary.main, 0.1)
+              },
+              {
+                title: 'Total Payments',
+                value: `$${getTotalPayments().toLocaleString()}`,
+                icon: <TrendingUpIcon />,
+                color: theme.palette.error.main,
+                bgColor: alpha(theme.palette.error.main, 0.1)
+              },
+              {
+                title: 'Total Interest',
+                value: `$${getTotalInterest().toLocaleString()}`,
+                icon: <AccountBalanceIcon />,
+                color: theme.palette.warning.main,
+                bgColor: alpha(theme.palette.warning.main, 0.1)
+              },
+              {
+                title: 'Active Loans',
+                value: loans.length,
+                icon: <BusinessIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 200px', 
+                    minWidth: 200,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
           </Box>
-        </CardContent>
-      </Card>
-      <Card sx={{ maxWidth: 900, margin: '0 auto' }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>Monthly Loan Outflow</Typography>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={chartData} margin={{ top: 16, right: 16, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="outflow" fill="#1976d2" name="Outflow" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-      <Snackbar open={!!success} autoHideDuration={2000} onClose={() => setSuccess('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert severity="success" sx={{ width: '100%' }}>{success}</Alert>
+        </motion.div>
+
+        {/* Loans Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              background: alpha(theme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              borderRadius: theme.shape.borderRadius,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: theme.shadows[8]
+              }
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="h6" sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
+                💰 Loan Management
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={handleAddLoan}
+                startIcon={<AddIcon />}
+                sx={{
+                  background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`,
+                  boxShadow: `0 4px 14px ${alpha(theme.palette.success.main, 0.4)}`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.success.main} 100%)`,
+                    boxShadow: `0 6px 20px ${alpha(theme.palette.success.main, 0.6)}`,
+                    transform: 'translateY(-1px)'
+                  }
+                }}
+              >
+                Add Loan
+              </Button>
+            </Box>
+
+            {loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Description</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Principal</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Interest Rate</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Term (Months)</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Start Month</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Monthly Payment</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {loans.map((loan, idx) => (
+                      <React.Fragment key={idx}>
+                        <TableRow 
+                          hover
+                          sx={{ 
+                            background: idx % 2 === 0 ? alpha(theme.palette.background.default, 0.5) : alpha(theme.palette.background.paper, 0.8),
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                              background: alpha(theme.palette.primary.main, 0.05),
+                              transform: 'scale(1.01)'
+                            }
+                          }}
+                        >
+                          <TableCell>
+                            <TextField
+                              value={loan.description}
+                              onChange={(e) => handleLoanChange(idx, 'description', e.target.value)}
+                              placeholder="Loan description"
+                              size="small"
+                              sx={{
+                                '& .MuiOutlinedInput-root': {
+                                  '&:hover fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                },
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              value={loan.principal}
+                              onChange={(e) => handleLoanChange(idx, 'principal', e.target.value)}
+                              placeholder="0.00"
+                              type="number"
+                              size="small"
+                              sx={{
+                                width: 120,
+                                '& .MuiOutlinedInput-root': {
+                                  '&:hover fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                },
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              value={loan.interestRate}
+                              onChange={(e) => handleLoanChange(idx, 'interestRate', e.target.value)}
+                              placeholder="0.00"
+                              type="number"
+                              size="small"
+                              InputProps={{
+                                endAdornment: <Typography variant="caption">%</Typography>
+                              }}
+                              sx={{
+                                width: 100,
+                                '& .MuiOutlinedInput-root': {
+                                  '&:hover fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                },
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              value={loan.term}
+                              onChange={(e) => handleLoanChange(idx, 'term', e.target.value)}
+                              placeholder="12"
+                              type="number"
+                              size="small"
+                              sx={{
+                                width: 100,
+                                '& .MuiOutlinedInput-root': {
+                                  '&:hover fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: theme.palette.primary.main,
+                                  },
+                                },
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <FormControl size="small" sx={{ minWidth: 100 }}>
+                              <Select
+                                value={loan.startMonth}
+                                onChange={(e) => handleLoanChange(idx, 'startMonth', e.target.value)}
+                                sx={{
+                                  '& .MuiOutlinedInput-root': {
+                                    '&:hover fieldset': {
+                                      borderColor: theme.palette.primary.main,
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                      borderColor: theme.palette.primary.main,
+                                    },
+                                  },
+                                }}
+                              >
+                                {months.map((month) => (
+                                  <MenuItem key={month} value={month}>{month}</MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                              ${getLoanMonthlyOutflow(loan).toLocaleString()}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <IconButton
+                                onClick={() => handleToggleExpand(idx)}
+                                sx={{ 
+                                  '&:hover': { 
+                                    bgcolor: alpha(theme.palette.info.main, 0.1),
+                                    transform: 'scale(1.1)'
+                                  }
+                                }}
+                              >
+                                {loan.expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
+                              <IconButton
+                                onClick={() => handleRemoveLoan(idx)}
+                                color="error"
+                                disabled={loans.length === 1}
+                                sx={{ 
+                                  '&:hover': { 
+                                    bgcolor: alpha(theme.palette.error.main, 0.1),
+                                    transform: 'scale(1.1)'
+                                  }
+                                }}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                        
+                        {/* Amortization Schedule */}
+                        <TableRow>
+                          <TableCell colSpan={7} sx={{ p: 0 }}>
+                            <Collapse in={loan.expanded} timeout="auto" unmountOnExit>
+                              <Box sx={{ p: 2, background: alpha(theme.palette.info.main, 0.05) }}>
+                                <Typography variant="subtitle2" sx={{ mb: 2, color: theme.palette.info.main, fontWeight: 600 }}>
+                                  📊 Amortization Schedule
+                                </Typography>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Month</TableCell>
+                                      <TableCell align="right">Payment</TableCell>
+                                      <TableCell align="right">Principal</TableCell>
+                                      <TableCell align="right">Interest</TableCell>
+                                      <TableCell align="right">Remaining Balance</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {getAmortization(loan).map((payment, monthIdx) => {
+                                      if (payment === 0) return null;
+                                      
+                                      const principal = parseFloat(loan.principal) || 0;
+                                      const rate = parseFloat(loan.interestRate) || 0;
+                                      const monthlyRate = rate / 100 / 12;
+                                      const remainingBalance = principal * Math.pow(1 + monthlyRate, monthIdx + 1);
+                                      const interest = remainingBalance * monthlyRate;
+                                      const principalPayment = payment - interest;
+                                      
+                                      return (
+                                        <TableRow key={monthIdx}>
+                                          <TableCell>{months[monthIdx]}</TableCell>
+                                          <TableCell align="right">${payment.toLocaleString()}</TableCell>
+                                          <TableCell align="right">${principalPayment.toLocaleString()}</TableCell>
+                                          <TableCell align="right">${interest.toLocaleString()}</TableCell>
+                                          <TableCell align="right">${(remainingBalance - principalPayment).toLocaleString()}</TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </Box>
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
+                      </React.Fragment>
+                    ))}
+                    {/* Totals Row */}
+                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          TOTAL
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                          ${getTotalPrincipal().toLocaleString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell />
+                      <TableCell />
+                      <TableCell />
+                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                          ${getTotalPayments().toLocaleString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Success/Error Snackbars */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={3000}
+        onClose={() => setSuccess('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+          {success}
+        </Alert>
+      </Snackbar>
+      
+      <Snackbar
+        open={!!error}
+        autoHideDuration={3000}
+        onClose={() => setError('')}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
       </Snackbar>
     </Box>
   );

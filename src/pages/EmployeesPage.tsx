@@ -6,7 +6,7 @@ import {
   FormControl, InputLabel, Select, Tabs, Tab, Divider, Badge, Tooltip, Fab, 
   List, ListItem, ListItemAvatar, ListItemText, ListItemSecondaryAction,
   Switch, FormControlLabel, Accordion, AccordionSummary, AccordionDetails,
-  LinearProgress, Rating, Chip as MuiChip, Checkbox
+  LinearProgress, Rating, Chip as MuiChip, Checkbox, useTheme, alpha
 } from '@mui/material';
 
 import {
@@ -32,6 +32,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import api from '../apiBase';
+import { motion, AnimatePresence } from 'framer-motion';
+import DocumentManager from '../components/DocumentManager';
 
 interface Employee {
   _id: string;
@@ -610,6 +612,7 @@ interface EmployeeFormState {
 }
 
 const EmployeesPage: React.FC = () => {
+  const muiTheme = useTheme();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1665,100 +1668,144 @@ const EmployeesPage: React.FC = () => {
   };
 
     return (
-    <Box sx={{ 
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      pb: 4
-    }}>
-      {/* Modern Header */}
+    <>
       <Box sx={{ 
-        background: 'rgba(255, 255, 255, 0.95)', 
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
-        p: 3,
-        mb: 3
+        p: 3, 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(muiTheme.palette.primary.main, 0.05)} 0%, ${alpha(muiTheme.palette.secondary.main, 0.05)} 100%)`
       }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-          <Box>
-            <Typography variant="h3" sx={{ 
-              fontWeight: 700, 
-              background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              mb: 1
-            }}>
-              Employee Management
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 500 }}>
-              Manage your workforce with advanced HR tools and logistics tracking
-            </Typography>
-          </Box>
-          <Box display="flex" gap={2} alignItems="center">
-            <Button
-              variant={viewMode === 'table' ? 'contained' : 'outlined'}
-              startIcon={<ViewListIcon />}
-              onClick={() => setViewMode('table')}
-              sx={{ 
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 600
-              }}
-            >
-              Table View
-            </Button>
-            <Button
-              variant={viewMode === 'cards' ? 'contained' : 'outlined'}
-              startIcon={<ViewModuleIcon />}
-              onClick={() => setViewMode('cards')}
-              sx={{ 
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 600
-              }}
-            >
-              Card View
-            </Button>
-            <Button
-              variant={timelineView ? 'contained' : 'outlined'}
-              startIcon={<TimelineIcon />}
-              onClick={() => setTimelineView(!timelineView)}
-              sx={{ 
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 600,
-                background: timelineView ? 'linear-gradient(45deg, #9c27b0, #ba68c8)' : 'transparent',
-                '&:hover': {
-                  background: timelineView ? 'linear-gradient(45deg, #7b1fa2, #9c27b0)' : 'rgba(156, 39, 176, 0.04)'
-                }
-              }}
-            >
-              Timeline View
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpen()}
-              sx={{ 
-                ml: 1,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontWeight: 600,
-                background: 'linear-gradient(45deg, #1976d2, #42a5f5)',
-                boxShadow: '0 4px 15px rgba(25, 118, 210, 0.3)',
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #1565c0, #1976d2)',
-                  boxShadow: '0 6px 20px rgba(25, 118, 210, 0.4)',
-                }
-              }}
-            >
-              Add Employee
-            </Button>
-          </Box>
-        </Box>
+        <AnimatePresence>
+          {/* Header Section */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${muiTheme.palette.primary.main} 0%, ${muiTheme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: muiTheme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <GroupIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Employee Management
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Manage your workforce with advanced HR tools and logistics tracking
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box display="flex" gap={2} alignItems="center">
+                  <Button
+                    variant={viewMode === 'table' ? 'contained' : 'outlined'}
+                    startIcon={<ViewListIcon />}
+                    onClick={() => setViewMode('table')}
+                    sx={{ 
+                      bgcolor: viewMode === 'table' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      '&:hover': { 
+                        bgcolor: 'rgba(255,255,255,0.3)',
+                        borderColor: 'rgba(255,255,255,0.5)'
+                      }
+                    }}
+                  >
+                    Table View
+                  </Button>
+                  <Button
+                    variant={viewMode === 'cards' ? 'contained' : 'outlined'}
+                    startIcon={<ViewModuleIcon />}
+                    onClick={() => setViewMode('cards')}
+                    sx={{ 
+                      bgcolor: viewMode === 'cards' ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      '&:hover': { 
+                        bgcolor: 'rgba(255,255,255,0.3)',
+                        borderColor: 'rgba(255,255,255,0.5)'
+                      }
+                    }}
+                  >
+                    Card View
+                  </Button>
+                  <Button
+                    variant={timelineView ? 'contained' : 'outlined'}
+                    startIcon={<TimelineIcon />}
+                    onClick={() => setTimelineView(!timelineView)}
+                    sx={{ 
+                      bgcolor: timelineView ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      '&:hover': { 
+                        bgcolor: 'rgba(255,255,255,0.3)',
+                        borderColor: 'rgba(255,255,255,0.5)'
+                      }
+                    }}
+                  >
+                    Timeline View
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => handleOpen()}
+                    sx={{ 
+                      ml: 1,
+                      bgcolor: 'rgba(255,255,255,0.2)', 
+                      color: 'white',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
+                    }}
+                  >
+                    Add Employee
+                  </Button>
+                </Box>
+              </Box>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+        </motion.div>
 
-        {/* Modern Statistics Cards */}
-        <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
+        {/* Summary KPI Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
           <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
             <Card sx={{ 
               background: 'rgba(255, 255, 255, 0.95)',
@@ -1964,18 +2011,23 @@ const EmployeesPage: React.FC = () => {
             </Card>
           </Box>
         </Box>
+        </motion.div>
 
-        {/* Modern Search and Filters */}
-        <Paper sx={{ 
-          p: 3, 
-          mb: 4,
-          background: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: 3,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <Box display="flex" gap={3} alignItems="center" flexWrap="wrap">
+        {/* Search and Filter Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <Paper sx={{ 
+            p: 3, 
+            mb: 4,
+            background: alpha(muiTheme.palette.background.paper, 0.8),
+            backdropFilter: 'blur(10px)',
+            border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+            borderRadius: muiTheme.shape.borderRadius
+          }}>
+            <Box display="flex" gap={3} alignItems="center" flexWrap="wrap">
             {/* Search Section */}
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flex: '1 1 400px' }}>
               <TextField
@@ -2213,7 +2265,8 @@ const EmployeesPage: React.FC = () => {
             </Box>
           )}
         </Paper>
-      </Box>
+        </motion.div>
+      </AnimatePresence>
 
       {/* Bulk Actions Bar */}
       {selectedEmployees.length > 0 && (
@@ -3252,7 +3305,7 @@ const EmployeesPage: React.FC = () => {
                         Upload Work Permit Copy
                         <input type="file" name="workPermitCopy" hidden onChange={handleFileChange} />
                       </Button>
-                      {form.workPermitCopy && typeof form.workPermitCopy === 'object' && 'name' in form.workPermitCopy && (
+                      {form.workPermitCopy && typeof form.workPermitCopy === 'object' && form.workPermitCopy !== null && 'name' in (form.workPermitCopy as File) && (
                         <Typography variant="body2" sx={{ ml: 2, alignSelf: 'center' }}>
                           {(form.workPermitCopy as File).name}
                         </Typography>
@@ -4071,7 +4124,8 @@ const EmployeesPage: React.FC = () => {
       >
         <AddIcon />
       </Fab>
-    </Box>
+      </Box>
+    </>
   );
 };
 

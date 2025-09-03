@@ -1,18 +1,89 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Tabs, Tab, Typography, Paper, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, IconButton, Chip, Alert, Snackbar, Card, CardContent, FormControlLabel, Checkbox, Accordion, AccordionSummary, AccordionDetails, Tooltip as MuiTooltip } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import SaveAltIcon from '@mui/icons-material/SaveAlt';
-import PrintIcon from '@mui/icons-material/Print';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import {
+  Box,
+  Tabs,
+  Tab,
+  Typography,
+  Paper,
+  Button,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  IconButton,
+  Chip,
+  Alert,
+  Snackbar,
+  Card,
+  CardContent,
+  FormControlLabel,
+  Checkbox,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Tooltip as MuiTooltip,
+  Avatar,
+  Badge,
+  useTheme,
+  alpha,
+  Fade,
+  Grow,
+  Zoom,
+  Slide,
+  Fab,
+  Divider,
+  LinearProgress,
+  Skeleton,
+  Grid,
+  Container
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  SaveAlt as SaveAltIcon,
+  Print as PrintIcon,
+  ExpandMore as ExpandMoreIcon,
+  Dashboard as DashboardIcon,
+  Warning as WarningIcon,
+  Refresh as RefreshIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon,
+  People as PeopleIcon,
+  Description as DescriptionIcon,
+  Business as BusinessIcon,
+  LocalShipping as LocalShippingIcon,
+  Build as BuildIcon,
+  ShoppingCart as ShoppingCartIcon,
+  AttachMoney as AttachMoneyIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  Security as SecurityIcon,
+  Notifications as NotificationsIcon,
+  Settings as SettingsIcon,
+  Fullscreen as FullscreenIcon,
+  FullscreenExit as FullscreenExitIcon,
+  AttachFile as AttachFileIcon,
+  Badge as BadgeIcon
+} from '@mui/icons-material';
 import Autocomplete from '@mui/material/Autocomplete';
-import { ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip } from 'recharts';
 import countries from '../utils/countries'; // Assume a countries list with { name, code, flagUrl }
 import api from '../apiBase';
 import dayjs from 'dayjs';
 import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
+import { motion, AnimatePresence } from 'framer-motion';
+import theme from '../theme';
 
 
 const tabLabels = [
@@ -2568,385 +2639,1579 @@ const AdminPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Tabs
-        value={tab}
-        onChange={(_, v) => setTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        sx={{ mb: 3, background: '#00CF95', borderRadius: 2, minHeight: 48 }}
-        TabIndicatorProps={{ style: { background: '#fff', height: 4, borderRadius: 2 } }}
-      >
-        {tabLabels.map((label, idx) => (
-          <Tab
-            key={label}
-            label={<span style={{ color: tab === idx ? (idx === 7 ? '#0b3c75' : '#00CF95') : '#fff', fontWeight: tab === idx ? 700 : 400 }}>{label}</span>}
-            sx={{
-              minWidth: 180,
-              borderRadius: 2,
-              mx: 0.5,
-              background: tab === idx ? '#fff' : 'transparent',
-              color: tab === idx ? (idx === 7 ? '#0b3c75' : '#00CF95') : '#fff',
-              fontWeight: tab === idx ? 700 : 400,
-              transition: 'background 0.2s, color 0.2s',
+    <Box sx={{
+      p: 3,
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+    }}>
+      <AnimatePresence>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: theme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
             }}
-          />
-        ))}
-      </Tabs>
+          >
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <AdminPanelSettingsIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Admin Panel
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Comprehensive management system for all business operations
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <MuiTooltip title="Refresh Data">
+                    <IconButton 
+                      onClick={() => window.location.reload()} 
+                      sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </MuiTooltip>
+                  <MuiTooltip title="Settings">
+                    <IconButton 
+                      sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+                    >
+                      <SettingsIcon />
+                    </IconButton>
+                  </MuiTooltip>
+                </Box>
+              </Box>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+        </motion.div>
+
+        {/* Navigation Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              mb: 3,
+              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.1)} 100%)`,
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+              borderRadius: theme.shape.borderRadius,
+              boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.1)}`
+            }}
+          >
+            <Tabs 
+              value={tab} 
+              onChange={(_, v) => setTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                '& .MuiTab-root': {
+                  minHeight: 60,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  fontSize: '0.95rem',
+                  color: theme.palette.text.secondary,
+                  transition: 'all 0.3s ease',
+                  position: 'relative',
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.1)} 100%)`,
+                    color: theme.palette.primary.main,
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`,
+                      borderRadius: '0 0 2px 2px'
+                    }
+                  },
+                  '&.Mui-selected': {
+                    color: theme.palette.primary.main,
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.15)} 0%, ${alpha(theme.palette.info.main, 0.15)} 100%)`,
+                    fontWeight: 700,
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 3,
+                      background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 50%, ${theme.palette.secondary.main} 100%)`,
+                      borderRadius: '0 0 2px 2px'
+                    }
+                  }
+                },
+                '& .MuiTabs-indicator': {
+                  height: 3,
+                  borderRadius: '2px 2px 0 0',
+                  background: `linear-gradient(90deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 50%, ${theme.palette.secondary.main} 100%)`,
+                  boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.3)}`
+                }
+              }}
+            >
+              {tabLabels.map((label, idx) => {
+                const tabIcons = [
+                  <PeopleIcon key="people" />,
+                  <DescriptionIcon key="description" />,
+                  <LocalShippingIcon key="shipping" />,
+                  <BusinessIcon key="business" />,
+                  <SecurityIcon key="security" />,
+                  <BuildIcon key="build" />,
+                  <DashboardIcon key="dashboard" />
+                ];
+                
+                return (
+                  <Tab 
+                    key={label} 
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box sx={{ 
+                          width: 8, 
+                          height: 8, 
+                          borderRadius: '50%', 
+                          background: tab === idx 
+                            ? `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`
+                            : alpha(theme.palette.text.secondary, 0.3),
+                          transition: 'all 0.3s ease'
+                        }} />
+                        {tabIcons[idx]}
+                        <span>{label}</span>
+                      </Box>
+                    } 
+                  />
+                );
+              })}
+            </Tabs>
+          </Paper>
+        </motion.div>
+      </AnimatePresence>
       <Box>
         {tab === 0 && (
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h5">Employees Record Tracking</Typography>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
-                Add Record
-              </Button>
-            </Box>
-            <Paper sx={{ p: 2, overflowX: 'auto' }}>
-              {loading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}>
-                  <CircularProgress />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            {/* Header */}
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 48, height: 48 }}>
+                    <PeopleIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                      Employees Record Tracking
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                      Manage employee documents, compliance, and access passes
+                    </Typography>
+                  </Box>
                 </Box>
-              ) : error ? (
-                <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Employee</TableCell>
-                      <TableCell>CO. ID</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Passport #</TableCell>
-                      <TableCell>Passport Expiry</TableCell>
-                      <TableCell>Nationality</TableCell>
-                      <TableCell>Residency #</TableCell>
-                      <TableCell>Residency Expiry</TableCell>
-                      <TableCell>Civil ID</TableCell>
-                      <TableCell>Civil ID Expiry</TableCell>
-                      <TableCell>Visa Type</TableCell>
-                      <TableCell>Visa Expiry</TableCell>
-                      <TableCell>Sponsor</TableCell>
-                      <TableCell>Marital Status</TableCell>
-                      <TableCell>Dependents</TableCell>
-                      <TableCell>Dependents Location</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Passes</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(records) && records.map((rec) => (
-                      <TableRow key={rec._id}>
-                        <TableCell>{rec.employee?.name || rec.employee}</TableCell>
-                        <TableCell>{rec.coId || '-'}</TableCell>
-                        <TableCell>
-                          <Chip label={rec.employeeType === 'citizen' ? 'Citizen' : 'Foreigner'} color={rec.employeeType === 'citizen' ? 'primary' : 'secondary'} size="small" />
-                        </TableCell>
-                        <TableCell>{rec.passportNumber}</TableCell>
-                        <TableCell>
-                          <Chip label={rec.passportExpiry ? dayjs(rec.passportExpiry).format('YYYY-MM-DD') : '-'} color={getExpiryStatus(rec.passportExpiry)} size="small" />
-                        </TableCell>
-                        <TableCell>{rec.nationality}</TableCell>
-                        <TableCell>{rec.residencyNumber || '-'}</TableCell>
-                        <TableCell>
-                          <Chip label={rec.residencyExpiry ? dayjs(rec.residencyExpiry).format('YYYY-MM-DD') : '-'} color={getExpiryStatus(rec.residencyExpiry)} size="small" />
-                        </TableCell>
-                        <TableCell>{rec.civilId || '-'}</TableCell>
-                        <TableCell>
-                          <Chip label={rec.civilIdExpiry ? dayjs(rec.civilIdExpiry).format('YYYY-MM-DD') : '-'} color={getExpiryStatus(rec.civilIdExpiry)} size="small" />
-                        </TableCell>
-                        <TableCell>{visaTypes.find(v => v.value === rec.visaType)?.label || rec.visaType}</TableCell>
-                        <TableCell>
-                          <Chip label={rec.visaExpiry ? dayjs(rec.visaExpiry).format('YYYY-MM-DD') : '-'} color={getExpiryStatus(rec.visaExpiry)} size="small" />
-                        </TableCell>
-                        <TableCell>{rec.sponsor}</TableCell>
-                        <TableCell>{rec.maritalStatus ? maritalStatusOptions.find(ms => ms.value === rec.maritalStatus)?.label || rec.maritalStatus : '-'}</TableCell>
-                        <TableCell>{rec.numberOfDependents || '-'}</TableCell>
-                        <TableCell>
-                          {rec.dependentsLocation ? (
-                            rec.dependentsLocation === 'other' ? 
-                              `${dependentsLocationOptions.find(dl => dl.value === rec.dependentsLocation)?.label}: ${rec.dependentsLocationOther || 'N/A'}` :
-                              dependentsLocationOptions.find(dl => dl.value === rec.dependentsLocation)?.label || rec.dependentsLocation
-                          ) : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={rec.status} color={statusColors[rec.status] || 'default'} size="small" />
-                        </TableCell>
-                                              <TableCell>
-                        {rec.hasPasses ? (
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => handleOpen()}
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`,
+                    color: 'white',
+                    px: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.info.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.4)}`,
+                    },
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  Add Employee Record
+                </Button>
+              </Box>
+            </Paper>
+
+            {/* Main Display */}
+            {loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+                <CircularProgress size={60} sx={{ color: theme.palette.primary.main }} />
+              </Box>
+            ) : error ? (
+              <Alert 
+                severity="error" 
+                sx={{ 
+                  mb: 3, 
+                  borderRadius: 2,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                }}
+              >
+                {error}
+              </Alert>
+            ) : (
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
+                  gap: 3,
+                }}
+              >
+                {Array.isArray(records) && records.map((rec, index) => (
+                  <motion.div
+                    key={rec._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card
+                      sx={{
+                        p: 3,
+                        height: '100%',
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.4)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                        borderRadius: 3,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.15)}`,
+                          border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                        },
+                        transition: 'all 0.3s ease',
+                      }}
+                    >
+                      {/* Decorative Background */}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          right: 0,
+                          width: 100,
+                          height: 100,
+                          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.1)} 100%)`,
+                          borderRadius: '0 0 0 100%',
+                          zIndex: 0,
+                        }}
+                      />
+                      
+                      <Box sx={{ position: 'relative', zIndex: 1 }}>
+                        {/* Header */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar 
+                              sx={{ 
+                                bgcolor: rec.employeeType === 'citizen' ? theme.palette.primary.main : theme.palette.secondary.main,
+                                width: 40,
+                                height: 40
+                              }}
+                            >
+                              <PeopleIcon />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                                {rec.employee?.name || rec.employee}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                                CO ID: {rec.coId || 'N/A'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Chip 
+                            label={rec.employeeType === 'citizen' ? 'Citizen' : 'Foreigner'} 
+                            color={rec.employeeType === 'citizen' ? 'primary' : 'secondary'} 
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </Box>
+
+                        {/* Document Status Grid */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
                           <Box>
-                            <Chip label={`${rec.passes?.length || 0} Pass(es)`} color="info" size="small" />
-                            {rec.passes && rec.passes.length > 0 && (
-                              <Box sx={{ mt: 1 }}>
-                                {rec.passes.map((pass: any, idx: number) => (
-                                  <Typography key={idx} variant="caption" display="block">
-                                    {pass.passType} - {pass.sponsor}
-                                  </Typography>
-                                ))}
-                              </Box>
+                            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+                              Passport
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {rec.passportNumber}
+                            </Typography>
+                            <Chip 
+                              label={rec.passportExpiry ? dayjs(rec.passportExpiry).format('MMM DD, YYYY') : 'N/A'} 
+                              color={getExpiryStatus(rec.passportExpiry)} 
+                              size="small"
+                              sx={{ mt: 0.5, fontSize: '0.7rem' }}
+                            />
+                          </Box>
+                          
+                          <Box>
+                            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+                              {rec.employeeType === 'citizen' ? 'Civil ID' : 'Residency'}
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {rec.employeeType === 'citizen' ? (rec.civilId || 'N/A') : (rec.residencyNumber || 'N/A')}
+                            </Typography>
+                            <Chip 
+                              label={rec.employeeType === 'citizen' 
+                                ? (rec.civilIdExpiry ? dayjs(rec.civilIdExpiry).format('MMM DD, YYYY') : 'N/A')
+                                : (rec.residencyExpiry ? dayjs(rec.residencyExpiry).format('MMM DD, YYYY') : 'N/A')
+                              } 
+                              color={getExpiryStatus(rec.employeeType === 'citizen' ? rec.civilIdExpiry : rec.residencyExpiry)} 
+                              size="small"
+                              sx={{ mt: 0.5, fontSize: '0.7rem' }}
+                            />
+                          </Box>
+                        </Box>
+
+                        {/* Visa Information */}
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+                            Visa Information
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {visaTypes.find(v => v.value === rec.visaType)?.label || rec.visaType}
+                            </Typography>
+                            <Chip 
+                              label={rec.visaExpiry ? dayjs(rec.visaExpiry).format('MMM DD, YYYY') : 'N/A'} 
+                              color={getExpiryStatus(rec.visaExpiry)} 
+                              size="small"
+                              sx={{ fontSize: '0.7rem' }}
+                            />
+                          </Box>
+                        </Box>
+
+                        {/* Personal Information */}
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+                              Nationality
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {rec.nationality}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: theme.palette.text.secondary, fontWeight: 600 }}>
+                              Sponsor
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {rec.sponsor}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {/* Status and Passes */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Chip 
+                            label={rec.status} 
+                            color={statusColors[rec.status] || 'default'} 
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {rec.hasPasses ? (
+                              <Chip 
+                                label={`${rec.passes?.length || 0} Pass(es)`} 
+                                color="info" 
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            ) : (
+                              <Chip 
+                                label="No Passes" 
+                                color="default" 
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                              />
                             )}
                           </Box>
-                        ) : (
-                          <Chip label="No Passes" color="default" size="small" />
-                        )}
-                      </TableCell>
-                        <TableCell>
-                          <IconButton size="small" color="primary" onClick={() => handleOpen(rec)}><EditIcon /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => setDeleteId(rec._id)}><DeleteIcon /></IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Paper>
-            {/* Add/Edit Dialog */}
-            <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-              <DialogTitle>{editing ? 'Edit Record' : 'Adding A Record'}</DialogTitle>
-              <DialogContent>
-                <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                  <TextField select label="Employee" name="employee" value={form.employee} onChange={handleFormChange} required fullWidth>
-                    <MenuItem value="">Select Employee</MenuItem>
-                    {Array.isArray(employees) && employees.map(emp => (
-                      <MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>
-                    ))}
-                  </TextField>
-                  
-                  <Box display="flex" gap={2}>
-                    <TextField label="CO. ID" name="coId" value={form.coId} onChange={handleFormChange} inputProps={{ maxLength: 5, minLength: 5 }} placeholder="5 digits" fullWidth />
-                    <TextField select label="Employee Type" name="employeeType" value={form.employeeType} onChange={handleFormChange} required fullWidth>
-                      <MenuItem value="">Select Type</MenuItem>
-                      <MenuItem value="citizen">Citizen</MenuItem>
-                      <MenuItem value="foreigner">Foreigner</MenuItem>
-                    </TextField>
-                  </Box>
-                  
-                  <Box display="flex" gap={2}>
-                    <TextField label="Passport Number" name="passportNumber" value={form.passportNumber} onChange={handleFormChange} required fullWidth />
-                    <TextField label="Passport Expiry" name="passportExpiry" value={form.passportExpiry} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    {form.employeeType === 'citizen' ? (
-                      <TextField select label="Nationality" name="nationality" value={form.nationality} onChange={handleFormChange} required fullWidth>
-                        <MenuItem value="">Select Nationality</MenuItem>
-                        {nationalities.map(n => <MenuItem key={n.value} value={n.value}>{n.label}</MenuItem>)}
-                      </TextField>
-                    ) : (
-                      <TextField label="Nationality" name="nationality" value={form.nationality} onChange={handleFormChange} required fullWidth />
-                    )}
-                  </Box>
-                  
-                  {form.employeeType === 'foreigner' && (
-                    <Box display="flex" gap={2}>
-                      <TextField label="Residency Number" name="residencyNumber" value={form.residencyNumber} onChange={handleFormChange} required fullWidth />
-                      <TextField label="Residency Expiry" name="residencyExpiry" value={form.residencyExpiry} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    </Box>
-                  )}
-                  
-                  {form.employeeType === 'citizen' && (
-                    <Box display="flex" gap={2}>
-                      <TextField label="Civil ID" name="civilId" value={form.civilId} onChange={handleFormChange} required fullWidth />
-                      <TextField label="Civil ID Expiry" name="civilIdExpiry" value={form.civilIdExpiry} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    </Box>
-                  )}
-                  
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Visa Type" name="visaType" value={form.visaType} onChange={handleFormChange} required fullWidth>
-                      <MenuItem value="">Select Visa Type</MenuItem>
-                      {visaTypes.map(v => <MenuItem key={v.value} value={v.value}>{v.label}</MenuItem>)}
-                    </TextField>
-                    <TextField label="Visa Number" name="visaNumber" value={form.visaNumber} onChange={handleFormChange} required fullWidth />
-                    <TextField label="Visa Expiry" name="visaExpiry" value={form.visaExpiry} onChange={handleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                  </Box>
-                  
-                  <TextField select label="Sponsor" name="sponsor" value={form.sponsor} onChange={handleFormChange} required fullWidth>
-                    <MenuItem value="">Select Sponsor</MenuItem>
-                    {sponsors.map((s: any) => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
-                  </TextField>
-                  
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleFormChange} fullWidth>
-                      <MenuItem value="">Select Marital Status</MenuItem>
-                      {maritalStatusOptions.map(ms => <MenuItem key={ms.value} value={ms.value}>{ms.label}</MenuItem>)}
-                    </TextField>
-                    <TextField label="Number of Dependents" name="numberOfDependents" value={form.numberOfDependents} onChange={handleFormChange} type="number" inputProps={{ min: 0 }} fullWidth />
-                  </Box>
-                  
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Dependents Location" name="dependentsLocation" value={form.dependentsLocation} onChange={handleFormChange} fullWidth>
-                      <MenuItem value="">Select Location</MenuItem>
-                      {dependentsLocationOptions.map(dl => <MenuItem key={dl.value} value={dl.value}>{dl.label}</MenuItem>)}
-                    </TextField>
-                    {form.dependentsLocation === 'other' && (
-                      <TextField label="Other Location" name="dependentsLocationOther" value={form.dependentsLocationOther} onChange={handleFormChange} required fullWidth />
-                    )}
-                  </Box>
-                  
-                  <TextField select label="Status" name="status" value={form.status} onChange={handleFormChange} required fullWidth>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="expired">Expired</MenuItem>
-                    <MenuItem value="under_renewal">Under Renewal</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                    <MenuItem value="deported">Deported</MenuItem>
-                  </TextField>
-                  
-                  <TextField select label="Have Any Passes?" name="hasPasses" value={form.hasPasses} onChange={handleFormChange} fullWidth>
-                    <MenuItem value="false">No</MenuItem>
-                    <MenuItem value="true">Yes</MenuItem>
-                  </TextField>
-                  
-                  {form.hasPasses === 'true' && (
-                    <Box sx={{ border: '1px solid #ddd', p: 2, borderRadius: 1 }}>
-                      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2">Pass Details</Typography>
-                        <Button 
-                          variant="outlined" 
-                          size="small" 
-                          startIcon={<AddIcon />}
-                          onClick={handleAddPass}
-                        >
-                          Add Pass
-                        </Button>
-                      </Box>
-                      
-                      {form.passes.length === 0 && (
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          No passes added yet. Click "Add Pass" to add pass details.
-                        </Typography>
-                      )}
-                      
-                      {form.passes.map((pass: any, index: number) => (
-                        <Box key={index} sx={{ border: '1px solid #e0e0e0', p: 2, borderRadius: 1, mb: 2, position: 'relative' }}>
-                          <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                            <Typography variant="subtitle2">Pass #{index + 1}</Typography>
-                            <IconButton 
-                              size="small" 
-                              color="error" 
-                              onClick={() => handleRemovePass(index)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Box>
-                          <Box display="flex" gap={2}>
-                            <TextField 
-                              select 
-                              label="Pass Type" 
-                              value={pass.passType || ''} 
-                              onChange={(e) => handlePassChange(index, 'passType', e.target.value)} 
-                              required 
-                              fullWidth
-                            >
-                              <MenuItem value="">Select Pass Type</MenuItem>
-                              {passTypes.map(p => <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>)}
-                            </TextField>
-                            <TextField 
-                              label="Issuance Date" 
-                              value={pass.issuanceDate || ''} 
-                              onChange={(e) => handlePassChange(index, 'issuanceDate', e.target.value)} 
-                              type="date" 
-                              InputLabelProps={{ shrink: true }} 
-                              required 
-                              fullWidth 
-                            />
-                          </Box>
-                          <Box display="flex" gap={2} sx={{ mt: 2 }}>
-                            <TextField 
-                              label="Expiry Date" 
-                              value={pass.expiryDate || ''} 
-                              onChange={(e) => handlePassChange(index, 'expiryDate', e.target.value)} 
-                              type="date" 
-                              InputLabelProps={{ shrink: true }} 
-                              required 
-                              fullWidth 
-                            />
-                            <TextField 
-                              label="Sponsor" 
-                              value={pass.sponsor || ''} 
-                              onChange={(e) => handlePassChange(index, 'sponsor', e.target.value)} 
-                              required 
-                              fullWidth 
-                            />
-                          </Box>
-                          <TextField
-                            label="Pass Copy"
-                            name={`passCopy_${index}`}
-                            type="file"
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePassCopyChange(index, e)}
-                            fullWidth
-                            InputLabelProps={{ shrink: true }}
-                          />
-                          {form.passCopies && form.passCopies[index] && (
-                            <Box display="flex" alignItems="center" gap={1} ml={1}>
-                              <AttachFileIcon color="action" fontSize="small" />
-                              {typeof form.passCopies[index] === 'string' && form.passCopies[index] !== '' && (
-                                <Typography variant="caption">{form.passCopies[index] as string}</Typography>
-                              )}
-                              {isFileWithName(form.passCopies[index]) && (
-                                <Typography variant="caption">{(form.passCopies[index] as File).name}</Typography>
-                              )}
-                            </Box>
-                          )}
                         </Box>
-                      ))}
-                    </Box>
-                  )}
-                  
-                  <TextField label="Notes" name="notes" value={form.notes} onChange={handleFormChange} fullWidth multiline minRows={2} />
-                  
-                  {/* Document Uploads (stubbed) */}
-                  <Typography variant="subtitle2" sx={{ mt: 2 }}>Document Uploads (stub - not saved)</Typography>
-                  <Box display="flex" gap={2}>
-                    <Button variant="outlined" component="label">Passport Copy<input type="file" name="passportCopy" hidden onChange={handleFileChange} /></Button>
-                    <Button variant="outlined" component="label">Residency Copy<input type="file" name="residencyCopy" hidden onChange={handleFileChange} /></Button>
-                    <Button variant="outlined" component="label">Civil ID Copy<input type="file" name="civilIdCopy" hidden onChange={handleFileChange} /></Button>
-                    <Button variant="outlined" component="label">Visa Copy<input type="file" name="visaCopy" hidden onChange={handleFileChange} /></Button>
-                  </Box>
-                  {error && <Alert severity="error">{error}</Alert>}
-                  <Box display="flex" gap={2}>
-                    <TextField
-                      label="Work Permit Start"
-                      name="workPermitStart"
-                      value={form.workPermitStart}
-                      onChange={handleFormChange}
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      fullWidth
-                    />
-                    <TextField
-                      label="Work Permit End"
-                      name="workPermitEnd"
-                      value={form.workPermitEnd}
-                      onChange={handleFormChange}
-                      type="date"
-                      InputLabelProps={{ shrink: true }}
-                      fullWidth
-                    />
-                  </Box>
-                  <Box display="flex" alignItems="center" gap={2}>
-                    <Button variant="outlined" component="label">
-                      Work Permit Copy
-                      <input type="file" name="workPermitCopy" hidden onChange={handleFileChange} />
-                    </Button>
-                    {form.workPermitCopy && typeof form.workPermitCopy === 'object' && 'name' in form.workPermitCopy && (
-                      <Typography variant="body2" sx={{ ml: 2, display: 'inline' }}>
-                        {form.workPermitCopy.name}
-                      </Typography>
-                    )}
+
+                        {/* Actions */}
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleOpen(rec)}
+                            sx={{
+                              bgcolor: alpha(theme.palette.primary.main, 0.1),
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                bgcolor: alpha(theme.palette.primary.main, 0.2),
+                                transform: 'scale(1.1)',
+                              },
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setDeleteId(rec._id)}
+                            sx={{
+                              bgcolor: alpha(theme.palette.error.main, 0.1),
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                bgcolor: alpha(theme.palette.error.main, 0.2),
+                                transform: 'scale(1.1)',
+                              },
+                              transition: 'all 0.2s ease',
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Box>
+            )}
+            {/* Add/Edit Dialog */}
+            <Dialog 
+              open={open} 
+              onClose={handleClose} 
+              maxWidth="lg" 
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.85)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  borderRadius: 3,
+                  boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.1)}`,
+                }
+              }}
+            >
+              <DialogTitle
+                sx={{
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.1)} 100%)`,
+                  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  p: 3,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+                    <PeopleIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                      {editing ? 'Edit Employee Record' : 'Add New Employee Record'}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                      {editing ? 'Update employee information and documents' : 'Create a new employee record with all required information'}
+                    </Typography>
                   </Box>
                 </Box>
+              </DialogTitle>
+              
+              <DialogContent sx={{ p: 3 }}>
+                <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Employee Selection Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+                        <PeopleIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Employee Selection
+                      </Typography>
+                    </Box>
+                    <TextField 
+                      select 
+                      label="Employee" 
+                      name="employee" 
+                      value={form.employee} 
+                      onChange={handleFormChange} 
+                      required 
+                      fullWidth
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.primary.main,
+                          },
+                        },
+                      }}
+                    >
+                      <MenuItem value="">Select Employee</MenuItem>
+                      {Array.isArray(employees) && employees.map(emp => (
+                        <MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Paper>
+
+                  {/* Basic Information Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                        <PeopleIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Basic Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="CO. ID" 
+                        name="coId" 
+                        value={form.coId} 
+                        onChange={handleFormChange} 
+                        inputProps={{ maxLength: 5, minLength: 5 }} 
+                        placeholder="5 digits" 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        select 
+                        label="Employee Type" 
+                        name="employeeType" 
+                        value={form.employeeType} 
+                        onChange={handleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Type</MenuItem>
+                        <MenuItem value="citizen">🇰🇼 Citizen</MenuItem>
+                        <MenuItem value="foreigner">🌍 Foreigner</MenuItem>
+                      </TextField>
+                    </Box>
+                  </Paper>
+
+                  {/* Passport Information Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <DescriptionIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Passport Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Passport Number" 
+                        name="passportNumber" 
+                        value={form.passportNumber} 
+                        onChange={handleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Passport Expiry" 
+                        name="passportExpiry" 
+                        value={form.passportExpiry} 
+                        onChange={handleFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      {form.employeeType === 'citizen' ? (
+                        <TextField 
+                          select 
+                          label="Nationality" 
+                          name="nationality" 
+                          value={form.nationality} 
+                          onChange={handleFormChange} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.info.main,
+                              },
+                            },
+                          }}
+                        >
+                          <MenuItem value="">Select Nationality</MenuItem>
+                          {nationalities.map(n => <MenuItem key={n.value} value={n.value}>{n.label}</MenuItem>)}
+                        </TextField>
+                      ) : (
+                        <TextField 
+                          label="Nationality" 
+                          name="nationality" 
+                          value={form.nationality} 
+                          onChange={handleFormChange} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.info.main,
+                              },
+                            },
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </Paper>
+
+                  {/* Residency Information Section (Foreigners) */}
+                  {form.employeeType === 'foreigner' && (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 3,
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                        border: `1px solid ${alpha(theme.palette.warning.main, 0.1)}`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 32, height: 32 }}>
+                          <SecurityIcon fontSize="small" />
+                        </Avatar>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                          Residency Information
+                        </Typography>
+                      </Box>
+                      <Box display="flex" gap={2}>
+                        <TextField 
+                          label="Residency Number" 
+                          name="residencyNumber" 
+                          value={form.residencyNumber} 
+                          onChange={handleFormChange} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.warning.main,
+                              },
+                            },
+                          }}
+                        />
+                        <TextField 
+                          label="Residency Expiry" 
+                          name="residencyExpiry" 
+                          value={form.residencyExpiry} 
+                          onChange={handleFormChange} 
+                          type="date" 
+                          InputLabelProps={{ shrink: true }} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.warning.main,
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+                    </Paper>
+                  )}
+
+                  {/* Civil ID Information Section (Citizens) */}
+                  {form.employeeType === 'citizen' && (
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 3,
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                        border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                        <Avatar sx={{ bgcolor: theme.palette.success.main, width: 32, height: 32 }}>
+                          <PeopleIcon fontSize="small" />
+                        </Avatar>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                          Civil ID Information
+                        </Typography>
+                      </Box>
+                      <Box display="flex" gap={2}>
+                        <TextField 
+                          label="Civil ID" 
+                          name="civilId" 
+                          value={form.civilId} 
+                          onChange={handleFormChange} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.success.main,
+                              },
+                            },
+                          }}
+                        />
+                        <TextField 
+                          label="Civil ID Expiry" 
+                          name="civilIdExpiry" 
+                          value={form.civilIdExpiry} 
+                          onChange={handleFormChange} 
+                          type="date" 
+                          InputLabelProps={{ shrink: true }} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.success.main,
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
+                    </Paper>
+                  )}
+
+                  {/* Visa Information Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.error.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 32, height: 32 }}>
+                        <DescriptionIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Visa Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        select 
+                        label="Visa Type" 
+                        name="visaType" 
+                        value={form.visaType} 
+                        onChange={handleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Visa Type</MenuItem>
+                        {visaTypes.map(v => <MenuItem key={v.value} value={v.value}>{v.label}</MenuItem>)}
+                      </TextField>
+                      <TextField 
+                        label="Visa Number" 
+                        name="visaNumber" 
+                        value={form.visaNumber} 
+                        onChange={handleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Visa Expiry" 
+                        name="visaExpiry" 
+                        value={form.visaExpiry} 
+                        onChange={handleFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+
+                  {/* Personal Information Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <PeopleIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Personal Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} sx={{ mb: 2 }}>
+                      <TextField 
+                        select 
+                        label="Sponsor" 
+                        name="sponsor" 
+                        value={form.sponsor} 
+                        onChange={handleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Sponsor</MenuItem>
+                        {sponsors.map((s: any) => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
+                      </TextField>
+                      <TextField 
+                        select 
+                        label="Marital Status" 
+                        name="maritalStatus" 
+                        value={form.maritalStatus} 
+                        onChange={handleFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Marital Status</MenuItem>
+                        {maritalStatusOptions.map(ms => <MenuItem key={ms.value} value={ms.value}>{ms.label}</MenuItem>)}
+                      </TextField>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Number of Dependents" 
+                        name="numberOfDependents" 
+                        value={form.numberOfDependents} 
+                        onChange={handleFormChange} 
+                        type="number" 
+                        inputProps={{ min: 0 }} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        select 
+                        label="Dependents Location" 
+                        name="dependentsLocation" 
+                        value={form.dependentsLocation} 
+                        onChange={handleFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Location</MenuItem>
+                        {dependentsLocationOptions.map(dl => <MenuItem key={dl.value} value={dl.value}>{dl.label}</MenuItem>)}
+                      </TextField>
+                    </Box>
+                    {form.dependentsLocation === 'other' && (
+                      <TextField 
+                        label="Other Location" 
+                        name="dependentsLocationOther" 
+                        value={form.dependentsLocationOther} 
+                        onChange={handleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{ mt: 2 }}
+                      />
+                    )}
+                  </Paper>
+
+                  {/* Status and Passes Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                        <SecurityIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Status and Access Passes
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} sx={{ mb: 2 }}>
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="status" 
+                        value={form.status} 
+                        onChange={handleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="active">✅ Active</MenuItem>
+                        <MenuItem value="expired">⚠️ Expired</MenuItem>
+                        <MenuItem value="under_renewal">🔄 Under Renewal</MenuItem>
+                        <MenuItem value="cancelled">❌ Cancelled</MenuItem>
+                        <MenuItem value="deported">🚫 Deported</MenuItem>
+                      </TextField>
+                      <TextField 
+                        select 
+                        label="Have Any Passes?" 
+                        name="hasPasses" 
+                        value={form.hasPasses} 
+                        onChange={handleFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="false">❌ No</MenuItem>
+                        <MenuItem value="true">✅ Yes</MenuItem>
+                      </TextField>
+                    </Box>
+                  
+                    {/* Passes Management */}
+                    {form.hasPasses === 'true' && (
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2,
+                          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                          border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                          borderRadius: 2,
+                          mt: 2,
+                        }}
+                      >
+                        <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                            Access Passes Management
+                          </Typography>
+                          <Button 
+                            variant="outlined" 
+                            size="small" 
+                            startIcon={<AddIcon />}
+                            onClick={handleAddPass}
+                            sx={{
+                              borderColor: theme.palette.primary.main,
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                borderColor: theme.palette.primary.dark,
+                                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                              },
+                            }}
+                          >
+                            Add Pass
+                          </Button>
+                        </Box>
+                        
+                        {form.passes.length === 0 && (
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center', py: 2 }}>
+                            No passes added yet. Click "Add Pass" to add pass details.
+                          </Typography>
+                        )}
+                        
+                        {form.passes.map((pass: any, index: number) => (
+                          <Paper
+                            key={index}
+                            elevation={0}
+                            sx={{
+                              p: 2,
+                              background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.4)} 100%)`,
+                              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                              borderRadius: 2,
+                              mb: 2,
+                              position: 'relative',
+                            }}
+                          >
+                            <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                                Pass #{index + 1}
+                              </Typography>
+                              <IconButton 
+                                size="small" 
+                                color="error" 
+                                onClick={() => handleRemovePass(index)}
+                                sx={{
+                                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                                  '&:hover': {
+                                    bgcolor: alpha(theme.palette.error.main, 0.2),
+                                  },
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                            <Box display="flex" gap={2} sx={{ mb: 2 }}>
+                              <TextField 
+                                select 
+                                label="Pass Type" 
+                                value={pass.passType || ''} 
+                                onChange={(e) => handlePassChange(index, 'passType', e.target.value)} 
+                                required 
+                                fullWidth
+                                size="small"
+                              >
+                                <MenuItem value="">Select Pass Type</MenuItem>
+                                {passTypes.map(p => <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>)}
+                              </TextField>
+                              <TextField 
+                                label="Issuance Date" 
+                                value={pass.issuanceDate || ''} 
+                                onChange={(e) => handlePassChange(index, 'issuanceDate', e.target.value)} 
+                                type="date" 
+                                InputLabelProps={{ shrink: true }} 
+                                required 
+                                fullWidth 
+                                size="small"
+                              />
+                            </Box>
+                            <Box display="flex" gap={2} sx={{ mb: 2 }}>
+                              <TextField 
+                                label="Expiry Date" 
+                                value={pass.expiryDate || ''} 
+                                onChange={(e) => handlePassChange(index, 'expiryDate', e.target.value)} 
+                                type="date" 
+                                InputLabelProps={{ shrink: true }} 
+                                required 
+                                fullWidth 
+                                size="small"
+                              />
+                              <TextField 
+                                label="Sponsor" 
+                                value={pass.sponsor || ''} 
+                                onChange={(e) => handlePassChange(index, 'sponsor', e.target.value)} 
+                                required 
+                                fullWidth 
+                                size="small"
+                              />
+                            </Box>
+                            <TextField
+                              label="Pass Copy"
+                              name={`passCopy_${index}`}
+                              type="file"
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePassCopyChange(index, e)}
+                              fullWidth
+                              InputLabelProps={{ shrink: true }}
+                              size="small"
+                            />
+                            {form.passCopies && form.passCopies[index] && (
+                              <Box display="flex" alignItems="center" gap={1} sx={{ mt: 1 }}>
+                                <AttachFileIcon color="action" fontSize="small" />
+                                {typeof form.passCopies[index] === 'string' && form.passCopies[index] !== '' && (
+                                  <Typography variant="caption">{form.passCopies[index] as string}</Typography>
+                                )}
+                                {isFileWithName(form.passCopies[index]) && (
+                                  <Typography variant="caption">{(form.passCopies[index] as File).name}</Typography>
+                                )}
+                              </Box>
+                            )}
+                          </Paper>
+                        ))}
+                      </Paper>
+                    )}
+                  </Paper>
+
+                  {/* Work Permit Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.warning.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 32, height: 32 }}>
+                        <DescriptionIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Work Permit Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} sx={{ mb: 2 }}>
+                      <TextField
+                        label="Work Permit Start"
+                        name="workPermitStart"
+                        value={form.workPermitStart}
+                        onChange={handleFormChange}
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField
+                        label="Work Permit End"
+                        name="workPermitEnd"
+                        value={form.workPermitEnd}
+                        onChange={handleFormChange}
+                        type="date"
+                        InputLabelProps={{ shrink: true }}
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={2}>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.warning.main,
+                          color: theme.palette.warning.main,
+                          '&:hover': {
+                            borderColor: theme.palette.warning.dark,
+                            backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                          },
+                        }}
+                      >
+                        Work Permit Copy
+                        <input type="file" name="workPermitCopy" hidden onChange={handleFileChange} />
+                      </Button>
+                      {form.workPermitCopy && typeof form.workPermitCopy === 'object' && 'name' in form.workPermitCopy && (
+                        <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                          📎 {form.workPermitCopy.name}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Paper>
+
+                  {/* Notes Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <DescriptionIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Additional Notes
+                      </Typography>
+                    </Box>
+                    <TextField 
+                      label="Notes" 
+                      name="notes" 
+                      value={form.notes} 
+                      onChange={handleFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={3}
+                      placeholder="Enter any additional notes or comments about this employee record..."
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.info.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+
+                  {/* Document Uploads Section */}
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}`,
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                        <AttachFileIcon fontSize="small" />
+                      </Avatar>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                        Document Uploads
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 2 }}>
+                      Upload copies of important documents (Note: File uploads are currently stubbed and not saved)
+                    </Typography>
+                    <Box display="flex" gap={2} flexWrap="wrap">
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.secondary.main,
+                          color: theme.palette.secondary.main,
+                          '&:hover': {
+                            borderColor: theme.palette.secondary.dark,
+                            backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                          },
+                        }}
+                      >
+                        📄 Passport Copy
+                        <input type="file" name="passportCopy" hidden onChange={handleFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.secondary.main,
+                          color: theme.palette.secondary.main,
+                          '&:hover': {
+                            borderColor: theme.palette.secondary.dark,
+                            backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                          },
+                        }}
+                      >
+                        📄 Residency Copy
+                        <input type="file" name="residencyCopy" hidden onChange={handleFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.secondary.main,
+                          color: theme.palette.secondary.main,
+                          '&:hover': {
+                            borderColor: theme.palette.secondary.dark,
+                            backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                          },
+                        }}
+                      >
+                        📄 Civil ID Copy
+                        <input type="file" name="civilIdCopy" hidden onChange={handleFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.secondary.main,
+                          color: theme.palette.secondary.main,
+                          '&:hover': {
+                            borderColor: theme.palette.secondary.dark,
+                            backgroundColor: alpha(theme.palette.secondary.main, 0.1),
+                          },
+                        }}
+                      >
+                        📄 Visa Copy
+                        <input type="file" name="visaCopy" hidden onChange={handleFileChange} />
+                      </Button>
+                    </Box>
+                  </Paper>
+
+                  {error && (
+                    <Alert 
+                      severity="error" 
+                      sx={{ 
+                        borderRadius: 2,
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                        border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                      }}
+                    >
+                      {error}
+                    </Alert>
+                  )}
+                </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={handleClose}>Cancel</Button>
-                <Button onClick={handleSubmit} variant="contained" color="primary">{editing ? 'Update' : 'Add'}</Button>
+              
+              <DialogActions
+                sx={{
+                  p: 3,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                  borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                }}
+              >
+                <Button 
+                  onClick={handleClose}
+                  sx={{
+                    px: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.divider, 0.1),
+                    },
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSubmit} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`,
+                    color: 'white',
+                    px: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.info.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.4)}`,
+                    },
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  {editing ? 'Update Record' : 'Add Record'}
+                </Button>
               </DialogActions>
             </Dialog>
             {/* Delete Dialog */}
-            <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
-              <DialogTitle>Delete Record</DialogTitle>
-              <DialogContent>
-                <Typography>Are you sure you want to delete this record?</Typography>
+            <Dialog 
+              open={!!deleteId} 
+              onClose={() => setDeleteId(null)}
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.85)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`,
+                  borderRadius: 3,
+                  boxShadow: `0 20px 40px ${alpha(theme.palette.error.main, 0.2)}`,
+                }
+              }}
+            >
+              <DialogTitle
+                sx={{
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                  borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                  p: 3,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                    <DeleteIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                      Delete Employee Record
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                      This action cannot be undone
+                    </Typography>
+                  </Box>
+                </Box>
+              </DialogTitle>
+              
+              <DialogContent sx={{ p: 3 }}>
+                <Alert 
+                  severity="warning" 
+                  sx={{ 
+                    mb: 2,
+                    borderRadius: 2,
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.error.main, 0.1)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                    '& .MuiAlert-icon': {
+                      color: theme.palette.warning.main,
+                    },
+                  }}
+                >
+                  <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
+                    ⚠️ Warning: This will permanently delete the employee record
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                    All associated data including documents, passes, and personal information will be removed from the system. 
+                    This action cannot be undone.
+                  </Typography>
+                </Alert>
+                
+                <Typography variant="body1" sx={{ color: theme.palette.text.primary }}>
+                  Are you sure you want to delete this employee record?
+                </Typography>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setDeleteId(null)}>Cancel</Button>
-                <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
+              
+              <DialogActions
+                sx={{
+                  p: 3,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                  borderTop: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+                }}
+              >
+                <Button 
+                  onClick={() => setDeleteId(null)}
+                  sx={{
+                    px: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    border: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                    '&:hover': {
+                      backgroundColor: alpha(theme.palette.divider, 0.1),
+                    },
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleDelete} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    color: 'white',
+                    px: 3,
+                    py: 1.5,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    boxShadow: `0 4px 20px ${alpha(theme.palette.error.main, 0.3)}`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.4)}`,
+                    },
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  🗑️ Delete Record
+                </Button>
               </DialogActions>
             </Dialog>
             <Snackbar
@@ -2956,118 +4221,693 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{success}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
-          </Box>
+          </motion.div>
         )}
         {tab === 1 && (
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h5">Government Document Management</Typography>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleGovDocOpen()}>
-                Add Document
-              </Button>
-            </Box>
-            <Paper sx={{ p: 2, overflowX: 'auto' }}>
-              {govDocLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}>
-                  <CircularProgress />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 48, height: 48 }}>
+                    <DescriptionIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: theme.palette.primary.main, fontWeight: 600, mb: 0.5 }}>
+                      📋 Government Document Management
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Comprehensive tracking of government licenses, permits, and compliance documents
+                    </Typography>
+                  </Box>
                 </Box>
-              ) : govDocError ? (
-                <Alert severity="error" sx={{ mb: 2 }}>{govDocError}</Alert>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Number</TableCell>
-                      <TableCell>Title</TableCell>
-                      <TableCell>Issuing Authority</TableCell>
-                      <TableCell>Issue Date</TableCell>
-                      <TableCell>Expiry Date</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Renewal Fee</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(govDocs) && govDocs.map((doc) => (
-                      <TableRow key={doc._id}>
-                        <TableCell>{documentTypes.find(d => d.value === doc.documentType)?.label || doc.documentType}</TableCell>
-                        <TableCell>{doc.documentNumber}</TableCell>
-                        <TableCell>{doc.title}</TableCell>
-                        <TableCell>{doc.issuingAuthority}</TableCell>
-                        <TableCell>{doc.issueDate ? dayjs(doc.issueDate).format('YYYY-MM-DD') : '-'}</TableCell>
-                        <TableCell>
-                          <Chip label={doc.expiryDate ? dayjs(doc.expiryDate).format('YYYY-MM-DD') : '-'} color={getGovDocExpiryStatus(doc.expiryDate)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={doc.status} color={documentStatusColors[doc.status] || 'default'} size="small" />
-                        </TableCell>
-                        <TableCell>{doc.renewalFee ? doc.renewalFee.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '-'}</TableCell>
-                        <TableCell>
-                          <IconButton size="small" color="primary" onClick={() => handleGovDocOpen(doc)}><EditIcon /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => setGovDocDeleteId(doc._id)}><DeleteIcon /></IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddIcon />} 
+                  onClick={() => handleGovDocOpen()}
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.info.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Add Document
+                </Button>
+              </Box>
             </Paper>
+
+            {govDocLoading ? (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 3 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} variant="rectangular" height={200} sx={{ borderRadius: theme.shape.borderRadius }} />
+                ))}
+              </Box>
+            ) : govDocError ? (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
+                {govDocError}
+              </Alert>
+            ) : (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 3 }}>
+                {Array.isArray(govDocs) && govDocs.map((doc, index) => (
+                  <motion.div
+                    key={doc._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        height: '100%',
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.6)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        borderRadius: theme.shape.borderRadius,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: `0 20px 40px ${alpha(theme.palette.primary.main, 0.15)}`,
+                          border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+                              <DescriptionIcon />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                                {doc.documentNumber}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                {documentTypes.find(d => d.value === doc.documentType)?.label || doc.documentType}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Chip 
+                              label={doc.status} 
+                              color={documentStatusColors[doc.status] || 'default'} 
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                            <Chip 
+                              label={doc.expiryDate ? dayjs(doc.expiryDate).format('YYYY-MM-DD') : 'No Expiry'} 
+                              color={getGovDocExpiryStatus(doc.expiryDate)} 
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            📄 {doc.title}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            🏛️ {doc.issuingAuthority}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            📅 Issued: {doc.issueDate ? dayjs(doc.issueDate).format('YYYY-MM-DD') : 'N/A'}
+                          </Typography>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Expiry Date
+                            </Typography>
+                            <Chip 
+                              label={doc.expiryDate ? dayjs(doc.expiryDate).format('YYYY-MM-DD') : 'No Expiry'} 
+                              color={getGovDocExpiryStatus(doc.expiryDate)} 
+                              size="small"
+                              sx={{ fontWeight: 600, mt: 0.5 }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Renewal Fee
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.warning.main }}>
+                              {doc.renewalFee ? doc.renewalFee.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : 'N/A'}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        {doc.description && (
+                          <Box sx={{ mb: 2 }}>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Description
+                            </Typography>
+                            <Typography variant="body2" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                              {doc.description.length > 100 ? `${doc.description.substring(0, 100)}...` : doc.description}
+                            </Typography>
+                          </Box>
+                        )}
+
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleGovDocOpen(doc)}
+                            sx={{
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.primary.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setGovDocDeleteId(doc._id)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.error.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Box>
+            )}
             {/* Add/Edit Dialog */}
-            <Dialog open={govDocOpen} onClose={handleGovDocClose} maxWidth="md" fullWidth>
-              <DialogTitle>{govDocEditing ? 'Edit Document' : 'Add Document'}</DialogTitle>
-              <DialogContent>
-                <Box component="form" onSubmit={handleGovDocSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Type" name="documentType" value={govDocForm.documentType} onChange={handleGovDocFormChange} required fullWidth>
-                      <MenuItem value="">Select Type</MenuItem>
-                      {documentTypes.map(d => <MenuItem key={d.value} value={d.value}>{d.label}</MenuItem>)}
-                    </TextField>
-                    <TextField label="Number" name="documentNumber" value={govDocForm.documentNumber} onChange={handleGovDocFormChange} required fullWidth />
-                    <TextField label="Title" name="title" value={govDocForm.title} onChange={handleGovDocFormChange} required fullWidth />
-                  </Box>
-                  <TextField label="Description" name="description" value={govDocForm.description} onChange={handleGovDocFormChange} fullWidth multiline minRows={2} />
-                  <Box display="flex" gap={2}>
-                    <TextField label="Issuing Authority" name="issuingAuthority" value={govDocForm.issuingAuthority} onChange={handleGovDocFormChange} required fullWidth />
-                    <TextField label="Issue Date" name="issueDate" value={govDocForm.issueDate} onChange={handleGovDocFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    <TextField label="Expiry Date" name="expiryDate" value={govDocForm.expiryDate} onChange={handleGovDocFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Status" name="status" value={govDocForm.status} onChange={handleGovDocFormChange} required fullWidth>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="expired">Expired</MenuItem>
-                      <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
-                      <MenuItem value="suspended">Suspended</MenuItem>
-                      <MenuItem value="cancelled">Cancelled</MenuItem>
-                    </TextField>
-                    <TextField label="Renewal Fee" name="renewalFee" value={govDocForm.renewalFee} onChange={handleGovDocFormChange} type="number" fullWidth />
-                    <TextField label="Renewal Process" name="renewalProcess" value={govDocForm.renewalProcess} onChange={handleGovDocFormChange} fullWidth />
-                  </Box>
-                  <TextField label="Notes" name="notes" value={govDocForm.notes} onChange={handleGovDocFormChange} fullWidth multiline minRows={2} />
-                  {/* Document Uploads (stubbed) */}
-                  <Typography variant="subtitle2" sx={{ mt: 2 }}>Document Uploads (stub - not saved)</Typography>
-                  <Box display="flex" gap={2}>
-                    <Button variant="outlined" component="label">Original Document<input type="file" name="originalDocument" hidden onChange={handleGovDocFileChange} /></Button>
-                    <Button variant="outlined" component="label">Renewal Application<input type="file" name="renewalApplication" hidden onChange={handleGovDocFileChange} /></Button>
-                    <Button variant="outlined" component="label">Supporting Documents<input type="file" name="supportingDocuments" hidden onChange={handleGovDocFileChange} multiple /></Button>
-                  </Box>
-                  {govDocError && <Alert severity="error">{govDocError}</Alert>}
+            <Dialog 
+              open={govDocOpen} 
+              onClose={handleGovDocClose} 
+              maxWidth="md" 
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.primary.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+                  <DescriptionIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                    {govDocEditing ? '✏️ Edit Government Document' : '📋 Add New Government Document'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {govDocEditing ? 'Update document information and compliance details' : 'Create a new government document with comprehensive tracking'}
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box component="form" onSubmit={handleGovDocSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Document Information Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        📋 Document Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Type" 
+                        name="documentType" 
+                        value={govDocForm.documentType} 
+                        onChange={handleGovDocFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Type</MenuItem>
+                        {documentTypes.map(d => <MenuItem key={d.value} value={d.value}>📄 {d.label}</MenuItem>)}
+                      </TextField>
+                      <TextField 
+                        label="Number" 
+                        name="documentNumber" 
+                        value={govDocForm.documentNumber} 
+                        onChange={handleGovDocFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Title" 
+                        name="title" 
+                        value={govDocForm.title} 
+                        onChange={handleGovDocFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Description" 
+                      name="description" 
+                      value={govDocForm.description} 
+                      onChange={handleGovDocFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.primary.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+                  {/* Authority & Dates Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <BusinessIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        🏛️ Authority & Dates
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Issuing Authority" 
+                        name="issuingAuthority" 
+                        value={govDocForm.issuingAuthority} 
+                        onChange={handleGovDocFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Issue Date" 
+                        name="issueDate" 
+                        value={govDocForm.issueDate} 
+                        onChange={handleGovDocFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Expiry Date" 
+                        name="expiryDate" 
+                        value={govDocForm.expiryDate} 
+                        onChange={handleGovDocFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                  {/* Status & Renewal Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 32, height: 32 }}>
+                        <SecurityIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                        🔄 Status & Renewal
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="status" 
+                        value={govDocForm.status} 
+                        onChange={handleGovDocFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="active">✅ Active</MenuItem>
+                        <MenuItem value="expired">⏰ Expired</MenuItem>
+                        <MenuItem value="pending_renewal">🔄 Pending Renewal</MenuItem>
+                        <MenuItem value="suspended">⏸️ Suspended</MenuItem>
+                        <MenuItem value="cancelled">❌ Cancelled</MenuItem>
+                      </TextField>
+                      <TextField 
+                        label="Renewal Fee (KWD)" 
+                        name="renewalFee" 
+                        value={govDocForm.renewalFee} 
+                        onChange={handleGovDocFormChange} 
+                        type="number" 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Renewal Process" 
+                      name="renewalProcess" 
+                      value={govDocForm.renewalProcess} 
+                      onChange={handleGovDocFormChange} 
+                      fullWidth
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.warning.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+
+                  {/* Notes Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.neutral.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                        📝 Additional Notes
+                      </Typography>
+                    </Box>
+                    <TextField 
+                      label="Notes" 
+                      name="notes" 
+                      value={govDocForm.notes} 
+                      onChange={handleGovDocFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={3}
+                      placeholder="Enter any additional information, requirements, or special notes about this document..."
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.secondary.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+                  {/* Document Uploads Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <AttachFileIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        📎 Document Uploads
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Upload relevant documents for government compliance (stub - not saved)
+                    </Typography>
+                    <Box display="flex" gap={2} flexWrap="wrap">
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1)
+                          }
+                        }}
+                      >
+                        📄 Original Document
+                        <input type="file" name="originalDocument" hidden onChange={handleGovDocFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1)
+                          }
+                        }}
+                      >
+                        📋 Renewal Application
+                        <input type="file" name="renewalApplication" hidden onChange={handleGovDocFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1)
+                          }
+                        }}
+                      >
+                        📁 Supporting Documents
+                        <input type="file" name="supportingDocuments" hidden onChange={handleGovDocFileChange} multiple />
+                      </Button>
+                    </Box>
+                  </Paper>
+                  
+                  {govDocError && <Alert severity="error" sx={{ borderRadius: theme.shape.borderRadius }}>{govDocError}</Alert>}
                 </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={handleGovDocClose}>Cancel</Button>
-                <Button onClick={handleGovDocSubmit} variant="contained" color="primary">{govDocEditing ? 'Update' : 'Add'}</Button>
+              <DialogActions sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.1)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                p: 2
+              }}>
+                <Button 
+                  onClick={handleGovDocClose}
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    '&:hover': {
+                      background: alpha(theme.palette.text.secondary, 0.1)
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleGovDocSubmit} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.info.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.info.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {govDocEditing ? '✏️ Update Document' : '📋 Add Document'}
+                </Button>
               </DialogActions>
             </Dialog>
             {/* Delete Dialog */}
-            <Dialog open={!!govDocDeleteId} onClose={() => setGovDocDeleteId(null)}>
-              <DialogTitle>Delete Document</DialogTitle>
-              <DialogContent>
-                <Typography>Are you sure you want to delete this document?</Typography>
+            <Dialog 
+              open={!!govDocDeleteId} 
+              onClose={() => setGovDocDeleteId(null)}
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.error.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                  <DeleteIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                    🗑️ Delete Government Document
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    This action cannot be undone
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Alert severity="warning" sx={{ mb: 2, borderRadius: theme.shape.borderRadius }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+                    ⚠️ Warning: This will permanently delete the government document
+                  </Typography>
+                  <Typography variant="body2">
+                    Are you sure you want to delete this government document? This action cannot be undone and will remove all associated data including compliance records, renewal information, and uploaded documents.
+                  </Typography>
+                </Alert>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setGovDocDeleteId(null)}>Cancel</Button>
-                <Button onClick={handleGovDocDelete} color="error" variant="contained">Delete</Button>
+              <DialogActions sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                p: 2
+              }}>
+                <Button 
+                  onClick={() => setGovDocDeleteId(null)}
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    '&:hover': {
+                      background: alpha(theme.palette.text.secondary, 0.1)
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleGovDocDelete} 
+                  color="error" 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🗑️ Delete Document
+                </Button>
               </DialogActions>
             </Dialog>
             <Snackbar
@@ -3077,326 +4917,1189 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{govDocSuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
-          </Box>
+          </motion.div>
         )}
         {tab === 2 && (
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h5">Assets Record Tracking</Typography>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleVehicleOpen()}>
-                Add Vehicle Registration
-              </Button>
-            </Box>
-            <Paper sx={{ p: 2, overflowX: 'auto' }}>
-              {loading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}>
-                  <CircularProgress />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.success.main, width: 48, height: 48 }}>
+                    <LocalShippingIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: theme.palette.success.main, fontWeight: 600, mb: 0.5 }}>
+                      🚗 Assets Record Tracking
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Comprehensive vehicle registration, insurance, and compliance management
+                    </Typography>
+                  </Box>
                 </Box>
-              ) : vehicleError ? (
-                <Alert severity="error" sx={{ mb: 2 }}>{vehicleError}</Alert>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Vehicle</TableCell>
-                      <TableCell>Plate Number</TableCell>
-                      <TableCell>Chassis Number</TableCell>
-                      <TableCell>Registration #</TableCell>
-                      <TableCell>Registration Expiry</TableCell>
-                      <TableCell>Insurance Company</TableCell>
-                      <TableCell>Insurance Expiry</TableCell>
-                      <TableCell>Insurance Cost</TableCell>
-                      <TableCell>Payment System</TableCell>
-                      <TableCell>Installment Period</TableCell>
-                      <TableCell>Asset Registration Type</TableCell>
-                      <TableCell>Periodic Check Expiry</TableCell>
-                      <TableCell>Passes</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(vehicles) && vehicles.map((vehicle) => (
-                      <TableRow key={vehicle._id}>
-                        <TableCell>{vehicle.vehicle?.description || vehicle.vehicle}</TableCell>
-                        <TableCell>{vehicle.plateNumber}</TableCell>
-                        <TableCell>{vehicle.chassisNumber}</TableCell>
-                        <TableCell>{vehicle.registrationNumber}</TableCell>
-                        <TableCell>
-                          <Chip label={vehicle.registrationExpiry ? dayjs(vehicle.registrationExpiry).format('YYYY-MM-DD') : '-'} color={getVehicleExpiryStatus(vehicle.registrationExpiry)} size="small" />
-                        </TableCell>
-                        <TableCell>{vehicle.insuranceCompany}</TableCell>
-                        <TableCell>
-                          <Chip label={vehicle.insuranceExpiry ? dayjs(vehicle.insuranceExpiry).format('YYYY-MM-DD') : '-'} color={getVehicleExpiryStatus(vehicle.insuranceExpiry)} size="small" />
-                        </TableCell>
-                        <TableCell>{vehicle.insuranceCost}</TableCell>
-                        <TableCell>{vehicle.insurancePaymentSystem}</TableCell>
-                        <TableCell>{vehicle.insurancePaymentSystem === 'installments' ? (vehicle.insuranceInstallmentPeriod ? `${vehicle.insuranceInstallmentPeriod} Months` : '-') : '-'}</TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={vehicle.assetRegistrationType || 'N/A'} 
-                            color={vehicle.assetRegistrationType === 'public' ? 'primary' : 'secondary'} 
-                            size="small" 
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={vehicle.periodicCheck?.expiryDate ? dayjs(vehicle.periodicCheck.expiryDate).format('YYYY-MM-DD') : '-'} 
-                            color={getVehicleExpiryStatus(vehicle.periodicCheck?.expiryDate)} 
-                            size="small" 
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {vehicle.hasPasses && vehicle.passes && vehicle.passes.length > 0 ? (
-                            <MuiTooltip title={vehicle.passes.map((p: any) => p.passType).join(', ')}>
-                              <span><Chip label={`${vehicle.passes.length} Pass(es)`} color="info" size="small" /></span>
-                            </MuiTooltip>
-                          ) : (
-                            <Chip label="No Passes" color="default" size="small" />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={vehicle.status} color={statusColors[vehicle.status] || 'default'} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small" color="primary" onClick={() => handleVehicleOpen(vehicle)}><EditIcon /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => setVehicleDeleteId(vehicle._id)}><DeleteIcon /></IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddIcon />} 
+                  onClick={() => handleVehicleOpen()}
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.primary.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Add Vehicle Registration
+                </Button>
+              </Box>
             </Paper>
+
+            {loading ? (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 3 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} variant="rectangular" height={200} sx={{ borderRadius: theme.shape.borderRadius }} />
+                ))}
+              </Box>
+            ) : vehicleError ? (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
+                {vehicleError}
+              </Alert>
+            ) : (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 3 }}>
+                {Array.isArray(vehicles) && vehicles.map((vehicle, index) => (
+                  <motion.div
+                    key={vehicle._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        height: '100%',
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.6)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        borderRadius: theme.shape.borderRadius,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: `0 20px 40px ${alpha(theme.palette.success.main, 0.15)}`,
+                          border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40 }}>
+                              <LocalShippingIcon />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                                {vehicle.plateNumber}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                {vehicle.vehicle?.description || vehicle.vehicle}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Chip 
+                              label={vehicle.status} 
+                              color={statusColors[vehicle.status] || 'default'} 
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                            {vehicle.hasPasses && vehicle.passes && vehicle.passes.length > 0 ? (
+                              <MuiTooltip title={vehicle.passes.map((p: any) => p.passType).join(', ')}>
+                                <Chip label={`${vehicle.passes.length} Passes`} color="info" size="small" sx={{ fontWeight: 600 }} />
+                              </MuiTooltip>
+                            ) : (
+                              <Chip label="No Passes" color="default" size="small" sx={{ fontWeight: 600 }} />
+                            )}
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            🏷️ {vehicle.registrationNumber}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            🔧 {vehicle.chassisNumber}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            🏢 {vehicle.assetRegistrationType?.toUpperCase() || 'N/A'}
+                          </Typography>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Registration Expiry
+                            </Typography>
+                            <Chip 
+                              label={vehicle.registrationExpiry ? dayjs(vehicle.registrationExpiry).format('YYYY-MM-DD') : 'N/A'} 
+                              color={getVehicleExpiryStatus(vehicle.registrationExpiry)} 
+                              size="small"
+                              sx={{ fontWeight: 600, mt: 0.5 }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Insurance Expiry
+                            </Typography>
+                            <Chip 
+                              label={vehicle.insuranceExpiry ? dayjs(vehicle.insuranceExpiry).format('YYYY-MM-DD') : 'N/A'} 
+                              color={getVehicleExpiryStatus(vehicle.insuranceExpiry)} 
+                              size="small"
+                              sx={{ fontWeight: 600, mt: 0.5 }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Insurance Company
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {vehicle.insuranceCompany || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Insurance Cost
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.warning.main }}>
+                              {vehicle.insuranceCost ? `KWD ${vehicle.insuranceCost}` : 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Payment System
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {vehicle.insurancePaymentSystem?.toUpperCase() || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Periodic Check
+                            </Typography>
+                            <Chip 
+                              label={vehicle.periodicCheck?.expiryDate ? dayjs(vehicle.periodicCheck.expiryDate).format('YYYY-MM-DD') : 'N/A'} 
+                              color={getVehicleExpiryStatus(vehicle.periodicCheck?.expiryDate)} 
+                              size="small"
+                              sx={{ fontWeight: 600, mt: 0.5 }}
+                            />
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleVehicleOpen(vehicle)}
+                            sx={{
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.primary.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setVehicleDeleteId(vehicle._id)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.error.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Box>
+            )}
             {/* Add/Edit Dialog */}
-            <Dialog open={vehicleOpen} onClose={handleVehicleClose} maxWidth="lg" fullWidth>
-              <DialogTitle>{vehicleEditing ? 'Edit Vehicle Registration' : 'Add Vehicle Registration'}</DialogTitle>
-              <DialogContent>
-                <Box component="form" onSubmit={handleVehicleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                  <Typography variant="h6">Vehicle Information</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Vehicle" name="vehicle" value={vehicleForm.vehicle} onChange={handleVehicleFormChange} required fullWidth>
-                      <MenuItem value="">Select Vehicle</MenuItem>
-                      {Array.isArray(assets) && assets.map(asset => (
-                        <MenuItem key={asset._id} value={asset._id}>{asset.description} - {asset.plateNumber || asset.serialNumber || asset.fleetNumber}</MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField label="Plate Number" name="plateNumber" value={vehicleForm.plateNumber} onChange={handleVehicleFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Chassis Number" name="chassisNumber" value={vehicleForm.chassisNumber} onChange={handleVehicleFormChange} required fullWidth />
-                    <TextField label="Engine Number" name="engineNumber" value={vehicleForm.engineNumber} onChange={handleVehicleFormChange} required fullWidth />
-                  </Box>
-                  
-                  <Typography variant="h6">Registration Details</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Registration Number" name="registrationNumber" value={vehicleForm.registrationNumber} onChange={handleVehicleFormChange} required fullWidth />
-                    <TextField label="Registration Expiry" name="registrationExpiry" value={vehicleForm.registrationExpiry} onChange={handleVehicleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                  </Box>
-                  
-                  <Typography variant="h6">Insurance Information</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Insurance Company" name="insuranceCompany" value={vehicleForm.insuranceCompany} onChange={handleVehicleFormChange} required fullWidth />
-                    <TextField label="Policy Number" name="insurancePolicyNumber" value={vehicleForm.insurancePolicyNumber} onChange={handleVehicleFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Insurance Expiry" name="insuranceExpiry" value={vehicleForm.insuranceExpiry} onChange={handleVehicleFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    <TextField label="Insurance Cost" name="insuranceCost" value={vehicleForm.insuranceCost} onChange={handleVehicleFormChange} type="number" required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Insurance Payment System" name="insurancePaymentSystem" value={vehicleForm.insurancePaymentSystem || ''} onChange={handleVehicleFormChange} required fullWidth>
-                      <MenuItem value="cash">Cash</MenuItem>
-                      <MenuItem value="installments">Installments</MenuItem>
-                    </TextField>
-                    {vehicleForm.insurancePaymentSystem === 'installments' && (
-                      <TextField select label="Installment Period (months)" name="insuranceInstallmentPeriod" value={vehicleForm.insuranceInstallmentPeriod || ''} onChange={handleVehicleFormChange} required fullWidth>
-                        {[3, 6, 12, 15, 18, 24].map(period => (
-                          <MenuItem key={period} value={period}>{period} months</MenuItem>
+            <Dialog 
+              open={vehicleOpen} 
+              onClose={handleVehicleClose} 
+              maxWidth="lg" 
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.success.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40 }}>
+                  <LocalShippingIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                    {vehicleEditing ? '✏️ Edit Vehicle Registration' : '🚗 Add New Vehicle Registration'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {vehicleEditing ? 'Update vehicle registration and compliance information' : 'Create a new vehicle registration with comprehensive tracking'}
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box component="form" onSubmit={handleVehicleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Vehicle Information Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 32, height: 32 }}>
+                        <LocalShippingIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                        🚗 Vehicle Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Vehicle" 
+                        name="vehicle" 
+                        value={vehicleForm.vehicle} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Vehicle</MenuItem>
+                        {Array.isArray(assets) && assets.map(asset => (
+                          <MenuItem key={asset._id} value={asset._id}>🚗 {asset.description} - {asset.plateNumber || asset.serialNumber || asset.fleetNumber}</MenuItem>
                         ))}
                       </TextField>
-                    )}
-                  </Box>
-                  
-                  <Typography variant="h6">Registration Card Data</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Country Of Manufacture" name="registrationCardCountry" value={vehicleForm.registrationCardCountry || ''} onChange={handleVehicleFormChange} required fullWidth />
-                    <TextField label="Brand" name="registrationCardBrand" value={vehicleForm.registrationCardBrand || ''} onChange={handleVehicleFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Capacity" name="registrationCardCapacity" value={vehicleForm.registrationCardCapacity || ''} onChange={handleVehicleFormChange} required fullWidth />
-                    <TextField label="Shape" name="registrationCardShape" value={vehicleForm.registrationCardShape || ''} onChange={handleVehicleFormChange} required fullWidth />
-                    <TextField label="Colour" name="registrationCardColour" value={vehicleForm.registrationCardColour || ''} onChange={handleVehicleFormChange} required fullWidth />
-                  </Box>
-                  
-                  <Typography variant="h6">Asset Registration Type</Typography>
-                  <TextField 
-                    select 
-                    label="Asset Registration Type" 
-                    name="assetRegistrationType" 
-                    value={vehicleForm.assetRegistrationType || 'public'} 
-                    onChange={handleVehicleFormChange} 
-                    required 
-                    fullWidth
-                  >
-                    <MenuItem value="public">Public</MenuItem>
-                    <MenuItem value="private">Private</MenuItem>
-                  </TextField>
-                  
-                  <Typography variant="h6">Periodic Check</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField 
-                      label="Issuance Date" 
-                      name="periodicCheck.issuanceDate" 
-                      value={vehicleForm.periodicCheck?.issuanceDate || ''} 
-                      onChange={handleVehicleFormChange} 
-                      type="date" 
-                      InputLabelProps={{ shrink: true }} 
-                      required 
-                      fullWidth 
-                    />
-                    <TextField 
-                      label="Expiry Date" 
-                      name="periodicCheck.expiryDate" 
-                      value={vehicleForm.periodicCheck?.expiryDate || ''} 
-                      onChange={handleVehicleFormChange} 
-                      type="date" 
-                      InputLabelProps={{ shrink: true }} 
-                      required 
-                      fullWidth 
-                    />
-                  </Box>
-                  
-                  <TextField select label="Status" name="status" value={vehicleForm.status} onChange={handleVehicleFormChange} required fullWidth>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="expired">Expired</MenuItem>
-                    <MenuItem value="suspended">Suspended</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                  </TextField>
-                  
-                  <TextField label="Notes" name="notes" value={vehicleForm.notes} onChange={handleVehicleFormChange} fullWidth multiline minRows={2} />
-                  
-                  {/* Document Uploads (stubbed) */}
-                  <Typography variant="subtitle2" sx={{ mt: 2 }}>Document Uploads (stub - not saved)</Typography>
-                  <Box display="flex" gap={2} flexWrap="wrap">
-                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Rent Agreement<input type="file" name="facilityDocs.rentAgreement" hidden onChange={handleFileChange} /></Button>
-                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Municipality Documents<input type="file" name="facilityDocs.municipality" hidden onChange={handleFileChange} /></Button>
-                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Fire Department Documents<input type="file" name="facilityDocs.fireDept" hidden onChange={handleFileChange} /></Button>
-                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Ministries Documents<input type="file" name="facilityDocs.ministries" hidden onChange={handleFileChange} /></Button>
-                    <Button variant="outlined" component="label" startIcon={<AttachFileIcon color="primary" />}>Other Documents<input type="file" name="facilityDocs.other" hidden onChange={handleFileChange} /></Button>
-                  </Box>
-                  {vehicleError && <Alert severity="error">{vehicleError}</Alert>}
-
-                  {/* Passes Section */}
-                  <TextField
-                    select
-                    label="Does the Asset Have Any Passes?"
-                    name="hasPasses"
-                    value={vehicleForm.hasPasses || ''}
-                    onChange={handleVehicleFormChange}
-                    required
-                    fullWidth
-                  >
-                    <MenuItem value="no">No</MenuItem>
-                    <MenuItem value="yes">Yes</MenuItem>
-                  </TextField>
-
-                  {vehicleForm.hasPasses === 'yes' && (
-                    <Box sx={{ mt: 2, p: 2, border: '1px solid #eee', borderRadius: 2, background: '#fafafa' }}>
-                      <Typography variant="subtitle1" fontWeight={600} gutterBottom>Passes</Typography>
-                      <Button variant="outlined" onClick={handleVehicleAddPass} sx={{ mb: 2 }}>Add Pass</Button>
-                      {vehicleForm.passes && vehicleForm.passes.length > 0 && vehicleForm.passes.map((pass, idx) => (
-                        <Box key={idx} display="flex" gap={2} alignItems="center" sx={{ mb: 2 }}>
-                          <TextField
-                            select
-                            label="Pass Type"
-                            value={pass.passType || ''}
-                            onChange={e => handleVehiclePassChange(idx, 'passType', e.target.value)}
-                            sx={{ minWidth: 160 }}
-                            required
-                          >
-                            <MenuItem value="">Select Type</MenuItem>
-                            <MenuItem value="KOC">KOC</MenuItem>
-                            <MenuItem value="KNPC">KNPC</MenuItem>
-                            <MenuItem value="GO">GO</MenuItem>
-                            <MenuItem value="RATQA">RATQA</MenuItem>
-                            <MenuItem value="ABDALI">ABDALI</MenuItem>
-                            <MenuItem value="WANEET">WANEET</MenuItem>
-                          </TextField>
-                          <TextField
-                            label="Issuance Date"
-                            type="date"
-                            value={pass.issuanceDate || ''}
-                            onChange={e => handleVehiclePassChange(idx, 'issuanceDate', e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            required
-                          />
-                          <TextField
-                            label="Expiry Date"
-                            type="date"
-                            value={pass.expiryDate || ''}
-                            onChange={e => handleVehiclePassChange(idx, 'expiryDate', e.target.value)}
-                            InputLabelProps={{ shrink: true }}
-                            required
-                          />
-                          <TextField
-                            label="Sponsor"
-                            value={pass.sponsor || ''}
-                            onChange={e => handleVehiclePassChange(idx, 'sponsor', e.target.value)}
-                            required
-                          />
-                          <Button color="error" variant="outlined" onClick={() => handleVehicleRemovePass(idx)}>Remove</Button>
-                        </Box>
-                      ))}
-                      {vehicleForm.passes && vehicleForm.passes.length === 0 && (
-                        <Typography variant="body2" color="text.secondary">No passes added yet.</Typography>
-                      )}
-                    </Box>
-                  )}
-                  {vehicleForm.insurancePaymentSystem === 'installments' && (
-                    <Box display="flex" gap={2} alignItems="center">
-                      <TextField
-                        select
-                        label="Installment Calculation Mode"
-                        name="installmentCalculationMode"
-                        value={vehicleForm.installmentCalculationMode || 'auto'}
-                        onChange={handleVehicleFormChange}
-                        required
-                        sx={{ minWidth: 220 }}
-                      >
-                        <MenuItem value="auto">Calculate Automatically</MenuItem>
-                        <MenuItem value="manual">Manual Entry</MenuItem>
-                      </TextField>
-                      <TextField
-                        label="Value of Installment"
-                        name="installmentValue"
-                        value={vehicleForm.installmentValue || ''}
-                        onChange={handleVehicleFormChange}
-                        type="number"
-                        required
-                        sx={{ minWidth: 180 }}
-                        InputProps={{
-                          readOnly: vehicleForm.installmentCalculationMode === 'auto',
+                      <TextField 
+                        label="Plate Number" 
+                        name="plateNumber" 
+                        value={vehicleForm.plateNumber} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
                         }}
-                        helperText={vehicleForm.installmentCalculationMode === 'auto' ? 'Calculated as Insurance Cost / Period' : 'Enter value manually'}
                       />
                     </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Chassis Number" 
+                        name="chassisNumber" 
+                        value={vehicleForm.chassisNumber} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Engine Number" 
+                        name="engineNumber" 
+                        value={vehicleForm.engineNumber} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                  
+                  {/* Registration Details Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        📋 Registration Details
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Registration Number" 
+                        name="registrationNumber" 
+                        value={vehicleForm.registrationNumber} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Registration Expiry" 
+                        name="registrationExpiry" 
+                        value={vehicleForm.registrationExpiry} 
+                        onChange={handleVehicleFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                  
+                  {/* Insurance Information Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <SecurityIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        🛡️ Insurance Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Insurance Company" 
+                        name="insuranceCompany" 
+                        value={vehicleForm.insuranceCompany} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Policy Number" 
+                        name="insurancePolicyNumber" 
+                        value={vehicleForm.insurancePolicyNumber} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Insurance Expiry" 
+                        name="insuranceExpiry" 
+                        value={vehicleForm.insuranceExpiry} 
+                        onChange={handleVehicleFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Insurance Cost" 
+                        name="insuranceCost" 
+                        value={vehicleForm.insuranceCost} 
+                        onChange={handleVehicleFormChange} 
+                        type="number" 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        select 
+                        label="Insurance Payment System" 
+                        name="insurancePaymentSystem" 
+                        value={vehicleForm.insurancePaymentSystem || ''} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="cash">💰 Cash</MenuItem>
+                        <MenuItem value="installments">📅 Installments</MenuItem>
+                      </TextField>
+                      {vehicleForm.insurancePaymentSystem === 'installments' && (
+                        <TextField 
+                          select 
+                          label="Installment Period (months)" 
+                          name="insuranceInstallmentPeriod" 
+                          value={vehicleForm.insuranceInstallmentPeriod || ''} 
+                          onChange={handleVehicleFormChange} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.info.main,
+                              },
+                            },
+                          }}
+                        >
+                          {[3, 6, 12, 15, 18, 24].map(period => (
+                            <MenuItem key={period} value={period}>📅 {period} months</MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+                    </Box>
+                  </Paper>
+                  
+                  {/* Registration Card Data Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                        📄 Registration Card Data
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Country Of Manufacture" 
+                        name="registrationCardCountry" 
+                        value={vehicleForm.registrationCardCountry || ''} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Brand" 
+                        name="registrationCardBrand" 
+                        value={vehicleForm.registrationCardBrand || ''} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Capacity" 
+                        name="registrationCardCapacity" 
+                        value={vehicleForm.registrationCardCapacity || ''} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Shape" 
+                        name="registrationCardShape" 
+                        value={vehicleForm.registrationCardShape || ''} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Colour" 
+                        name="registrationCardColour" 
+                        value={vehicleForm.registrationCardColour || ''} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+
+                  {/* Asset Registration Type & Status Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 32, height: 32 }}>
+                        <BusinessIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                        🏢 Asset Registration Type & Status
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Asset Registration Type" 
+                        name="assetRegistrationType" 
+                        value={vehicleForm.assetRegistrationType || 'public'} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="public">🌐 Public</MenuItem>
+                        <MenuItem value="private">🔒 Private</MenuItem>
+                      </TextField>
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="status" 
+                        value={vehicleForm.status} 
+                        onChange={handleVehicleFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="active">✅ Active</MenuItem>
+                        <MenuItem value="expired">⏰ Expired</MenuItem>
+                        <MenuItem value="suspended">⏸️ Suspended</MenuItem>
+                        <MenuItem value="cancelled">❌ Cancelled</MenuItem>
+                      </TextField>
+                    </Box>
+                    <TextField 
+                      label="Notes" 
+                      name="notes" 
+                      value={vehicleForm.notes} 
+                      onChange={handleVehicleFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.warning.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+
+                  {/* Periodic Check Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.neutral.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.neutral.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.neutral.main, width: 32, height: 32 }}>
+                        <BuildIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.neutral.main, fontWeight: 600 }}>
+                        🔧 Periodic Check
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Issuance Date" 
+                        name="periodicCheck.issuanceDate" 
+                        value={vehicleForm.periodicCheck?.issuanceDate || ''} 
+                        onChange={handleVehicleFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.neutral.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Expiry Date" 
+                        name="periodicCheck.expiryDate" 
+                        value={vehicleForm.periodicCheck?.expiryDate || ''} 
+                        onChange={handleVehicleFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.neutral.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                  
+                  {/* Document Uploads Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <AttachFileIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        📎 Document Uploads
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Upload relevant documents for vehicle registration (stub - not saved)
+                    </Typography>
+                    <Box display="flex" gap={2} flexWrap="wrap">
+                      <Button 
+                        variant="outlined" 
+                        component="label" 
+                        startIcon={<AttachFileIcon />}
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1)
+                          }
+                        }}
+                      >
+                        📄 Registration Documents
+                        <input type="file" name="vehicleDocs.registration" hidden onChange={handleVehicleFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label" 
+                        startIcon={<AttachFileIcon />}
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1)
+                          }
+                        }}
+                      >
+                        🛡️ Insurance Documents
+                        <input type="file" name="vehicleDocs.insurance" hidden onChange={handleVehicleFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label" 
+                        startIcon={<AttachFileIcon />}
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1)
+                          }
+                        }}
+                      >
+                        🔧 Inspection Documents
+                        <input type="file" name="vehicleDocs.inspection" hidden onChange={handleVehicleFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label" 
+                        startIcon={<AttachFileIcon />}
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1)
+                          }
+                        }}
+                      >
+                        📋 Other Documents
+                        <input type="file" name="vehicleDocs.other" hidden onChange={handleVehicleFileChange} />
+                      </Button>
+                    </Box>
+                  </Paper>
+                  
+                  {vehicleError && <Alert severity="error" sx={{ borderRadius: theme.shape.borderRadius }}>{vehicleError}</Alert>}
+
+                  {/* Passes Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+                        <SecurityIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        🎫 Access Passes Management
+                      </Typography>
+                    </Box>
+                    <TextField
+                      select
+                      label="Does the Asset Have Any Passes?"
+                      name="hasPasses"
+                      value={vehicleForm.hasPasses || ''}
+                      onChange={handleVehicleFormChange}
+                      required
+                      fullWidth
+                      sx={{
+                        mb: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.primary.main,
+                          },
+                        },
+                      }}
+                    >
+                      <MenuItem value="no">❌ No</MenuItem>
+                      <MenuItem value="yes">✅ Yes</MenuItem>
+                    </TextField>
+
+                    {vehicleForm.hasPasses === 'yes' && (
+                      <Box sx={{ 
+                        mt: 2, 
+                        p: 3, 
+                        border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`, 
+                        borderRadius: theme.shape.borderRadius, 
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.6)} 100%)`,
+                        backdropFilter: 'blur(10px)'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                          <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                            🎫 Vehicle Access Passes
+                          </Typography>
+                          <Button 
+                            variant="contained" 
+                            onClick={handleVehicleAddPass}
+                            sx={{
+                              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.success.main} 100%)`,
+                              '&:hover': {
+                                background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.success.dark} 100%)`,
+                                transform: 'translateY(-2px)'
+                              },
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            ➕ Add Pass
+                          </Button>
+                        </Box>
+                        {vehicleForm.passes && vehicleForm.passes.length > 0 && vehicleForm.passes.map((pass, idx) => (
+                          <Paper 
+                            key={idx} 
+                            elevation={0}
+                            sx={{ 
+                              p: 2, 
+                              mb: 2, 
+                              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                              borderRadius: theme.shape.borderRadius,
+                              background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.background.paper, 0.7)} 100%)`
+                            }}
+                          >
+                            <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
+                              <TextField
+                                select
+                                label="Pass Type"
+                                value={pass.passType || ''}
+                                onChange={e => handleVehiclePassChange(idx, 'passType', e.target.value)}
+                                sx={{ minWidth: 160 }}
+                                required
+                                size="small"
+                              >
+                                <MenuItem value="">Select Type</MenuItem>
+                                <MenuItem value="KOC">🏭 KOC</MenuItem>
+                                <MenuItem value="KNPC">⛽ KNPC</MenuItem>
+                                <MenuItem value="GO">🏛️ GO</MenuItem>
+                                <MenuItem value="RATQA">🏗️ RATQA</MenuItem>
+                                <MenuItem value="ABDALI">🏢 ABDALI</MenuItem>
+                                <MenuItem value="WANEET">🏭 WANEET</MenuItem>
+                              </TextField>
+                              <TextField
+                                label="Issuance Date"
+                                type="date"
+                                value={pass.issuanceDate || ''}
+                                onChange={e => handleVehiclePassChange(idx, 'issuanceDate', e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                required
+                                size="small"
+                              />
+                              <TextField
+                                label="Expiry Date"
+                                type="date"
+                                value={pass.expiryDate || ''}
+                                onChange={e => handleVehiclePassChange(idx, 'expiryDate', e.target.value)}
+                                InputLabelProps={{ shrink: true }}
+                                required
+                                size="small"
+                              />
+                              <TextField
+                                label="Sponsor"
+                                value={pass.sponsor || ''}
+                                onChange={e => handleVehiclePassChange(idx, 'sponsor', e.target.value)}
+                                required
+                                size="small"
+                              />
+                              <Button 
+                                color="error" 
+                                variant="outlined" 
+                                onClick={() => handleVehicleRemovePass(idx)}
+                                size="small"
+                                sx={{
+                                  '&:hover': {
+                                    background: alpha(theme.palette.error.main, 0.1),
+                                    transform: 'scale(1.05)'
+                                  },
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                🗑️ Remove
+                              </Button>
+                            </Box>
+                          </Paper>
+                        ))}
+                        {vehicleForm.passes && vehicleForm.passes.length === 0 && (
+                          <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                            No passes added yet. Click "Add Pass" to get started.
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
+                  </Paper>
+                  {/* Installment Management Section */}
+                  {vehicleForm.insurancePaymentSystem === 'installments' && (
+                    <Paper 
+                      elevation={0}
+                      sx={{ 
+                        p: 3,
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                        border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                        borderRadius: theme.shape.borderRadius
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                        <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 32, height: 32 }}>
+                          <AttachMoneyIcon />
+                        </Avatar>
+                        <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                          💰 Installment Management
+                        </Typography>
+                      </Box>
+                      <Box display="flex" gap={2} alignItems="center">
+                        <TextField
+                          select
+                          label="Installment Calculation Mode"
+                          name="installmentCalculationMode"
+                          value={vehicleForm.installmentCalculationMode || 'auto'}
+                          onChange={handleVehicleFormChange}
+                          required
+                          sx={{ 
+                            minWidth: 220,
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.warning.main,
+                              },
+                            },
+                          }}
+                        >
+                          <MenuItem value="auto">🤖 Calculate Automatically</MenuItem>
+                          <MenuItem value="manual">✏️ Manual Entry</MenuItem>
+                        </TextField>
+                        <TextField
+                          label="Value of Installment"
+                          name="installmentValue"
+                          value={vehicleForm.installmentValue || ''}
+                          onChange={handleVehicleFormChange}
+                          type="number"
+                          required
+                          sx={{ 
+                            minWidth: 180,
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.warning.main,
+                              },
+                            },
+                          }}
+                          InputProps={{
+                            readOnly: vehicleForm.installmentCalculationMode === 'auto',
+                          }}
+                          helperText={vehicleForm.installmentCalculationMode === 'auto' ? 'Calculated as Insurance Cost / Period' : 'Enter value manually'}
+                        />
+                      </Box>
+                    </Paper>
                   )}
                 </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={handleVehicleClose}>Cancel</Button>
-                <Button onClick={handleVehicleSubmit} variant="contained" color="primary">{vehicleEditing ? 'Update' : 'Add'}</Button>
+              <DialogActions sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                p: 2
+              }}>
+                <Button 
+                  onClick={handleVehicleClose}
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    '&:hover': {
+                      background: alpha(theme.palette.text.secondary, 0.1)
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleVehicleSubmit} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.primary.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {vehicleEditing ? '✏️ Update Vehicle' : '🚗 Add Vehicle'}
+                </Button>
               </DialogActions>
             </Dialog>
             {/* Delete Dialog */}
-            <Dialog open={!!vehicleDeleteId} onClose={() => setVehicleDeleteId(null)}>
-              <DialogTitle>Delete Vehicle Registration</DialogTitle>
-              <DialogContent>
-                <Typography>Are you sure you want to delete this vehicle registration?</Typography>
+            <Dialog 
+              open={!!vehicleDeleteId} 
+              onClose={() => setVehicleDeleteId(null)}
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.error.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                  <DeleteIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                    🗑️ Delete Vehicle Registration
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    This action cannot be undone
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Alert severity="warning" sx={{ mb: 2, borderRadius: theme.shape.borderRadius }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>
+                    ⚠️ Warning: This will permanently delete the vehicle registration
+                  </Typography>
+                  <Typography variant="body2">
+                    Are you sure you want to delete this vehicle registration? This action cannot be undone and will remove all associated data including insurance information, passes, and compliance records.
+                  </Typography>
+                </Alert>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setVehicleDeleteId(null)}>Cancel</Button>
-                <Button onClick={handleVehicleDelete} color="error" variant="contained">Delete</Button>
+              <DialogActions sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                p: 2
+              }}>
+                <Button 
+                  onClick={() => setVehicleDeleteId(null)}
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    '&:hover': {
+                      background: alpha(theme.palette.text.secondary, 0.1)
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleVehicleDelete} 
+                  color="error" 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🗑️ Delete Vehicle
+                </Button>
               </DialogActions>
             </Dialog>
             <Snackbar
@@ -3406,186 +6109,996 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{vehicleSuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
-          </Box>
+          </motion.div>
         )}
         {tab === 3 && (
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h5">Government Correspondence Log</Typography>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleCorrespondenceOpen()}>
-                Add Correspondence
-              </Button>
-            </Box>
-            <Paper sx={{ p: 2, overflowX: 'auto' }}>
-              {loading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}>
-                  <CircularProgress />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.info.main, width: 48, height: 48 }}>
+                    <DescriptionIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: theme.palette.info.main, fontWeight: 600, mb: 0.5 }}>
+                      📋 Government Correspondence Log
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Comprehensive tracking of government communications and submissions
+                    </Typography>
+                  </Box>
                 </Box>
-              ) : correspondenceError ? (
-                <Alert severity="error" sx={{ mb: 2 }}>{correspondenceError}</Alert>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Reference Number</TableCell>
-                      <TableCell>Subject</TableCell>
-                      <TableCell>Ministry</TableCell>
-                      <TableCell>Department</TableCell>
-                      <TableCell>Submission Date</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Priority</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(correspondences) && correspondences.map((corr) => (
-                      <TableRow key={corr._id}>
-                        <TableCell>{corr.referenceNumber}</TableCell>
-                        <TableCell>{corr.subject}</TableCell>
-                        <TableCell>{corr.ministry}</TableCell>
-                        <TableCell>{corr.department}</TableCell>
-                        <TableCell>{corr.submissionDate ? dayjs(corr.submissionDate).format('YYYY-MM-DD') : '-'}</TableCell>
-                        <TableCell>
-                          <Chip label={corr.status} color={getCorrespondenceStatusColor(corr.status)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={corr.priority} color={getCorrespondencePriorityColor(corr.priority)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small" color="primary" onClick={() => handleCorrespondenceOpen(corr)}><EditIcon /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => setCorrespondenceDeleteId(corr._id)}><DeleteIcon /></IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddIcon />} 
+                  onClick={() => handleCorrespondenceOpen()}
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.info.main} 0%, ${theme.palette.primary.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.info.dark} 0%, ${theme.palette.primary.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Add Correspondence
+                </Button>
+              </Box>
             </Paper>
+
+            {loading ? (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 3 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} variant="rectangular" height={200} sx={{ borderRadius: theme.shape.borderRadius }} />
+                ))}
+              </Box>
+            ) : correspondenceError ? (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
+                {correspondenceError}
+              </Alert>
+            ) : (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 3 }}>
+                {Array.isArray(correspondences) && correspondences.map((corr, index) => (
+                  <motion.div
+                    key={corr._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        height: '100%',
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.6)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        borderRadius: theme.shape.borderRadius,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: `0 20px 40px ${alpha(theme.palette.info.main, 0.15)}`,
+                          border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}>
+                              <DescriptionIcon />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.info.main }}>
+                                {corr.referenceNumber}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                {corr.subject}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Chip 
+                              label={corr.status} 
+                              color={getCorrespondenceStatusColor(corr.status)} 
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                            <Chip 
+                              label={corr.priority} 
+                              color={getCorrespondencePriorityColor(corr.priority)} 
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            🏛️ {corr.ministry}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            🏢 {corr.department}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            📅 {corr.submissionDate ? dayjs(corr.submissionDate).format('YYYY-MM-DD') : 'No date'}
+                          </Typography>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Contact Person
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {corr.contactPerson || 'Not assigned'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Request Type
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {corr.requestType?.replace('_', ' ').toUpperCase() || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Submission Method
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {corr.submissionMethod?.replace('_', ' ').toUpperCase() || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Fee Status
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: corr.hasFee === 'yes' ? theme.palette.warning.main : theme.palette.success.main }}>
+                              {corr.hasFee === 'yes' ? '💰 Has Fee' : '✅ No Fee'}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleCorrespondenceOpen(corr)}
+                            sx={{
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.primary.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setCorrespondenceDeleteId(corr._id)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.error.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Box>
+            )}
             {/* Add/Edit Dialog */}
-            <Dialog open={correspondenceOpen} onClose={handleCorrespondenceClose} maxWidth="lg" fullWidth>
-              <DialogTitle>{correspondenceEditing ? 'Edit Correspondence' : 'Add Correspondence'}</DialogTitle>
-              <DialogContent>
-                <Box component="form" onSubmit={handleCorrespondenceSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Reference Number" name="referenceNumber" value={correspondenceForm.referenceNumber} onChange={handleCorrespondenceFormChange} required fullWidth />
-                    <TextField label="Subject" name="subject" value={correspondenceForm.subject} onChange={handleCorrespondenceFormChange} required fullWidth />
-                  </Box>
-                  <TextField label="Description" name="description" value={correspondenceForm.description} onChange={handleCorrespondenceFormChange} fullWidth multiline minRows={2} />
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Ministry" name="ministry" value={correspondenceForm.ministry} onChange={handleCorrespondenceFormChange} required fullWidth>
-                      {ministryOptions.map(option => (
-                        <MenuItem key={option} value={option}>{option}</MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField label="Department" name="department" value={correspondenceForm.department} onChange={handleCorrespondenceFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Assigned Government Employee" name="contactPerson" value={correspondenceForm.contactPerson} onChange={handleCorrespondenceFormChange} required fullWidth />
-                    <TextField label="Contact Phone" name="contactPhone" value={correspondenceForm.contactPhone} onChange={handleCorrespondenceFormChange} required fullWidth />
-                    <TextField label="Contact Email" name="contactEmail" value={correspondenceForm.contactEmail} onChange={handleCorrespondenceFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Assigned Employee" name="assignedEmployee" value={correspondenceForm.assignedEmployee} onChange={handleCorrespondenceFormChange} fullWidth>
-                      <MenuItem value="">None</MenuItem>
-                      {employees.map(emp => (
-                        <MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField select label="Does The Correspondence Have Any Fee" name="hasFee" value={correspondenceForm.hasFee} onChange={handleCorrespondenceFormChange} fullWidth>
-                      <MenuItem value="no">No</MenuItem>
-                      <MenuItem value="yes">Yes</MenuItem>
-                    </TextField>
+            <Dialog 
+              open={correspondenceOpen} 
+              onClose={handleCorrespondenceClose} 
+              maxWidth="lg" 
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.info.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}>
+                  <DescriptionIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                    {correspondenceEditing ? '✏️ Edit Correspondence' : '📋 Add New Correspondence'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {correspondenceEditing ? 'Update government correspondence information' : 'Create a new government correspondence record'}
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box component="form" onSubmit={handleCorrespondenceSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Basic Information Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        📋 Basic Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Reference Number" 
+                        name="referenceNumber" 
+                        value={correspondenceForm.referenceNumber} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Subject" 
+                        name="subject" 
+                        value={correspondenceForm.subject} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Description" 
+                      name="description" 
+                      value={correspondenceForm.description} 
+                      onChange={handleCorrespondenceFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.info.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+                  {/* Government Details Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+                        <BusinessIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        🏛️ Government Details
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Ministry" 
+                        name="ministry" 
+                        value={correspondenceForm.ministry} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      >
+                        {ministryOptions.map(option => (
+                          <MenuItem key={option} value={option}>🏛️ {option}</MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField 
+                        label="Department" 
+                        name="department" 
+                        value={correspondenceForm.department} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Assigned Government Employee" 
+                        name="contactPerson" 
+                        value={correspondenceForm.contactPerson} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Contact Phone" 
+                        name="contactPhone" 
+                        value={correspondenceForm.contactPhone} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Contact Email" 
+                        name="contactEmail" 
+                        value={correspondenceForm.contactEmail} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                  {/* Assignment & Financial Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                        <PeopleIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                        👥 Assignment & Financial
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Assigned Employee" 
+                        name="assignedEmployee" 
+                        value={correspondenceForm.assignedEmployee} 
+                        onChange={handleCorrespondenceFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">None</MenuItem>
+                        {employees.map(emp => (
+                          <MenuItem key={emp._id} value={emp._id}>👤 {emp.name}</MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField 
+                        select 
+                        label="Does The Correspondence Have Any Fee" 
+                        name="hasFee" 
+                        value={correspondenceForm.hasFee} 
+                        onChange={handleCorrespondenceFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.secondary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="no">❌ No</MenuItem>
+                        <MenuItem value="yes">💰 Yes</MenuItem>
+                      </TextField>
+                    </Box>
                     {correspondenceForm.hasFee === 'yes' && (
-                      <>
-                        <TextField select label="Amortization" name="amortization" value={correspondenceForm.amortization} onChange={handleCorrespondenceFormChange} fullWidth>
+                      <Box display="flex" gap={2}>
+                        <TextField 
+                          select 
+                          label="Amortization" 
+                          name="amortization" 
+                          value={correspondenceForm.amortization} 
+                          onChange={handleCorrespondenceFormChange} 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.secondary.main,
+                              },
+                            },
+                          }}
+                        >
                           {[...Array(36)].map((_, i) => (
-                            <MenuItem key={i+1} value={`${i+1} Month`}>{`${i+1} Month`}</MenuItem>
+                            <MenuItem key={i+1} value={`${i+1} Month`}>📅 {i+1} Month</MenuItem>
                           ))}
                         </TextField>
-                        <TextField label="Fee" name="fee" value={correspondenceForm.fee} onChange={handleCorrespondenceFormChange} type="number" fullWidth />
-                      </>
+                        <TextField 
+                          label="Fee" 
+                          name="fee" 
+                          value={correspondenceForm.fee} 
+                          onChange={handleCorrespondenceFormChange} 
+                          type="number" 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.secondary.main,
+                              },
+                            },
+                          }}
+                        />
+                      </Box>
                     )}
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Submission Date" name="submissionDate" value={correspondenceForm.submissionDate} onChange={handleCorrespondenceFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    <TextField select label="Submission Method" name="submissionMethod" value={correspondenceForm.submissionMethod} onChange={handleCorrespondenceFormChange} required fullWidth>
-                      <MenuItem value="in_person">In Person</MenuItem>
-                      <MenuItem value="email">Email</MenuItem>
-                      <MenuItem value="fax">Fax</MenuItem>
-                      <MenuItem value="post">Post</MenuItem>
-                      <MenuItem value="online">Online</MenuItem>
-                    </TextField>
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Request Type" name="requestType" value={correspondenceForm.requestType} onChange={handleCorrespondenceFormChange} required fullWidth>
-                      <MenuItem value="application">Application</MenuItem>
-                      <MenuItem value="query">Query</MenuItem>
-                      <MenuItem value="complaint">Complaint</MenuItem>
-                      <MenuItem value="information_request">Information Request</MenuItem>
-                    </TextField>
-                    <TextField select label="Status" name="status" value={correspondenceForm.status} onChange={handleCorrespondenceFormChange} required fullWidth>
-                      <MenuItem value="submitted">Submitted</MenuItem>
-                      <MenuItem value="under_review">Under Review</MenuItem>
-                      <MenuItem value="approved">Approved</MenuItem>
-                      <MenuItem value="rejected">Rejected</MenuItem>
-                      <MenuItem value="pending_documents">Pending Documents</MenuItem>
-                      <MenuItem value="completed">Completed</MenuItem>
-                    </TextField>
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Expected Response Date" name="expectedResponseDate" value={correspondenceForm.expectedResponseDate} onChange={handleCorrespondenceFormChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-                    <TextField label="Actual Response Date" name="actualResponseDate" value={correspondenceForm.actualResponseDate} onChange={handleCorrespondenceFormChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <FormControlLabel
-                      control={<Checkbox checked={correspondenceForm.responseReceived} onChange={e => setCorrespondenceForm({ ...correspondenceForm, responseReceived: e.target.checked })} name="responseReceived" />}
-                      label="Response Received"
+                  </Paper>
+                  {/* Submission Details Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                        📤 Submission Details
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Submission Date" 
+                        name="submissionDate" 
+                        value={correspondenceForm.submissionDate} 
+                        onChange={handleCorrespondenceFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        select 
+                        label="Submission Method" 
+                        name="submissionMethod" 
+                        value={correspondenceForm.submissionMethod} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="in_person">👤 In Person</MenuItem>
+                        <MenuItem value="email">📧 Email</MenuItem>
+                        <MenuItem value="fax">📠 Fax</MenuItem>
+                        <MenuItem value="post">📮 Post</MenuItem>
+                        <MenuItem value="online">🌐 Online</MenuItem>
+                      </TextField>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        select 
+                        label="Request Type" 
+                        name="requestType" 
+                        value={correspondenceForm.requestType} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="application">📋 Application</MenuItem>
+                        <MenuItem value="query">❓ Query</MenuItem>
+                        <MenuItem value="complaint">⚠️ Complaint</MenuItem>
+                        <MenuItem value="information_request">ℹ️ Information Request</MenuItem>
+                      </TextField>
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="status" 
+                        value={correspondenceForm.status} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="submitted">📤 Submitted</MenuItem>
+                        <MenuItem value="under_review">🔍 Under Review</MenuItem>
+                        <MenuItem value="approved">✅ Approved</MenuItem>
+                        <MenuItem value="rejected">❌ Rejected</MenuItem>
+                        <MenuItem value="pending_documents">📄 Pending Documents</MenuItem>
+                        <MenuItem value="completed">🎉 Completed</MenuItem>
+                      </TextField>
+                    </Box>
+                  </Paper>
+                  {/* Response Management Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                        📨 Response Management
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Expected Response Date" 
+                        name="expectedResponseDate" 
+                        value={correspondenceForm.expectedResponseDate} 
+                        onChange={handleCorrespondenceFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Actual Response Date" 
+                        name="actualResponseDate" 
+                        value={correspondenceForm.actualResponseDate} 
+                        onChange={handleCorrespondenceFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <FormControlLabel
+                        control={<Checkbox checked={correspondenceForm.responseReceived} onChange={e => setCorrespondenceForm({ ...correspondenceForm, responseReceived: e.target.checked })} name="responseReceived" />}
+                        label="Response Received"
+                        sx={{ minWidth: 'fit-content' }}
+                      />
+                      <TextField 
+                        label="Response Details" 
+                        name="responseDetails" 
+                        value={correspondenceForm.responseDetails} 
+                        onChange={handleCorrespondenceFormChange} 
+                        fullWidth 
+                        multiline 
+                        minRows={2}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <FormControlLabel
+                        control={<Checkbox checked={correspondenceForm.followUpRequired} onChange={e => setCorrespondenceForm({ ...correspondenceForm, followUpRequired: e.target.checked })} name="followUpRequired" />}
+                        label="Follow Up Required"
+                        sx={{ minWidth: 'fit-content' }}
+                      />
+                      <TextField 
+                        label="Follow Up Date" 
+                        name="followUpDate" 
+                        value={correspondenceForm.followUpDate} 
+                        onChange={handleCorrespondenceFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Follow Up Notes" 
+                      name="followUpNotes" 
+                      value={correspondenceForm.followUpNotes} 
+                      onChange={handleCorrespondenceFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        mt: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.warning.main,
+                          },
+                        },
+                      }}
                     />
-                    <TextField label="Response Details" name="responseDetails" value={correspondenceForm.responseDetails} onChange={handleCorrespondenceFormChange} fullWidth multiline minRows={2} />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <FormControlLabel
-                      control={<Checkbox checked={correspondenceForm.followUpRequired} onChange={e => setCorrespondenceForm({ ...correspondenceForm, followUpRequired: e.target.checked })} name="followUpRequired" />}
-                      label="Follow Up Required"
+                  </Paper>
+
+                  {/* Priority & Assignment Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.neutral.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.neutral.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.neutral.main, width: 32, height: 32 }}>
+                        <PeopleIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.neutral.main, fontWeight: 600 }}>
+                        ⚡ Priority & Assignment
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Priority" 
+                        name="priority" 
+                        value={correspondenceForm.priority} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.neutral.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="low">🟢 Low</MenuItem>
+                        <MenuItem value="medium">🟡 Medium</MenuItem>
+                        <MenuItem value="high">🟠 High</MenuItem>
+                        <MenuItem value="urgent">🔴 Urgent</MenuItem>
+                      </TextField>
+                      <TextField 
+                        label="Assigned To" 
+                        name="assignedTo" 
+                        value={correspondenceForm.assignedTo} 
+                        onChange={handleCorrespondenceFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.neutral.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Notes" 
+                      name="notes" 
+                      value={correspondenceForm.notes} 
+                      onChange={handleCorrespondenceFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.neutral.main,
+                          },
+                        },
+                      }}
                     />
-                    <TextField label="Follow Up Date" name="followUpDate" value={correspondenceForm.followUpDate} onChange={handleCorrespondenceFormChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-                    <TextField label="Follow Up Notes" name="followUpNotes" value={correspondenceForm.followUpNotes} onChange={handleCorrespondenceFormChange} fullWidth multiline minRows={2} />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Priority" name="priority" value={correspondenceForm.priority} onChange={handleCorrespondenceFormChange} required fullWidth>
-                      <MenuItem value="low">Low</MenuItem>
-                      <MenuItem value="medium">Medium</MenuItem>
-                      <MenuItem value="high">High</MenuItem>
-                      <MenuItem value="urgent">Urgent</MenuItem>
-                    </TextField>
-                    <TextField label="Assigned To" name="assignedTo" value={correspondenceForm.assignedTo} onChange={handleCorrespondenceFormChange} required fullWidth />
-                  </Box>
-                  <TextField label="Notes" name="notes" value={correspondenceForm.notes} onChange={handleCorrespondenceFormChange} fullWidth multiline minRows={2} />
+                  </Paper>
                   
-                  {/* Document Uploads (stubbed) */}
-                  <Typography variant="subtitle2" sx={{ mt: 2 }}>Document Uploads (stub - not saved)</Typography>
-                  <Box display="flex" gap={2} flexWrap="wrap">
-                    <Button variant="outlined" component="label">Original Document<input type="file" name="originalDocument" hidden onChange={handleCorrespondenceFileChange} /></Button>
-                    <Button variant="outlined" component="label">Response Document<input type="file" name="responseDocument" hidden onChange={handleCorrespondenceFileChange} /></Button>
-                    <Button variant="outlined" component="label">Supporting Documents<input type="file" name="supportingDocuments" hidden onChange={handleCorrespondenceFileChange} multiple /></Button>
-                  </Box>
-                  {correspondenceError && <Alert severity="error">{correspondenceError}</Alert>}
+                  {/* Document Uploads Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <DescriptionIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        📎 Document Uploads
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Document uploads are currently stubbed and not saved to the database
+                    </Typography>
+                    <Box display="flex" gap={2} flexWrap="wrap">
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1),
+                            transform: 'translateY(-2px)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        📄 Original Document
+                        <input type="file" name="originalDocument" hidden onChange={handleCorrespondenceFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1),
+                            transform: 'translateY(-2px)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        📨 Response Document
+                        <input type="file" name="responseDocument" hidden onChange={handleCorrespondenceFileChange} />
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        component="label"
+                        sx={{
+                          borderColor: theme.palette.info.main,
+                          color: theme.palette.info.main,
+                          '&:hover': {
+                            borderColor: theme.palette.info.dark,
+                            background: alpha(theme.palette.info.main, 0.1),
+                            transform: 'translateY(-2px)'
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        📋 Supporting Documents
+                        <input type="file" name="supportingDocuments" hidden onChange={handleCorrespondenceFileChange} multiple />
+                      </Button>
+                    </Box>
+                  </Paper>
+
+                  {correspondenceError && <Alert severity="error" sx={{ borderRadius: theme.shape.borderRadius }}>{correspondenceError}</Alert>}
                 </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={handleCorrespondenceClose}>Cancel</Button>
-                <Button onClick={handleCorrespondenceSubmit} variant="contained" color="primary">{correspondenceEditing ? 'Update' : 'Add'}</Button>
+              <DialogActions sx={{ 
+                p: 3,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+              }}>
+                <Button 
+                  onClick={handleCorrespondenceClose}
+                  sx={{
+                    '&:hover': {
+                      background: alpha(theme.palette.info.main, 0.1),
+                      color: theme.palette.info.main
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCorrespondenceSubmit} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.info.main} 0%, ${theme.palette.primary.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.info.dark} 0%, ${theme.palette.primary.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {correspondenceEditing ? '✏️ Update' : '📋 Add'}
+                </Button>
               </DialogActions>
             </Dialog>
             {/* Delete Dialog */}
-            <Dialog open={!!correspondenceDeleteId} onClose={() => setCorrespondenceDeleteId(null)}>
-              <DialogTitle>Delete Correspondence</DialogTitle>
-              <DialogContent>
-                <Typography>Are you sure you want to delete this correspondence?</Typography>
+            <Dialog 
+              open={!!correspondenceDeleteId} 
+              onClose={() => setCorrespondenceDeleteId(null)}
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.error.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                  <DeleteIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                    🗑️ Delete Correspondence
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    This action cannot be undone
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Alert severity="warning" sx={{ flex: 1, borderRadius: theme.shape.borderRadius }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      Are you sure you want to delete this correspondence? This will permanently remove all associated data including submission details, response information, and follow-up records.
+                    </Typography>
+                  </Alert>
+                </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setCorrespondenceDeleteId(null)}>Cancel</Button>
-                <Button onClick={handleCorrespondenceDelete} color="error" variant="contained">Delete</Button>
+              <DialogActions sx={{ 
+                p: 3,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+              }}>
+                <Button 
+                  onClick={() => setCorrespondenceDeleteId(null)}
+                  sx={{
+                    '&:hover': {
+                      background: alpha(theme.palette.info.main, 0.1),
+                      color: theme.palette.info.main
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleCorrespondenceDelete} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🗑️ Delete
+                </Button>
               </DialogActions>
             </Dialog>
             <Snackbar
@@ -3595,209 +7108,894 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{correspondenceSuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
-          </Box>
+          </motion.div>
         )}
         {tab === 4 && (
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h5">Legal Case Management</Typography>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleLegalCaseOpen()}>
-                Add Legal Case
-              </Button>
-            </Box>
-            <Paper sx={{ p: 2, overflowX: 'auto' }}>
-              {loading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}>
-                  <CircularProgress />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.error.main, width: 48, height: 48 }}>
+                    <SecurityIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: theme.palette.error.main, fontWeight: 600, mb: 0.5 }}>
+                      ⚖️ Legal Case Management
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Comprehensive legal case tracking with court proceedings and cost management
+                    </Typography>
+                  </Box>
                 </Box>
-              ) : legalCaseError ? (
-                <Alert severity="error" sx={{ mb: 2 }}>{legalCaseError}</Alert>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Case Number</TableCell>
-                      <TableCell>Title</TableCell>
-                      <TableCell>Case Type</TableCell>
-                      <TableCell>Court</TableCell>
-                      <TableCell>Filing Date</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Priority</TableCell>
-                      <TableCell>Estimated Cost</TableCell>
-                      <TableCell>Actual Cost</TableCell>
-                      <TableCell>Legal Representative</TableCell>
-                      <TableCell>Serial Number</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(legalCases) && legalCases.map((case_) => (
-                      <TableRow key={case_._id}>
-                        <TableCell>{case_.caseNumber}</TableCell>
-                        <TableCell>{case_.title}</TableCell>
-                        <TableCell>{case_.caseType}</TableCell>
-                        <TableCell>{case_.court}</TableCell>
-                        <TableCell>{case_.filingDate ? dayjs(case_.filingDate).format('YYYY-MM-DD') : '-'}</TableCell>
-                        <TableCell>
-                          <Chip label={case_.status} color={getLegalCaseStatusColor(case_.status)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={case_.priority} color={getLegalCasePriorityColor(case_.priority)} size="small" />
-                        </TableCell>
-                        <TableCell>{case_.estimatedCost?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                        <TableCell>{case_.actualCost?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
-                        <TableCell>{case_.legalRepresentative?.name || '-'}</TableCell>
-                        <TableCell>{case_.serial || '-'}</TableCell>
-                        <TableCell>
-                          <IconButton size="small" color="primary" onClick={() => handleLegalCaseOpen(case_)}><EditIcon /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => setLegalCaseDeleteId(case_._id)}><DeleteIcon /></IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddIcon />} 
+                  onClick={() => handleLegalCaseOpen()}
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Add Legal Case
+                </Button>
+              </Box>
             </Paper>
+
+            {loading ? (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 3 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} variant="rectangular" height={200} sx={{ borderRadius: theme.shape.borderRadius }} />
+                ))}
+              </Box>
+            ) : legalCaseError ? (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
+                {legalCaseError}
+              </Alert>
+            ) : (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 3 }}>
+                {Array.isArray(legalCases) && legalCases.map((case_, index) => (
+                  <motion.div
+                    key={case_._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        height: '100%',
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.6)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        borderRadius: theme.shape.borderRadius,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: `0 20px 40px ${alpha(theme.palette.error.main, 0.15)}`,
+                          border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                              <SecurityIcon />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                                {case_.caseNumber}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                {case_.title}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Chip 
+                              label={case_.status} 
+                              color={getLegalCaseStatusColor(case_.status)} 
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                            <Chip 
+                              label={case_.priority} 
+                              color={getLegalCasePriorityColor(case_.priority)} 
+                              size="small"
+                              sx={{ fontWeight: 600 }}
+                            />
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            🏛️ {case_.court}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            📋 {case_.caseType?.replace('_', ' ').toUpperCase()}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            📅 {case_.filingDate ? dayjs(case_.filingDate).format('YYYY-MM-DD') : 'No date'}
+                          </Typography>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Estimated Cost
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.warning.main }}>
+                              {case_.estimatedCost?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Actual Cost
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                              {case_.actualCost?.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Legal Representative
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {case_.legalRepresentative?.name || 'Not assigned'}
+                            </Typography>
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Serial Number
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {case_.serial || 'N/A'}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleLegalCaseOpen(case_)}
+                            sx={{
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.primary.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setLegalCaseDeleteId(case_._id)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.error.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Box>
+            )}
             {/* Add/Edit Dialog */}
-            <Dialog open={legalCaseOpen} onClose={handleLegalCaseClose} maxWidth="lg" fullWidth>
-              <DialogTitle>{legalCaseEditing ? 'Edit Legal Case' : 'Add Legal Case'}</DialogTitle>
-              <DialogContent>
-                <Box component="form" onSubmit={handleLegalCaseSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                  <Typography variant="h6">Case Information</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Case Number" name="caseNumber" value={legalCaseForm.caseNumber} onChange={handleLegalCaseFormChange} required fullWidth />
-                    <TextField label="Title" name="title" value={legalCaseForm.title} onChange={handleLegalCaseFormChange} required fullWidth />
-                  </Box>
-                  <TextField label="Description" name="description" value={legalCaseForm.description} onChange={handleLegalCaseFormChange} fullWidth multiline minRows={2} />
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Case Type" name="caseType" value={legalCaseForm.caseType} onChange={handleLegalCaseFormChange} required fullWidth>
-                      <MenuItem value="">Select Case Type</MenuItem>
-                      <MenuItem value="labour_dispute">Labour Dispute</MenuItem>
-                      <MenuItem value="traffic_fine">Traffic Fine</MenuItem>
-                      <MenuItem value="contract_dispute">Contract Dispute</MenuItem>
-                      <MenuItem value="regulatory_violation">Regulatory Violation</MenuItem>
-                      <MenuItem value="other">Other</MenuItem>
-                    </TextField>
-                    <TextField select label="Ministry" name="court" value={legalCaseForm.court} onChange={handleLegalCaseFormChange} required fullWidth>
-                      {legalCaseMinistryOptions.map(option => (
-                        <MenuItem key={option} value={option}>{option}</MenuItem>
-                      ))}
-                    </TextField>
-                    <TextField label="Case Review Location" name="courtLocation" value={legalCaseForm.courtLocation} onChange={handleLegalCaseFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Paid or Not Paid" name="paidStatus" value={legalCaseForm.paidStatus} onChange={handleLegalCaseFormChange} required fullWidth>
-                      {paidOptions.map(option => (
-                        <MenuItem key={option} value={option}>{option}</MenuItem>
-                      ))}
-                    </TextField>
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Status" name="status" value={legalCaseForm.status} onChange={handleLegalCaseFormChange} required fullWidth>
-                      <MenuItem value="open">Open</MenuItem>
-                      <MenuItem value="pending">Pending</MenuItem>
-                      <MenuItem value="in_progress">In Progress</MenuItem>
-                      <MenuItem value="resolved">Resolved</MenuItem>
-                      <MenuItem value="closed">Closed</MenuItem>
-                      <MenuItem value="appealed">Appealed</MenuItem>
-                    </TextField>
-                    <TextField select label="Priority" name="priority" value={legalCaseForm.priority} onChange={handleLegalCaseFormChange} required fullWidth>
-                      <MenuItem value="low">Low</MenuItem>
-                      <MenuItem value="medium">Medium</MenuItem>
-                      <MenuItem value="high">High</MenuItem>
-                      <MenuItem value="urgent">Urgent</MenuItem>
-                    </TextField>
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Estimated Cost" name="estimatedCost" value={legalCaseForm.estimatedCost} onChange={handleLegalCaseFormChange} type="number" required fullWidth />
-                    <TextField label="Actual Cost" name="actualCost" value={legalCaseForm.actualCost} onChange={handleLegalCaseFormChange} type="number" fullWidth />
-                  </Box>
-                  
-                  <Typography variant="h6">Legal Representative</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Type Of Legal Representative" name="legalRepType" value={legalCaseForm.legalRepType} onChange={handleLegalCaseFormChange} required fullWidth>
-                      {legalRepTypeOptions.map(option => (
-                        <MenuItem key={option} value={option}>{option}</MenuItem>
-                      ))}
-                    </TextField>
-                    {legalCaseForm.legalRepType === 'Internal' ? (
-                      <TextField label="Co ID" name="coId" value={legalCaseForm.coId} onChange={e => {
-                        handleLegalCaseFormChange(e);
-                        // Auto-fill name if Co ID matches
-                        const emp = employees.find(emp => emp.employeeId === e.target.value);
-                        if (emp) setLegalCaseForm((prev: any) => ({
-                          ...prev,
-                          legalRepresentative: { ...prev.legalRepresentative, name: emp.name }
-                        }));
-                      }} required fullWidth />
-                    ) : (
-                      <TextField label="Firm" name="legalRepresentative.firm" value={legalCaseForm.legalRepresentative.firm} onChange={handleLegalCaseFormChange} required fullWidth />
-                    )}
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Name" name="legalRepresentative.name" value={legalCaseForm.legalRepresentative.name} onChange={handleLegalCaseFormChange} required fullWidth disabled={legalCaseForm.legalRepType === 'Internal'} />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Phone" name="legalRepresentative.phone" value={legalCaseForm.legalRepresentative.phone} onChange={handleLegalCaseFormChange} required fullWidth />
-                    <TextField label="Email" name="legalRepresentative.email" value={legalCaseForm.legalRepresentative.email} onChange={handleLegalCaseFormChange} required fullWidth />
-                  </Box>
-                  <TextField label="Contract Amount" name="legalRepresentative.contractAmount" value={legalCaseForm.legalRepresentative.contractAmount} onChange={handleLegalCaseFormChange} type="number" required fullWidth />
-                  
-                  <Typography variant="h6">Parties</Typography>
-                  {legalCaseForm.parties.map((party: any, index: number) => (
-                    <Box key={index} display="flex" gap={2} alignItems="center">
-                      <TextField label="Name" value={party.name} onChange={(e) => {
-                        const newParties = [...legalCaseForm.parties];
-                        newParties[index].name = e.target.value;
-                        setLegalCaseForm({ ...legalCaseForm, parties: newParties });
-                      }} required fullWidth />
-                      <TextField select label="Type" value={party.type} onChange={(e) => {
-                        const newParties = [...legalCaseForm.parties];
-                        newParties[index].type = e.target.value;
-                        setLegalCaseForm({ ...legalCaseForm, parties: newParties });
-                      }} required fullWidth>
-                        <MenuItem value="plaintiff">Plaintiff</MenuItem>
-                        <MenuItem value="defendant">Defendant</MenuItem>
-                        <MenuItem value="third_party">Third Party</MenuItem>
-                      </TextField>
-                      <TextField label="Contact Info" value={party.contactInfo} onChange={(e) => {
-                        const newParties = [...legalCaseForm.parties];
-                        newParties[index].contactInfo = e.target.value;
-                        setLegalCaseForm({ ...legalCaseForm, parties: newParties });
-                      }} fullWidth />
-                      <IconButton color="error" onClick={() => {
-                        const newParties = legalCaseForm.parties.filter((_: any, i: number) => i !== index);
-                        setLegalCaseForm({ ...legalCaseForm, parties: newParties });
-                      }}>
-                        <DeleteIcon />
-                      </IconButton>
+            <Dialog 
+              open={legalCaseOpen} 
+              onClose={handleLegalCaseClose} 
+              maxWidth="lg" 
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.error.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                  <SecurityIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                    {legalCaseEditing ? '✏️ Edit Legal Case' : '⚖️ Add New Legal Case'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {legalCaseEditing ? 'Update legal case information and proceedings' : 'Create a new legal case with comprehensive tracking'}
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box component="form" onSubmit={handleLegalCaseSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Case Information Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 32, height: 32 }}>
+                        <SecurityIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                        ⚖️ Case Information
+                      </Typography>
                     </Box>
-                  ))}
-                  <Button variant="outlined" onClick={() => {
-                    setLegalCaseForm({
-                      ...legalCaseForm,
-                      parties: [...legalCaseForm.parties, { name: '', type: 'plaintiff', contactInfo: '' }]
-                    });
-                  }}>Add Party</Button>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Case Number" 
+                        name="caseNumber" 
+                        value={legalCaseForm.caseNumber} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Title" 
+                        name="title" 
+                        value={legalCaseForm.title} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Description" 
+                      name="description" 
+                      value={legalCaseForm.description} 
+                      onChange={handleLegalCaseFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        mb: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.error.main,
+                          },
+                        },
+                      }}
+                    />
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Case Type" 
+                        name="caseType" 
+                        value={legalCaseForm.caseType} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Case Type</MenuItem>
+                        <MenuItem value="labour_dispute">⚖️ Labour Dispute</MenuItem>
+                        <MenuItem value="traffic_fine">🚗 Traffic Fine</MenuItem>
+                        <MenuItem value="contract_dispute">📋 Contract Dispute</MenuItem>
+                        <MenuItem value="regulatory_violation">⚠️ Regulatory Violation</MenuItem>
+                        <MenuItem value="other">📄 Other</MenuItem>
+                      </TextField>
+                      <TextField 
+                        select 
+                        label="Ministry" 
+                        name="court" 
+                        value={legalCaseForm.court} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      >
+                        {legalCaseMinistryOptions.map(option => (
+                          <MenuItem key={option} value={option}>🏛️ {option}</MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField 
+                        label="Case Review Location" 
+                        name="courtLocation" 
+                        value={legalCaseForm.courtLocation} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Paid or Not Paid" 
+                        name="paidStatus" 
+                        value={legalCaseForm.paidStatus} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      >
+                        {paidOptions.map(option => (
+                          <MenuItem key={option} value={option}>{option === 'Paid' ? '✅ Paid' : '❌ Not Paid'}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="status" 
+                        value={legalCaseForm.status} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="open">🔴 Open</MenuItem>
+                        <MenuItem value="pending">⏳ Pending</MenuItem>
+                        <MenuItem value="in_progress">🔄 In Progress</MenuItem>
+                        <MenuItem value="resolved">✅ Resolved</MenuItem>
+                        <MenuItem value="closed">🔒 Closed</MenuItem>
+                        <MenuItem value="appealed">📤 Appealed</MenuItem>
+                      </TextField>
+                      <TextField 
+                        select 
+                        label="Priority" 
+                        name="priority" 
+                        value={legalCaseForm.priority} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="low">🟢 Low</MenuItem>
+                        <MenuItem value="medium">🟡 Medium</MenuItem>
+                        <MenuItem value="high">🟠 High</MenuItem>
+                        <MenuItem value="urgent">🔴 Urgent</MenuItem>
+                      </TextField>
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Estimated Cost" 
+                        name="estimatedCost" 
+                        value={legalCaseForm.estimatedCost} 
+                        onChange={handleLegalCaseFormChange} 
+                        type="number" 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Actual Cost" 
+                        name="actualCost" 
+                        value={legalCaseForm.actualCost} 
+                        onChange={handleLegalCaseFormChange} 
+                        type="number" 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
                   
-                  <TextField label="Notes" name="notes" value={legalCaseForm.notes} onChange={handleLegalCaseFormChange} fullWidth multiline minRows={2} />
-                  {legalCaseError && <Alert severity="error">{legalCaseError}</Alert>}
+                  {/* Legal Representative Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+                        <PeopleIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        👨‍💼 Legal Representative
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Type Of Legal Representative" 
+                        name="legalRepType" 
+                        value={legalCaseForm.legalRepType} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      >
+                        {legalRepTypeOptions.map(option => (
+                          <MenuItem key={option} value={option}>
+                            {option === 'Internal' ? '🏢 Internal' : '🏛️ External'}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      {legalCaseForm.legalRepType === 'Internal' ? (
+                        <TextField 
+                          label="Co ID" 
+                          name="coId" 
+                          value={legalCaseForm.coId} 
+                          onChange={e => {
+                            handleLegalCaseFormChange(e);
+                            // Auto-fill name if Co ID matches
+                            const emp = employees.find(emp => emp.employeeId === e.target.value);
+                            if (emp) setLegalCaseForm((prev: any) => ({
+                              ...prev,
+                              legalRepresentative: { ...prev.legalRepresentative, name: emp.name }
+                            }));
+                          }} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.primary.main,
+                              },
+                            },
+                          }}
+                        />
+                      ) : (
+                        <TextField 
+                          label="Firm" 
+                          name="legalRepresentative.firm" 
+                          value={legalCaseForm.legalRepresentative.firm} 
+                          onChange={handleLegalCaseFormChange} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.primary.main,
+                              },
+                            },
+                          }}
+                        />
+                      )}
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Name" 
+                        name="legalRepresentative.name" 
+                        value={legalCaseForm.legalRepresentative.name} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth 
+                        disabled={legalCaseForm.legalRepType === 'Internal'}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Phone" 
+                        name="legalRepresentative.phone" 
+                        value={legalCaseForm.legalRepresentative.phone} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Email" 
+                        name="legalRepresentative.email" 
+                        value={legalCaseForm.legalRepresentative.email} 
+                        onChange={handleLegalCaseFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Contract Amount" 
+                      name="legalRepresentative.contractAmount" 
+                      value={legalCaseForm.legalRepresentative.contractAmount} 
+                      onChange={handleLegalCaseFormChange} 
+                      type="number" 
+                      required 
+                      fullWidth
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.primary.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+                  
+                  {/* Parties Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                          <PeopleIcon />
+                        </Avatar>
+                        <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                          👥 Parties
+                        </Typography>
+                      </Box>
+                      <Button 
+                        variant="contained"
+                        onClick={() => {
+                          setLegalCaseForm({
+                            ...legalCaseForm,
+                            parties: [...legalCaseForm.parties, { name: '', type: 'plaintiff', contactInfo: '' }]
+                          });
+                        }}
+                        sx={{
+                          background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.success.main} 100%)`,
+                          '&:hover': {
+                            background: `linear-gradient(135deg, ${theme.palette.secondary.dark} 0%, ${theme.palette.success.dark} 100%)`,
+                            transform: 'translateY(-2px)',
+                            boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.3)}`
+                          },
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        Add Party
+                      </Button>
+                    </Box>
+                    
+                    {legalCaseForm.parties.map((party: any, index: number) => (
+                      <Box 
+                        key={index} 
+                        display="flex" 
+                        gap={2} 
+                        alignItems="center" 
+                        sx={{ 
+                          p: 2, 
+                          mb: 2,
+                          background: alpha(theme.palette.background.paper, 0.8),
+                          border: `1px solid ${alpha(theme.palette.divider, 0.2)}`, 
+                          borderRadius: theme.shape.borderRadius,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            background: alpha(theme.palette.secondary.main, 0.05),
+                            border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                            transform: 'translateY(-2px)'
+                          }
+                        }}
+                      >
+                        <TextField 
+                          label="Name" 
+                          value={party.name} 
+                          onChange={(e) => {
+                            const newParties = [...legalCaseForm.parties];
+                            newParties[index].name = e.target.value;
+                            setLegalCaseForm({ ...legalCaseForm, parties: newParties });
+                          }} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.secondary.main,
+                              },
+                            },
+                          }}
+                        />
+                        <TextField 
+                          select 
+                          label="Type" 
+                          value={party.type} 
+                          onChange={(e) => {
+                            const newParties = [...legalCaseForm.parties];
+                            newParties[index].type = e.target.value;
+                            setLegalCaseForm({ ...legalCaseForm, parties: newParties });
+                          }} 
+                          required 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.secondary.main,
+                              },
+                            },
+                          }}
+                        >
+                          <MenuItem value="plaintiff">⚖️ Plaintiff</MenuItem>
+                          <MenuItem value="defendant">🛡️ Defendant</MenuItem>
+                          <MenuItem value="third_party">👤 Third Party</MenuItem>
+                        </TextField>
+                        <TextField 
+                          label="Contact Info" 
+                          value={party.contactInfo} 
+                          onChange={(e) => {
+                            const newParties = [...legalCaseForm.parties];
+                            newParties[index].contactInfo = e.target.value;
+                            setLegalCaseForm({ ...legalCaseForm, parties: newParties });
+                          }} 
+                          fullWidth
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              '&:hover fieldset': {
+                                borderColor: theme.palette.secondary.main,
+                              },
+                            },
+                          }}
+                        />
+                        <IconButton 
+                          color="error" 
+                          onClick={() => {
+                            const newParties = legalCaseForm.parties.filter((_: any, i: number) => i !== index);
+                            setLegalCaseForm({ ...legalCaseForm, parties: newParties });
+                          }}
+                          sx={{
+                            '&:hover': {
+                              background: alpha(theme.palette.error.main, 0.1),
+                              transform: 'scale(1.1)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    ))}
+
+                    <TextField 
+                      label="Notes" 
+                      name="notes" 
+                      value={legalCaseForm.notes} 
+                      onChange={handleLegalCaseFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        mt: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.secondary.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+
+                  {legalCaseError && <Alert severity="error" sx={{ borderRadius: theme.shape.borderRadius }}>{legalCaseError}</Alert>}
                 </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={handleLegalCaseClose}>Cancel</Button>
-                <Button onClick={handleLegalCaseSubmit} variant="contained" color="primary">{legalCaseEditing ? 'Update' : 'Add'}</Button>
+              <DialogActions sx={{ 
+                p: 3,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+              }}>
+                <Button 
+                  onClick={handleLegalCaseClose}
+                  sx={{
+                    '&:hover': {
+                      background: alpha(theme.palette.error.main, 0.1),
+                      color: theme.palette.error.main
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleLegalCaseSubmit} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {legalCaseEditing ? '✏️ Update' : '⚖️ Add'}
+                </Button>
               </DialogActions>
             </Dialog>
             {/* Delete Dialog */}
-            <Dialog open={!!legalCaseDeleteId} onClose={() => setLegalCaseDeleteId(null)}>
-              <DialogTitle>Delete Legal Case</DialogTitle>
-              <DialogContent>
-                <Typography>Are you sure you want to delete this legal case?</Typography>
+            <Dialog 
+              open={!!legalCaseDeleteId} 
+              onClose={() => setLegalCaseDeleteId(null)}
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.error.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                  <DeleteIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                    🗑️ Delete Legal Case
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    This action cannot be undone
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Alert severity="warning" sx={{ flex: 1, borderRadius: theme.shape.borderRadius }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      Are you sure you want to delete this legal case? This will permanently remove all associated data including case details, parties, and legal representative information.
+                    </Typography>
+                  </Alert>
+                </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setLegalCaseDeleteId(null)}>Cancel</Button>
-                <Button onClick={handleLegalCaseDelete} color="error" variant="contained">Delete</Button>
+              <DialogActions sx={{ 
+                p: 3,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+              }}>
+                <Button 
+                  onClick={() => setLegalCaseDeleteId(null)}
+                  sx={{
+                    '&:hover': {
+                      background: alpha(theme.palette.info.main, 0.1),
+                      color: theme.palette.info.main
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleLegalCaseDelete} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🗑️ Delete
+                </Button>
               </DialogActions>
             </Dialog>
             <Snackbar
@@ -3807,247 +8005,1282 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{legalCaseSuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
-          </Box>
+          </motion.div>
         )}
         {tab === 5 && (
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h5">Company Facility Documents</Typography>
-              <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleFacilityOpen()}>
-                Add Facility
-              </Button>
-            </Box>
-            <Paper sx={{ p: 2, overflowX: 'auto' }}>
-              {loading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}>
-                  <CircularProgress />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.neutral?.main || '#795548', 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.neutral?.main || '#795548', 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.neutral?.main || '#795548', width: 48, height: 48 }}>
+                    <BuildIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: theme.palette.neutral?.main || '#795548', fontWeight: 600, mb: 0.5 }}>
+                      🏢 Company Facility Documents
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Comprehensive facility management with approvals and documentation
+                    </Typography>
+                  </Box>
                 </Box>
-              ) : facilityError ? (
-                <Alert severity="error" sx={{ mb: 2 }}>{facilityError}</Alert>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Facility Name</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Address</TableCell>
-                      <TableCell>Area (sqm)</TableCell>
-                      <TableCell>Rent Status</TableCell>
-                      <TableCell>Municipality Status</TableCell>
-                      <TableCell>Fire Dept Status</TableCell>
-                      <TableCell>MOC Status</TableCell>
-                      <TableCell>Overall Status</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Array.isArray(facilities) && facilities.map((facility) => (
-                      <TableRow key={facility._id}>
-                        <TableCell>{facility.facilityName}</TableCell>
-                        <TableCell>{facility.facilityType}</TableCell>
-                        <TableCell>{facility.address}</TableCell>
-                        <TableCell>{facility.area}</TableCell>
-                        <TableCell>
-                          <Chip label={facility.rentAgreement?.status || 'N/A'} color={getApprovalStatusColor(facility.rentAgreement?.status)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={facility.municipalityApproval?.status || 'N/A'} color={getApprovalStatusColor(facility.municipalityApproval?.status)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={facility.fireDepartmentApproval?.status || 'N/A'} color={getApprovalStatusColor(facility.fireDepartmentApproval?.status)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={facility.mocApproval?.status || 'N/A'} color={getApprovalStatusColor(facility.mocApproval?.status)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={facility.status} color={getFacilityStatusColor(facility.status)} size="small" />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small" color="primary" onClick={() => handleFacilityOpen(facility)}><EditIcon /></IconButton>
-                          <IconButton size="small" color="error" onClick={() => setFacilityDeleteId(facility._id)}><DeleteIcon /></IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddIcon />} 
+                  onClick={() => handleFacilityOpen()}
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.neutral?.main || '#795548'} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.neutral?.dark || '#5D4037'} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.neutral?.main || '#795548', 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  Add Facility
+                </Button>
+              </Box>
             </Paper>
+
+            {loading ? (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 3 }}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} variant="rectangular" height={200} sx={{ borderRadius: theme.shape.borderRadius }} />
+                ))}
+              </Box>
+            ) : facilityError ? (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: theme.shape.borderRadius }}>
+                {facilityError}
+              </Alert>
+            ) : (
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 3 }}>
+                {Array.isArray(facilities) && facilities.map((facility, index) => (
+                  <motion.div
+                    key={facility._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card 
+                      elevation={0}
+                      sx={{ 
+                        height: '100%',
+                        background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.6)} 100%)`,
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        borderRadius: theme.shape.borderRadius,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'translateY(-8px)',
+                          boxShadow: `0 20px 40px ${alpha(theme.palette.neutral?.main || '#795548', 0.15)}`,
+                          border: `1px solid ${alpha(theme.palette.neutral?.main || '#795548', 0.3)}`
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ bgcolor: theme.palette.neutral?.main || '#795548', width: 40, height: 40 }}>
+                              <BuildIcon />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.neutral?.main || '#795548' }}>
+                                {facility.facilityName}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                                {facility.facilityType}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Chip 
+                            label={facility.status} 
+                            color={getFacilityStatusColor(facility.status)} 
+                            size="small"
+                            sx={{ fontWeight: 600 }}
+                          />
+                        </Box>
+
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            📍 {facility.address}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            📏 {facility.area} sqm
+                          </Typography>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2, mb: 2 }}>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Rent Agreement
+                            </Typography>
+                            <Chip 
+                              label={facility.rentAgreement?.status || 'N/A'} 
+                              color={getApprovalStatusColor(facility.rentAgreement?.status)} 
+                              size="small"
+                              sx={{ ml: 1, fontWeight: 600 }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Municipality
+                            </Typography>
+                            <Chip 
+                              label={facility.municipalityApproval?.status || 'N/A'} 
+                              color={getApprovalStatusColor(facility.municipalityApproval?.status)} 
+                              size="small"
+                              sx={{ ml: 1, fontWeight: 600 }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              Fire Department
+                            </Typography>
+                            <Chip 
+                              label={facility.fireDepartmentApproval?.status || 'N/A'} 
+                              color={getApprovalStatusColor(facility.fireDepartmentApproval?.status)} 
+                              size="small"
+                              sx={{ ml: 1, fontWeight: 600 }}
+                            />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                              MOC Approval
+                            </Typography>
+                            <Chip 
+                              label={facility.mocApproval?.status || 'N/A'} 
+                              color={getApprovalStatusColor(facility.mocApproval?.status)} 
+                              size="small"
+                              sx={{ ml: 1, fontWeight: 600 }}
+                            />
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleFacilityOpen(facility)}
+                            sx={{
+                              color: theme.palette.primary.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.primary.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => setFacilityDeleteId(facility._id)}
+                            sx={{
+                              color: theme.palette.error.main,
+                              '&:hover': {
+                                background: alpha(theme.palette.error.main, 0.1),
+                                transform: 'scale(1.1)'
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </Box>
+            )}
             {/* Add/Edit Dialog */}
-            <Dialog open={facilityOpen} onClose={handleFacilityClose} maxWidth="lg" fullWidth>
-              <DialogTitle>{facilityEditing ? 'Edit Facility' : 'Add Facility'}</DialogTitle>
-              <DialogContent>
-                <Box component="form" onSubmit={handleFacilitySubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                  <Typography variant="h6">Basic Information</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Facility Name" name="facilityName" value={facilityForm.facilityName} onChange={handleFacilityFormChange} required fullWidth />
-                    <TextField select label="Facility Type" name="facilityType" value={facilityForm.facilityType} onChange={handleFacilityFormChange} required fullWidth>
-                      <MenuItem value="office">Office</MenuItem>
-                      <MenuItem value="warehouse">Warehouse</MenuItem>
-                      <MenuItem value="workshop">Workshop</MenuItem>
-                      <MenuItem value="showroom">Showroom</MenuItem>
-                      <MenuItem value="residential">Residential</MenuItem>
-                      <MenuItem value="other">Other</MenuItem>
-                    </TextField>
-                  </Box>
-                  <TextField label="Address" name="address" value={facilityForm.address} onChange={handleFacilityFormChange} required fullWidth multiline minRows={2} />
-                  <Box display="flex" gap={2}>
-                    <TextField label="Area (sqm)" name="area" value={facilityForm.area} onChange={handleFacilityFormChange} type="number" required fullWidth />
-                    <TextField select label="Status" name="status" value={facilityForm.status} onChange={handleFacilityFormChange} required fullWidth>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="inactive">Inactive</MenuItem>
-                      <MenuItem value="under_renovation">Under Renovation</MenuItem>
-                      <MenuItem value="closed">Closed</MenuItem>
-                    </TextField>
-                  </Box>
+            <Dialog 
+              open={facilityOpen} 
+              onClose={handleFacilityClose} 
+              maxWidth="lg" 
+              fullWidth
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.neutral?.main || '#795548', 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.neutral?.main || '#795548', 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.neutral?.main || '#795548', 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.neutral?.main || '#795548', width: 40, height: 40 }}>
+                  <BuildIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.neutral?.main || '#795548', fontWeight: 600 }}>
+                    {facilityEditing ? '✏️ Edit Facility' : '🏢 Add New Facility'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {facilityEditing ? 'Update facility information and approvals' : 'Create a new facility with all required documentation'}
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box component="form" onSubmit={handleFacilitySubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {/* Basic Information Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
+                        <BusinessIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        📋 Basic Information
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Facility Name" 
+                        name="facilityName" 
+                        value={facilityForm.facilityName} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        select 
+                        label="Facility Type" 
+                        name="facilityType" 
+                        value={facilityForm.facilityType} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="office">🏢 Office</MenuItem>
+                        <MenuItem value="warehouse">🏭 Warehouse</MenuItem>
+                        <MenuItem value="workshop">🔧 Workshop</MenuItem>
+                        <MenuItem value="showroom">🏪 Showroom</MenuItem>
+                        <MenuItem value="residential">🏠 Residential</MenuItem>
+                        <MenuItem value="other">📦 Other</MenuItem>
+                      </TextField>
+                    </Box>
+                    <TextField 
+                      label="Address" 
+                      name="address" 
+                      value={facilityForm.address} 
+                      onChange={handleFacilityFormChange} 
+                      required 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        mb: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.primary.main,
+                          },
+                        },
+                      }}
+                    />
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        label="Area (sqm)" 
+                        name="area" 
+                        value={facilityForm.area} 
+                        onChange={handleFacilityFormChange} 
+                        type="number" 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="status" 
+                        value={facilityForm.status} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="active">✅ Active</MenuItem>
+                        <MenuItem value="inactive">⏸️ Inactive</MenuItem>
+                        <MenuItem value="under_renovation">🔨 Under Renovation</MenuItem>
+                        <MenuItem value="closed">❌ Closed</MenuItem>
+                      </TextField>
+                    </Box>
+                  </Paper>
 
-                  <Typography variant="h6">Rent Agreement</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Agreement Number" name="rentAgreement.agreementNumber" value={facilityForm.rentAgreement.agreementNumber} onChange={handleFacilityFormChange} required fullWidth />
-                    <TextField label="Landlord Name" name="rentAgreement.landlordName" value={facilityForm.rentAgreement.landlordName} onChange={handleFacilityFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Landlord Contact" name="rentAgreement.landlordContact" value={facilityForm.rentAgreement.landlordContact} onChange={handleFacilityFormChange} required fullWidth />
-                    <TextField label="Monthly Rent" name="rentAgreement.monthlyRent" value={facilityForm.rentAgreement.monthlyRent} onChange={handleFacilityFormChange} type="number" required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Start Date" name="rentAgreement.startDate" value={facilityForm.rentAgreement.startDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    <TextField label="End Date" name="rentAgreement.endDate" value={facilityForm.rentAgreement.endDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Is There Any Security Deposit?" name="hasSecurityDeposit" value={facilityForm.hasSecurityDeposit} onChange={handleFacilityFormChange} required fullWidth>
-                      {yesNoOptions.map(option => (
-                        <MenuItem key={option} value={option}>{option}</MenuItem>
-                      ))}
+                  {/* Rent Agreement Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 32, height: 32 }}>
+                        <AttachMoneyIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                        💰 Rent Agreement
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Agreement Number" 
+                        name="rentAgreement.agreementNumber" 
+                        value={facilityForm.rentAgreement.agreementNumber} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Landlord Name" 
+                        name="rentAgreement.landlordName" 
+                        value={facilityForm.rentAgreement.landlordName} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Landlord Contact" 
+                        name="rentAgreement.landlordContact" 
+                        value={facilityForm.rentAgreement.landlordContact} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Monthly Rent" 
+                        name="rentAgreement.monthlyRent" 
+                        value={facilityForm.rentAgreement.monthlyRent} 
+                        onChange={handleFacilityFormChange} 
+                        type="number" 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Start Date" 
+                        name="rentAgreement.startDate" 
+                        value={facilityForm.rentAgreement.startDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="End Date" 
+                        name="rentAgreement.endDate" 
+                        value={facilityForm.rentAgreement.endDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Is There Any Security Deposit?" 
+                        name="hasSecurityDeposit" 
+                        value={facilityForm.hasSecurityDeposit} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.success.main,
+                            },
+                          },
+                        }}
+                      >
+                        {yesNoOptions.map(option => (
+                          <MenuItem key={option} value={option}>{option === 'Yes' ? '✅ Yes' : '❌ No'}</MenuItem>
+                        ))}
+                      </TextField>
+                      {facilityForm.hasSecurityDeposit === 'Yes' && (
+                        <>
+                          <TextField 
+                            label="Amount" 
+                            name="securityDepositAmount" 
+                            value={facilityForm.securityDepositAmount} 
+                            onChange={handleFacilityFormChange} 
+                            type="number" 
+                            required 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.success.main,
+                                },
+                              },
+                            }}
+                          />
+                          <TextField 
+                            select 
+                            label="Amortization" 
+                            name="securityDepositAmortization" 
+                            value={facilityForm.securityDepositAmortization} 
+                            onChange={handleFacilityFormChange} 
+                            required 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.success.main,
+                                },
+                              },
+                            }}
+                          >
+                            {amortizationOptions.map(option => (
+                              <MenuItem key={option} value={option}>{option}</MenuItem>
+                            ))}
+                          </TextField>
+                        </>
+                      )}
+                    </Box>
+                    <TextField 
+                      label="Renewal Terms" 
+                      name="rentAgreement.renewalTerms" 
+                      value={facilityForm.rentAgreement.renewalTerms} 
+                      onChange={handleFacilityFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.success.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+
+                  {/* Municipality Approval Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 32, height: 32 }}>
+                        <BusinessIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        🏛️ Municipality Approval
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Approval Number" 
+                        name="municipalityApproval.approvalNumber" 
+                        value={facilityForm.municipalityApproval.approvalNumber} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Approval Type" 
+                        name="municipalityApproval.approvalType" 
+                        value={facilityForm.municipalityApproval.approvalType} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Approval Date" 
+                        name="municipalityApproval.approvalDate" 
+                        value={facilityForm.municipalityApproval.approvalDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Expiry Date" 
+                        name="municipalityApproval.expiryDate" 
+                        value={facilityForm.municipalityApproval.expiryDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2}>
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="municipalityApproval.status" 
+                        value={facilityForm.municipalityApproval.status} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="active">✅ Active</MenuItem>
+                        <MenuItem value="expired">❌ Expired</MenuItem>
+                        <MenuItem value="pending_renewal">⏳ Pending Renewal</MenuItem>
+                      </TextField>
+                      <TextField 
+                        label="Renewal Place" 
+                        name="municipalityApproval.renewalProcess" 
+                        value={facilityForm.municipalityApproval.renewalProcess} 
+                        onChange={handleFacilityFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+
+                  {/* Fire Department Approval Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 32, height: 32 }}>
+                        <SecurityIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                        🚒 Fire Department Approval
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Approval Number" 
+                        name="fireDepartmentApproval.approvalNumber" 
+                        value={facilityForm.fireDepartmentApproval.approvalNumber} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Inspection Date" 
+                        name="fireDepartmentApproval.inspectionDate" 
+                        value={facilityForm.fireDepartmentApproval.inspectionDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Approval Date" 
+                        name="fireDepartmentApproval.approvalDate" 
+                        value={facilityForm.fireDepartmentApproval.approvalDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Expiry Date" 
+                        name="fireDepartmentApproval.expiryDate" 
+                        value={facilityForm.fireDepartmentApproval.expiryDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        select 
+                        label="Status" 
+                        name="fireDepartmentApproval.status" 
+                        value={facilityForm.fireDepartmentApproval.status} 
+                        onChange={handleFacilityFormChange} 
+                        required 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="active">✅ Active</MenuItem>
+                        <MenuItem value="expired">❌ Expired</MenuItem>
+                        <MenuItem value="pending_renewal">⏳ Pending Renewal</MenuItem>
+                      </TextField>
+                      <TextField 
+                        label="Findings" 
+                        name="fireDepartmentApproval.findings" 
+                        value={facilityForm.fireDepartmentApproval.findings} 
+                        onChange={handleFacilityFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.error.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      label="Corrective Actions" 
+                      name="fireDepartmentApproval.correctiveActions" 
+                      value={facilityForm.fireDepartmentApproval.correctiveActions.join('\n')} 
+                      onChange={(e) => setFacilityForm({...facilityForm, fireDepartmentApproval: {...facilityForm.fireDepartmentApproval, correctiveActions: e.target.value.split('\n').filter(action => action.trim() !== '')}})} 
+                      fullWidth 
+                      multiline 
+                      minRows={3}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.error.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
+
+                  {/* MOC Approval Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 32, height: 32 }}>
+                        <AdminPanelSettingsIcon />
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                        🏛️ Ministry Of (ABC)
+                      </Typography>
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Approval Number" 
+                        name="mocApproval.approvalNumber" 
+                        value={facilityForm.mocApproval.approvalNumber} 
+                        onChange={handleFacilityFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Approval Type" 
+                        name="mocApproval.approvalType" 
+                        value={facilityForm.mocApproval.approvalType} 
+                        onChange={handleFacilityFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <Box display="flex" gap={2} mb={2}>
+                      <TextField 
+                        label="Approval Date" 
+                        name="mocApproval.approvalDate" 
+                        value={facilityForm.mocApproval.approvalDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                      <TextField 
+                        label="Expiry Date" 
+                        name="mocApproval.expiryDate" 
+                        value={facilityForm.mocApproval.expiryDate} 
+                        onChange={handleFacilityFormChange} 
+                        type="date" 
+                        InputLabelProps={{ shrink: true }} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.warning.main,
+                            },
+                          },
+                        }}
+                      />
+                    </Box>
+                    <TextField 
+                      select 
+                      label="Status" 
+                      name="mocApproval.status" 
+                      value={facilityForm.mocApproval.status} 
+                      onChange={handleFacilityFormChange} 
+                      fullWidth
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.warning.main,
+                          },
+                        },
+                      }}
+                    >
+                      <MenuItem value="active">✅ Active</MenuItem>
+                      <MenuItem value="expired">❌ Expired</MenuItem>
+                      <MenuItem value="pending_renewal">⏳ Pending Renewal</MenuItem>
                     </TextField>
-                    {facilityForm.hasSecurityDeposit === 'Yes' && (
-                      <>
-                        <TextField label="Amount" name="securityDepositAmount" value={facilityForm.securityDepositAmount} onChange={handleFacilityFormChange} type="number" required fullWidth />
-                        <TextField select label="Amortization" name="securityDepositAmortization" value={facilityForm.securityDepositAmortization} onChange={handleFacilityFormChange} required fullWidth>
-                          {amortizationOptions.map(option => (
-                            <MenuItem key={option} value={option}>{option}</MenuItem>
-                          ))}
-                        </TextField>
-                      </>
+                  </Paper>
+
+                  {/* Other Approvals Section */}
+                  <Paper 
+                    elevation={0}
+                    sx={{ 
+                      p: 3,
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.05)} 0%, ${alpha(theme.palette.neutral?.main || '#795548', 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                      borderRadius: theme.shape.borderRadius
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 32, height: 32 }}>
+                          <AddIcon />
+                        </Avatar>
+                        <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                          📋 Other Approvals
+                        </Typography>
+                      </Box>
+                      <Button 
+                        startIcon={<AddIcon />} 
+                        onClick={() => setShowOtherApprovalForm(true)} 
+                        variant="contained"
+                        size="small"
+                        sx={{
+                          background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${theme.palette.neutral?.main || '#795548'} 100%)`,
+                          '&:hover': {
+                            background: `linear-gradient(135deg, ${theme.palette.secondary.dark} 0%, ${theme.palette.neutral?.dark || '#5D4037'} 100%)`,
+                            transform: 'translateY(-2px)',
+                            boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.3)}`
+                          },
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        Add Approval
+                      </Button>
+                    </Box>
+                    
+                    {facilityForm.otherApprovals.map((approval: any, index: number) => (
+                      <Box 
+                        key={index} 
+                        display="flex" 
+                        gap={2} 
+                        alignItems="center" 
+                        sx={{ 
+                          p: 2, 
+                          mb: 2,
+                          background: alpha(theme.palette.background.paper, 0.8),
+                          border: `1px solid ${alpha(theme.palette.divider, 0.2)}`, 
+                          borderRadius: theme.shape.borderRadius,
+                          transition: 'all 0.2s ease',
+                          '&:hover': {
+                            background: alpha(theme.palette.secondary.main, 0.05),
+                            border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                            transform: 'translateY(-2px)'
+                          }
+                        }}
+                      >
+                        <Typography sx={{ flex: 1, fontWeight: 500 }}>
+                          {approval.authority} - {approval.approvalNumber}
+                        </Typography>
+                        <Chip 
+                          label={approval.status} 
+                          color={getApprovalStatusColor(approval.status)} 
+                          size="small"
+                          sx={{ fontWeight: 600 }}
+                        />
+                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={() => handleRemoveOtherApproval(index)}
+                          sx={{
+                            '&:hover': {
+                              background: alpha(theme.palette.error.main, 0.1),
+                              transform: 'scale(1.1)'
+                            },
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    ))}
+                    
+                    {showOtherApprovalForm && (
+                      <Box sx={{ 
+                        p: 3, 
+                        background: alpha(theme.palette.background.paper, 0.9),
+                        border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`, 
+                        borderRadius: theme.shape.borderRadius, 
+                        mt: 2 
+                      }}>
+                        <Typography variant="subtitle1" gutterBottom sx={{ color: theme.palette.secondary.main, fontWeight: 600, mb: 2 }}>
+                          ➕ Add Other Approval
+                        </Typography>
+                        <Box display="flex" gap={2} mb={2}>
+                          <TextField 
+                            label="Authority" 
+                            value={newOtherApproval.authority} 
+                            onChange={(e) => setNewOtherApproval({...newOtherApproval, authority: e.target.value})} 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.secondary.main,
+                                },
+                              },
+                            }}
+                          />
+                          <TextField 
+                            label="Approval Number" 
+                            value={newOtherApproval.approvalNumber} 
+                            onChange={(e) => setNewOtherApproval({...newOtherApproval, approvalNumber: e.target.value})} 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.secondary.main,
+                                },
+                              },
+                            }}
+                          />
+                        </Box>
+                        <Box display="flex" gap={2} mb={2}>
+                          <TextField 
+                            label="Approval Date" 
+                            value={newOtherApproval.approvalDate} 
+                            onChange={(e) => setNewOtherApproval({...newOtherApproval, approvalDate: e.target.value})} 
+                            type="date" 
+                            InputLabelProps={{ shrink: true }} 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.secondary.main,
+                                },
+                              },
+                            }}
+                          />
+                          <TextField 
+                            label="Expiry Date" 
+                            value={newOtherApproval.expiryDate} 
+                            onChange={(e) => setNewOtherApproval({...newOtherApproval, expiryDate: e.target.value})} 
+                            type="date" 
+                            InputLabelProps={{ shrink: true }} 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.secondary.main,
+                                },
+                              },
+                            }}
+                          />
+                        </Box>
+                        <Box display="flex" gap={2} mb={2}>
+                          <TextField 
+                            select 
+                            label="Status" 
+                            value={newOtherApproval.status} 
+                            onChange={(e) => setNewOtherApproval({...newOtherApproval, status: e.target.value})} 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.secondary.main,
+                                },
+                              },
+                            }}
+                          >
+                            <MenuItem value="active">✅ Active</MenuItem>
+                            <MenuItem value="expired">❌ Expired</MenuItem>
+                            <MenuItem value="pending_renewal">⏳ Pending Renewal</MenuItem>
+                          </TextField>
+                          <TextField 
+                            label="Notes" 
+                            value={newOtherApproval.notes} 
+                            onChange={(e) => setNewOtherApproval({...newOtherApproval, notes: e.target.value})} 
+                            fullWidth
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&:hover fieldset': {
+                                  borderColor: theme.palette.secondary.main,
+                                },
+                              },
+                            }}
+                          />
+                        </Box>
+                        <Box display="flex" gap={1}>
+                          <Button 
+                            size="small" 
+                            onClick={handleAddOtherApproval} 
+                            variant="contained"
+                            sx={{
+                              background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                              '&:hover': {
+                                background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+                                transform: 'translateY(-2px)'
+                              },
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            Add
+                          </Button>
+                          <Button 
+                            size="small" 
+                            onClick={() => setShowOtherApprovalForm(false)}
+                            sx={{
+                              '&:hover': {
+                                background: alpha(theme.palette.error.main, 0.1),
+                                color: theme.palette.error.main
+                              },
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
                     )}
-                  </Box>
-                  <TextField label="Renewal Terms" name="rentAgreement.renewalTerms" value={facilityForm.rentAgreement.renewalTerms} onChange={handleFacilityFormChange} fullWidth multiline minRows={2} />
 
-                  <Typography variant="h6">Municipality Approval</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Approval Number" name="municipalityApproval.approvalNumber" value={facilityForm.municipalityApproval.approvalNumber} onChange={handleFacilityFormChange} required fullWidth />
-                    <TextField label="Approval Type" name="municipalityApproval.approvalType" value={facilityForm.municipalityApproval.approvalType} onChange={handleFacilityFormChange} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Approval Date" name="municipalityApproval.approvalDate" value={facilityForm.municipalityApproval.approvalDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    <TextField label="Expiry Date" name="municipalityApproval.expiryDate" value={facilityForm.municipalityApproval.expiryDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Status" name="municipalityApproval.status" value={facilityForm.municipalityApproval.status} onChange={handleFacilityFormChange} required fullWidth>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="expired">Expired</MenuItem>
-                      <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
-                    </TextField>
-                    <TextField label="Renewal Place" name="municipalityApproval.renewalProcess" value={facilityForm.municipalityApproval.renewalProcess} onChange={handleFacilityFormChange} fullWidth />
-                  </Box>
+                    <TextField 
+                      label="Notes" 
+                      name="notes" 
+                      value={facilityForm.notes} 
+                      onChange={handleFacilityFormChange} 
+                      fullWidth 
+                      multiline 
+                      minRows={2}
+                      sx={{
+                        mt: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.secondary.main,
+                          },
+                        },
+                      }}
+                    />
+                  </Paper>
 
-                  <Typography variant="h6">Fire Department Approval</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Approval Number" name="fireDepartmentApproval.approvalNumber" value={facilityForm.fireDepartmentApproval.approvalNumber} onChange={handleFacilityFormChange} required fullWidth />
-                    <TextField label="Inspection Date" name="fireDepartmentApproval.inspectionDate" value={facilityForm.fireDepartmentApproval.inspectionDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Approval Date" name="fireDepartmentApproval.approvalDate" value={facilityForm.fireDepartmentApproval.approvalDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                    <TextField label="Expiry Date" name="fireDepartmentApproval.expiryDate" value={facilityForm.fireDepartmentApproval.expiryDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} required fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField select label="Status" name="fireDepartmentApproval.status" value={facilityForm.fireDepartmentApproval.status} onChange={handleFacilityFormChange} required fullWidth>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="expired">Expired</MenuItem>
-                      <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
-                    </TextField>
-                    <TextField label="Findings" name="fireDepartmentApproval.findings" value={facilityForm.fireDepartmentApproval.findings} onChange={handleFacilityFormChange} fullWidth />
-                  </Box>
-                  <TextField label="Corrective Actions" name="fireDepartmentApproval.correctiveActions" value={facilityForm.fireDepartmentApproval.correctiveActions.join('\n')} onChange={(e) => setFacilityForm({...facilityForm, fireDepartmentApproval: {...facilityForm.fireDepartmentApproval, correctiveActions: e.target.value.split('\n').filter(action => action.trim() !== '')}})} fullWidth multiline minRows={3} />
-
-                  <Typography variant="h6">Ministry Of (ABC)</Typography>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Approval Number" name="mocApproval.approvalNumber" value={facilityForm.mocApproval.approvalNumber} onChange={handleFacilityFormChange} fullWidth />
-                    <TextField label="Approval Type" name="mocApproval.approvalType" value={facilityForm.mocApproval.approvalType} onChange={handleFacilityFormChange} fullWidth />
-                  </Box>
-                  <Box display="flex" gap={2}>
-                    <TextField label="Approval Date" name="mocApproval.approvalDate" value={facilityForm.mocApproval.approvalDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-                    <TextField label="Expiry Date" name="mocApproval.expiryDate" value={facilityForm.mocApproval.expiryDate} onChange={handleFacilityFormChange} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-                  </Box>
-                  <TextField select label="Status" name="mocApproval.status" value={facilityForm.mocApproval.status} onChange={handleFacilityFormChange} fullWidth>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="expired">Expired</MenuItem>
-                    <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
-                  </TextField>
-
-                  <Typography variant="h6">Other Approvals</Typography>
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle2">Other Approvals</Typography>
-                    <Button startIcon={<AddIcon />} onClick={() => setShowOtherApprovalForm(true)} variant="outlined" size="small">
-                      Add Approval
-                    </Button>
-                  </Box>
-                  {facilityForm.otherApprovals.map((approval: any, index: number) => (
-                    <Box key={index} display="flex" gap={2} alignItems="center" sx={{ p: 1, border: '1px solid #ddd', borderRadius: 1 }}>
-                      <Typography sx={{ flex: 1 }}>{approval.authority} - {approval.approvalNumber}</Typography>
-                      <Chip label={approval.status} color={getApprovalStatusColor(approval.status)} size="small" />
-                      <IconButton size="small" color="error" onClick={() => handleRemoveOtherApproval(index)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                  ))}
-                  {showOtherApprovalForm && (
-                    <Box sx={{ p: 2, border: '1px solid #ddd', borderRadius: 1, mt: 1 }}>
-                      <Typography variant="subtitle2" gutterBottom>Add Other Approval</Typography>
-                      <Box display="flex" gap={2}>
-                        <TextField label="Authority" value={newOtherApproval.authority} onChange={(e) => setNewOtherApproval({...newOtherApproval, authority: e.target.value})} fullWidth />
-                        <TextField label="Approval Number" value={newOtherApproval.approvalNumber} onChange={(e) => setNewOtherApproval({...newOtherApproval, approvalNumber: e.target.value})} fullWidth />
-                      </Box>
-                      <Box display="flex" gap={2}>
-                        <TextField label="Approval Date" value={newOtherApproval.approvalDate} onChange={(e) => setNewOtherApproval({...newOtherApproval, approvalDate: e.target.value})} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-                        <TextField label="Expiry Date" value={newOtherApproval.expiryDate} onChange={(e) => setNewOtherApproval({...newOtherApproval, expiryDate: e.target.value})} type="date" InputLabelProps={{ shrink: true }} fullWidth />
-                      </Box>
-                      <Box display="flex" gap={2}>
-                        <TextField select label="Status" value={newOtherApproval.status} onChange={(e) => setNewOtherApproval({...newOtherApproval, status: e.target.value})} fullWidth>
-                          <MenuItem value="active">Active</MenuItem>
-                          <MenuItem value="expired">Expired</MenuItem>
-                          <MenuItem value="pending_renewal">Pending Renewal</MenuItem>
-                        </TextField>
-                        <TextField label="Notes" value={newOtherApproval.notes} onChange={(e) => setNewOtherApproval({...newOtherApproval, notes: e.target.value})} fullWidth />
-                      </Box>
-                      <Box display="flex" gap={1} sx={{ mt: 1 }}>
-                        <Button size="small" onClick={handleAddOtherApproval} variant="contained">
-                          Add
-                        </Button>
-                        <Button size="small" onClick={() => setShowOtherApprovalForm(false)}>
-                          Cancel
-                        </Button>
-                      </Box>
-                    </Box>
-                  )}
-
-                  <TextField label="Notes" name="notes" value={facilityForm.notes} onChange={handleFacilityFormChange} fullWidth multiline minRows={2} />
-                  {error && <Alert severity="error">{error}</Alert>}
+                  {error && <Alert severity="error" sx={{ borderRadius: theme.shape.borderRadius }}>{error}</Alert>}
                 </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={handleFacilityClose}>Cancel</Button>
-                <Button onClick={handleFacilitySubmit} variant="contained" color="primary">{facilityEditing ? 'Update' : 'Add'}</Button>
+              <DialogActions sx={{ 
+                p: 3,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.neutral?.main || '#795548', 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+              }}>
+                <Button 
+                  onClick={handleFacilityClose}
+                  sx={{
+                    '&:hover': {
+                      background: alpha(theme.palette.error.main, 0.1),
+                      color: theme.palette.error.main
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleFacilitySubmit} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.neutral?.main || '#795548'} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.neutral?.dark || '#5D4037'} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.neutral?.main || '#795548', 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {facilityEditing ? '✏️ Update' : '🏢 Add'}
+                </Button>
               </DialogActions>
             </Dialog>
             {/* Delete Dialog */}
-            <Dialog open={!!facilityDeleteId} onClose={() => setFacilityDeleteId(null)}>
-              <DialogTitle>Delete Facility</DialogTitle>
-              <DialogContent>
-                <Typography>Are you sure you want to delete this facility?</Typography>
+            <Dialog 
+              open={!!facilityDeleteId} 
+              onClose={() => setFacilityDeleteId(null)}
+              PaperProps={{
+                sx: {
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  boxShadow: `0 20px 60px ${alpha(theme.palette.error.main, 0.1)}`
+                }
+              }}
+            >
+              <DialogTitle sx={{ 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.1)} 100%)`,
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }}>
+                <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                  <DeleteIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                    🗑️ Delete Facility
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    This action cannot be undone
+                  </Typography>
+                </Box>
+              </DialogTitle>
+              <DialogContent sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Alert severity="warning" sx={{ flex: 1, borderRadius: theme.shape.borderRadius }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      Are you sure you want to delete this facility? This will permanently remove all associated data including approvals and documentation.
+                    </Typography>
+                  </Alert>
+                </Box>
               </DialogContent>
-              <DialogActions>
-                <Button onClick={() => setFacilityDeleteId(null)}>Cancel</Button>
-                <Button onClick={handleFacilityDelete} color="error" variant="contained">Delete</Button>
+              <DialogActions sx={{ 
+                p: 3,
+                background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+              }}>
+                <Button 
+                  onClick={() => setFacilityDeleteId(null)}
+                  sx={{
+                    '&:hover': {
+                      background: alpha(theme.palette.info.main, 0.1),
+                      color: theme.palette.info.main
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleFacilityDelete} 
+                  variant="contained"
+                  sx={{
+                    background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.warning.main} 100%)`,
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.warning.dark} 100%)`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🗑️ Delete
+                </Button>
               </DialogActions>
             </Dialog>
             <Snackbar
@@ -4057,202 +9290,575 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{facilitySuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
-          </Box>
+          </motion.div>
         )}
         {tab === 6 && (
-          <Box>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h5">Dashboard & Reports</Typography>
-              <Box display="flex" gap={1}>
-                <Button variant="outlined" startIcon={<SaveAltIcon />} onClick={handleExportDashboardCSV}>Export Report</Button>
-                <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrintDashboard}>Print Report</Button>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.info.main, width: 48, height: 48 }}>
+                    <DashboardIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h5" sx={{ color: theme.palette.info.main, fontWeight: 600, mb: 0.5 }}>
+                      📊 Dashboard & Reports
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Comprehensive analytics and insights for all business operations
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<SaveAltIcon />} 
+                    onClick={handleExportDashboardCSV}
+                    sx={{
+                      background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.info.main} 100%)`,
+                      '&:hover': {
+                        background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.info.dark} 100%)`,
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.3)}`
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Export Report
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<PrintIcon />} 
+                    onClick={handlePrintDashboard}
+                    sx={{
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                      '&:hover': {
+                        background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.secondary.dark} 100%)`,
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`
+                      },
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Print Report
+                  </Button>
+                </Box>
               </Box>
-            </Box>
+            </Paper>
             
             {/* Summary Cards */}
-            <Box display="flex" flexWrap="wrap" gap={2} mb={3}>
-              <Card sx={{ flex: '1 1 200px', minWidth: 200, background: '#1976d2', color: '#fff' }}>
-                <CardContent>
-                  <Typography variant="subtitle2">Total Employees</Typography>
-                  <Typography variant="h4">{employees.length}</Typography>
-                  <Typography variant="caption">Active Residencies</Typography>
-                </CardContent>
-              </Card>
-              <Card sx={{ flex: '1 1 200px', minWidth: 200, background: '#388e3c', color: '#fff' }}>
-                <CardContent>
-                  <Typography variant="subtitle2">Active Documents</Typography>
-                  <Typography variant="h4">{govDocs.filter(d => d.status === 'active').length}</Typography>
-                  <Typography variant="caption">Government Documents</Typography>
-                </CardContent>
-              </Card>
-              <Card sx={{ flex: '1 1 200px', minWidth: 200, background: '#fbc02d', color: '#fff' }}>
-                <CardContent>
-                  <Typography variant="subtitle2">Active Vehicles</Typography>
-                  <Typography variant="h4">{vehicles.filter(v => v.status === 'active').length}</Typography>
-                  <Typography variant="caption">Registered Vehicles</Typography>
-                </CardContent>
-              </Card>
-              <Card sx={{ flex: '1 1 200px', minWidth: 200, background: '#d32f2f', color: '#fff' }}>
-                <CardContent>
-                  <Typography variant="subtitle2">Open Cases</Typography>
-                  <Typography variant="h4">{legalCases.filter(c => c.status === 'open').length}</Typography>
-                  <Typography variant="caption">Legal Cases</Typography>
-                </CardContent>
-              </Card>
-              <Card sx={{ flex: '1 1 200px', minWidth: 200, background: '#6d4c41', color: '#fff' }}>
-                <CardContent>
-                  <Typography variant="subtitle2">Active Facilities</Typography>
-                  <Typography variant="h4">{facilities.filter(f => f.status === 'active').length}</Typography>
-                  <Typography variant="caption">Company Facilities</Typography>
-                </CardContent>
-              </Card>
-              <Card sx={{ flex: '1 1 200px', minWidth: 200, background: '#0288d1', color: '#fff' }}>
-                <CardContent>
-                  <Typography variant="subtitle2">Pending Items</Typography>
-                  <Typography variant="h4">
-                    {records.filter(r => r.status === 'pending_renewal').length + 
-                     govDocs.filter(d => d.status === 'pending_renewal').length + 
-                     vehicles.filter(v => v.status === 'expired').length}
-                  </Typography>
-                  <Typography variant="caption">Requires Attention</Typography>
-                </CardContent>
-              </Card>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 3, mb: 4 }}>
+              {[
+                {
+                  title: 'Total Employees',
+                  value: employees.length,
+                  subtitle: 'Active Residencies',
+                  icon: <PeopleIcon sx={{ fontSize: 32 }} />,
+                  gradient: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
+                  color: theme.palette.primary.main
+                },
+                {
+                  title: 'Active Documents',
+                  value: govDocs.filter(d => d.status === 'active').length,
+                  subtitle: 'Government Documents',
+                  icon: <DescriptionIcon sx={{ fontSize: 32 }} />,
+                  gradient: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.light} 100%)`,
+                  color: theme.palette.success.main
+                },
+                {
+                  title: 'Active Vehicles',
+                  value: vehicles.filter(v => v.status === 'active').length,
+                  subtitle: 'Registered Vehicles',
+                  icon: <LocalShippingIcon sx={{ fontSize: 32 }} />,
+                  gradient: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.warning.light} 100%)`,
+                  color: theme.palette.warning.main
+                },
+                {
+                  title: 'Open Cases',
+                  value: legalCases.filter(c => c.status === 'open').length,
+                  subtitle: 'Legal Cases',
+                  icon: <SecurityIcon sx={{ fontSize: 32 }} />,
+                  gradient: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.error.light} 100%)`,
+                  color: theme.palette.error.main
+                },
+                {
+                  title: 'Active Facilities',
+                  value: facilities.filter(f => f.status === 'active').length,
+                  subtitle: 'Company Facilities',
+                  icon: <BuildIcon sx={{ fontSize: 32 }} />,
+                  gradient: `linear-gradient(135deg, ${theme.palette.neutral?.main || '#795548'} 0%, ${theme.palette.neutral?.light || '#8D6E63'} 100%)`,
+                  color: theme.palette.neutral?.main || '#795548'
+                },
+                {
+                  title: 'Pending Items',
+                  value: records.filter(r => r.status === 'pending_renewal').length + 
+                         govDocs.filter(d => d.status === 'pending_renewal').length + 
+                         vehicles.filter(v => v.status === 'expired').length,
+                  subtitle: 'Requires Attention',
+                  icon: <WarningIcon sx={{ fontSize: 32 }} />,
+                  gradient: `linear-gradient(135deg, ${theme.palette.info.main} 0%, ${theme.palette.info.light} 100%)`,
+                  color: theme.palette.info.main
+                }
+              ].map((card, index) => (
+                <motion.div
+                  key={card.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <Card 
+                    elevation={0}
+                    sx={{ 
+                      height: '100%',
+                      background: card.gradient,
+                      color: 'white',
+                      borderRadius: theme.shape.borderRadius,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-8px)',
+                        boxShadow: `0 20px 40px ${alpha(card.color, 0.3)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ position: 'absolute', top: -20, right: -20, opacity: 0.1 }}>
+                      {card.icon}
+                    </Box>
+                    <CardContent sx={{ position: 'relative', zIndex: 2, p: 3 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                        <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
+                          {card.icon}
+                        </Avatar>
+                        <Typography variant="h3" sx={{ fontWeight: 700, opacity: 0.9 }}>
+                          {card.value}
+                        </Typography>
+                      </Box>
+                      <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        {card.title}
+                      </Typography>
+                      <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        {card.subtitle}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </Box>
 
             {/* Charts Section */}
-            <Box display="flex" gap={3} mb={3} flexWrap="wrap">
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: 3, mb: 4 }}>
               {/* Residency Status Chart */}
-              <Paper sx={{ p: 2, height: 300, flex: '1 1 400px', minWidth: 400 }}>
-                <Typography variant="h6" gutterBottom>Employee Residency Status</Typography>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie data={residencyStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                      {residencyStatusData.map((entry, idx) => <Cell key={entry.name} fill={COLORS[idx % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Paper>
-
-              {/* Document Expiry Chart */}
-              <Paper sx={{ p: 2, height: 300, flex: '1 1 400px', minWidth: 400 }}>
-                <Typography variant="h6" gutterBottom>Document Expiry Timeline</Typography>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={documentExpiryData}>
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="expiring" fill="#d32f2f" name="Expiring" />
-                    <Bar dataKey="expired" fill="#6d4c41" name="Expired" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Paper>
-            </Box>
-
-            {/* Legal Cases Overview */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>Legal Cases Overview</Typography>
-              <Box display="flex" gap={3} flexWrap="wrap">
-                <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                  <Typography variant="subtitle2" color="primary">Case Status Distribution</Typography>
-                  <ResponsiveContainer width="100%" height={200}>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <Paper 
+                  elevation={0}
+                  sx={{ 
+                    p: 3, 
+                    height: 400,
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+                      <PeopleIcon />
+                    </Avatar>
+                    <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                      👥 Employee Residency Status
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={320}>
                     <PieChart>
-                      <Pie data={legalCaseStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label>
-                        {legalCaseStatusData.map((entry, idx) => <Cell key={entry.name} fill={COLORS[idx % COLORS.length]} />)}
+                      <Pie 
+                        data={residencyStatusData} 
+                        dataKey="value" 
+                        nameKey="name" 
+                        cx="50%" 
+                        cy="50%" 
+                        outerRadius={100}
+                        label={(entry: any) => entry.name}
+                        labelLine={false}
+                      >
+                        {residencyStatusData.map((entry, idx) => (
+                          <Cell 
+                            key={entry.name} 
+                            fill={`hsl(${idx * 60}, 70%, 60%)`}
+                            stroke="white"
+                            strokeWidth={2}
+                          />
+                        ))}
                       </Pie>
-                      <Tooltip />
+                      <RechartsTooltip 
+                        contentStyle={{
+                          background: alpha(theme.palette.background.paper, 0.9),
+                          border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                          borderRadius: theme.shape.borderRadius,
+                          backdropFilter: 'blur(10px)'
+                        }}
+                      />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
-                </Box>
-                <Box sx={{ flex: '1 1 300px', minWidth: 300 }}>
-                  <Typography variant="subtitle2" color="primary">Case Priority Distribution</Typography>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={legalCasePriorityData}>
-                      <XAxis dataKey="priority" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#1976d2" />
+                </Paper>
+              </motion.div>
+
+              {/* Document Expiry Chart */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                <Paper 
+                  elevation={0}
+                  sx={{ 
+                    p: 3, 
+                    height: 400,
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    backdropFilter: 'blur(10px)'
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                    <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 40, height: 40 }}>
+                      <DescriptionIcon />
+                    </Avatar>
+                    <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                      📅 Document Expiry Timeline
+                    </Typography>
+                  </Box>
+                  <ResponsiveContainer width="100%" height={320}>
+                    <BarChart data={documentExpiryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                      <XAxis 
+                        dataKey="month" 
+                        tick={{ fontSize: 12 }}
+                        axisLine={{ stroke: alpha(theme.palette.text.secondary, 0.3) }}
+                      />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        axisLine={{ stroke: alpha(theme.palette.text.secondary, 0.3) }}
+                      />
+                      <RechartsTooltip 
+                        contentStyle={{
+                          background: alpha(theme.palette.background.paper, 0.9),
+                          border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                          borderRadius: theme.shape.borderRadius,
+                          backdropFilter: 'blur(10px)'
+                        }}
+                      />
+                      <Legend />
+                      <Bar 
+                        dataKey="expiring" 
+                        fill={theme.palette.warning.main} 
+                        name="Expiring"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar 
+                        dataKey="expired" 
+                        fill={theme.palette.error.main} 
+                        name="Expired"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
+                </Paper>
+              </motion.div>
+            </Box>
+
+            {/* Legal Cases Overview */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  p: 3, 
+                  mb: 4,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.05)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                  border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                    <SecurityIcon />
+                  </Avatar>
+                  <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                    ⚖️ Legal Cases Overview
+                  </Typography>
                 </Box>
-              </Box>
-            </Paper>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 3 }}>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ color: theme.palette.error.main, fontWeight: 600, mb: 2 }}>
+                      Case Status Distribution
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie 
+                          data={legalCaseStatusData} 
+                          dataKey="value" 
+                          nameKey="name" 
+                          cx="50%" 
+                          cy="50%" 
+                          outerRadius={80}
+                          label={(entry: any) => entry.name}
+                          labelLine={false}
+                        >
+                          {legalCaseStatusData.map((entry, idx) => (
+                            <Cell 
+                              key={entry.name} 
+                              fill={`hsl(${idx * 45 + 200}, 70%, 60%)`}
+                              stroke="white"
+                              strokeWidth={2}
+                            />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          contentStyle={{
+                            background: alpha(theme.palette.background.paper, 0.9),
+                            border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                            borderRadius: theme.shape.borderRadius,
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ color: theme.palette.error.main, fontWeight: 600, mb: 2 }}>
+                      Case Priority Distribution
+                    </Typography>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={legalCasePriorityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <XAxis 
+                          dataKey="priority" 
+                          tick={{ fontSize: 12 }}
+                          axisLine={{ stroke: alpha(theme.palette.text.secondary, 0.3) }}
+                        />
+                        <YAxis 
+                          tick={{ fontSize: 12 }}
+                          axisLine={{ stroke: alpha(theme.palette.text.secondary, 0.3) }}
+                        />
+                        <RechartsTooltip 
+                          contentStyle={{
+                            background: alpha(theme.palette.background.paper, 0.9),
+                            border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                            borderRadius: theme.shape.borderRadius,
+                            backdropFilter: 'blur(10px)'
+                          }}
+                        />
+                        <Bar 
+                          dataKey="count" 
+                          fill={theme.palette.error.main}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </Box>
+              </Paper>
+            </motion.div>
 
             {/* Expiry Alerts */}
-            <Paper sx={{ p: 2, mb: 3 }}>
-              <Typography variant="h6" gutterBottom>Expiry Alerts (Next 30 Days)</Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Item</TableCell>
-                    <TableCell>Expiry Date</TableCell>
-                    <TableCell>Days Remaining</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {expiryAlerts.map((alert, idx) => (
-                    <TableRow key={idx} sx={{ background: alert.daysRemaining <= 7 ? '#ffebee' : alert.daysRemaining <= 15 ? '#fff3e0' : '#f1f8e9' }}>
-                      <TableCell>{alert.type}</TableCell>
-                      <TableCell>{alert.item}</TableCell>
-                      <TableCell>{alert.expiryDate}</TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={`${alert.daysRemaining} days`} 
-                          color={alert.daysRemaining <= 7 ? 'error' : alert.daysRemaining <= 15 ? 'warning' : 'success'} 
-                          size="small" 
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={alert.daysRemaining <= 7 ? 'Urgent' : alert.daysRemaining <= 15 ? 'Warning' : 'Normal'} 
-                          color={alert.daysRemaining <= 7 ? 'error' : alert.daysRemaining <= 15 ? 'warning' : 'success'} 
-                          size="small" 
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Paper>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+            >
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  p: 3, 
+                  mb: 4,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.05)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                  border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 40, height: 40 }}>
+                    <WarningIcon />
+                  </Avatar>
+                  <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                    ⚠️ Expiry Alerts (Next 30 Days)
+                  </Typography>
+                </Box>
+                <Box sx={{ 
+                  background: alpha(theme.palette.background.paper, 0.8),
+                  borderRadius: theme.shape.borderRadius,
+                  overflow: 'hidden',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Type</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Item</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Expiry Date</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Days Remaining</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {expiryAlerts.map((alert, idx) => (
+                        <motion.tr
+                          key={idx}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: idx * 0.05 }}
+                        >
+                          <TableRow sx={{ 
+                            background: alert.daysRemaining <= 7 
+                              ? alpha(theme.palette.error.main, 0.1) 
+                              : alert.daysRemaining <= 15 
+                                ? alpha(theme.palette.warning.main, 0.1) 
+                                : alpha(theme.palette.success.main, 0.1),
+                            '&:hover': {
+                              background: alert.daysRemaining <= 7 
+                                ? alpha(theme.palette.error.main, 0.15) 
+                                : alert.daysRemaining <= 15 
+                                  ? alpha(theme.palette.warning.main, 0.15) 
+                                  : alpha(theme.palette.success.main, 0.15),
+                              transform: 'scale(1.01)',
+                              transition: 'all 0.2s ease'
+                            }
+                          }}>
+                            <TableCell sx={{ fontWeight: 500 }}>{alert.type}</TableCell>
+                            <TableCell sx={{ fontWeight: 500 }}>{alert.item}</TableCell>
+                            <TableCell sx={{ fontWeight: 500 }}>{alert.expiryDate}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={`${alert.daysRemaining} days`} 
+                                color={alert.daysRemaining <= 7 ? 'error' : alert.daysRemaining <= 15 ? 'warning' : 'success'} 
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={alert.daysRemaining <= 7 ? 'Urgent' : alert.daysRemaining <= 15 ? 'Warning' : 'Normal'} 
+                                color={alert.daysRemaining <= 7 ? 'error' : alert.daysRemaining <= 15 ? 'warning' : 'success'} 
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        </motion.tr>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
+              </Paper>
+            </motion.div>
 
             {/* Recent Activities */}
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Recent Activities</Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Activity</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {recentActivities.map((activity, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{activity.date}</TableCell>
-                      <TableCell>{activity.description}</TableCell>
-                      <TableCell>
-                        <Chip label={activity.type} size="small" color="primary" />
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={activity.status} 
-                          color={activity.status === 'completed' ? 'success' : activity.status === 'pending' ? 'warning' : 'default'} 
-                          size="small" 
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Paper>
-          </Box>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  p: 3,
+                  background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.05)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                  border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  backdropFilter: 'blur(10px)'
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40 }}>
+                    <NotificationsIcon />
+                  </Avatar>
+                  <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                    📋 Recent Activities
+                  </Typography>
+                </Box>
+                <Box sx={{ 
+                  background: alpha(theme.palette.background.paper, 0.8),
+                  borderRadius: theme.shape.borderRadius,
+                  overflow: 'hidden',
+                  border: `1px solid ${alpha(theme.palette.divider, 0.1)}`
+                }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Date</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Activity</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Type</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {recentActivities.map((activity, idx) => (
+                        <motion.tr
+                          key={idx}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: idx * 0.05 }}
+                        >
+                          <TableRow sx={{ 
+                            '&:hover': {
+                              background: alpha(theme.palette.primary.main, 0.05),
+                              transform: 'scale(1.01)',
+                              transition: 'all 0.2s ease'
+                            }
+                          }}>
+                            <TableCell sx={{ fontWeight: 500 }}>{activity.date}</TableCell>
+                            <TableCell sx={{ fontWeight: 500 }}>{activity.description}</TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={activity.type} 
+                                size="small" 
+                                sx={{
+                                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                                  color: 'white',
+                                  fontWeight: 600
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Chip 
+                                label={activity.status} 
+                                color={activity.status === 'completed' ? 'success' : activity.status === 'pending' ? 'warning' : 'default'} 
+                                size="small"
+                                sx={{ fontWeight: 600 }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        </motion.tr>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
+              </Paper>
+            </motion.div>
+          </motion.div>
         )}
         {tab === tabLabels.length - 1 && (
           <Box>
@@ -5200,6 +10806,70 @@ const AdminPage: React.FC = () => {
           </Box>
         )}
       </Box>
+
+      {/* Floating Action Button */}
+      <Fab
+        color="primary"
+        aria-label="refresh"
+        onClick={() => window.location.reload()}
+        sx={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          bgcolor: theme.palette.primary.main,
+          '&:hover': {
+            bgcolor: theme.palette.primary.dark,
+            transform: 'scale(1.1)'
+          }
+        }}
+      >
+        <RefreshIcon />
+      </Fab>
+
+      {/* Enhanced Snackbars */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={4000}
+        onClose={() => setSuccess('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSuccess('')} 
+          severity="success"
+          sx={{
+            background: alpha(theme.palette.success.main, 0.1),
+            border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
+            color: theme.palette.success.dark
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CheckCircleIcon />
+            {success}
+          </Box>
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!govDocSuccess}
+        autoHideDuration={4000}
+        onClose={() => setGovDocSuccess('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setGovDocSuccess('')} 
+          severity="success"
+          sx={{
+            background: alpha(theme.palette.success.main, 0.1),
+            border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
+            color: theme.palette.success.dark
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CheckCircleIcon />
+            {govDocSuccess}
+          </Box>
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

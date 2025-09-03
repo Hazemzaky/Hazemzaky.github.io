@@ -1,19 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import api from '../apiBase';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, Card, CardContent, MenuItem, Chip
+  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Typography, IconButton, Paper, Snackbar, Alert, Card, CardContent, MenuItem, Chip, Avatar, useTheme, alpha, Tooltip, Fab, InputAdornment, Divider
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import PrintIcon from '@mui/icons-material/Print';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ExportIcon from '@mui/icons-material/GetApp';
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit';
+import BuildIcon from '@mui/icons-material/Build';
+import CloseIcon from '@mui/icons-material/Close';
+import SearchIcon from '@mui/icons-material/Search';
 
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 import { useReactTable, getCoreRowModel, flexRender, ColumnDef } from '@tanstack/react-table';
 import { getExportFileName, addExportHeader, addPrintHeader } from '../utils/userUtils';
+import { motion, AnimatePresence } from 'framer-motion';
+import theme from '../theme';
 
 interface Asset {
   _id: string;
@@ -80,6 +89,7 @@ const defaultForm = {
 };
 
 const MaintenancePage: React.FC = () => {
+  const muiTheme = useTheme();
   const [maintenance, setMaintenance] = useState<Maintenance[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -107,6 +117,7 @@ const MaintenancePage: React.FC = () => {
   const [showCancelReasonModal, setShowCancelReasonModal] = useState(false);
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
   const [serialSearch, setSerialSearch] = useState('');
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     fetchMaintenance();
@@ -565,110 +576,557 @@ const MaintenancePage: React.FC = () => {
   const totalTime = maintenance.reduce((sum, m) => sum + m.totalMaintenanceTime, 0);
   const avgCostPerJob = maintenance.length ? totalCost / maintenance.length : 0;
 
-  return (
-    <Box p={3}>
-      <Box display="flex" gap={2} mb={2} alignItems="center">
-        <TextField
-          label="Search by Job Card Serial Number"
-          value={serialSearch}
-          onChange={e => setSerialSearch(e.target.value)}
-          sx={{ minWidth: 260 }}
-        />
-      </Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h4">Maintenance Job Cards</Typography>
-        <Button variant="contained" color="primary" onClick={() => handleOpen()}>
-          Add Job Card
-        </Button>
+  // Calculate additional metrics for dashboard
+  const scheduledJobs = maintenance.filter(m => m.status === 'scheduled').length;
+  const inProgressJobs = maintenance.filter(m => m.status === 'in_progress').length;
+  const completedJobs = maintenance.filter(m => m.status === 'completed').length;
+  const cancelledJobs = maintenance.filter(m => m.status === 'cancelled').length;
+
+  // Render Dashboard Header
+  const renderDashboardHeader = () => (
+    <Paper 
+      elevation={0}
+      sx={{ 
+        p: 3, 
+        mb: 3, 
+        background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+        color: 'white',
+        borderRadius: theme.shape.borderRadius,
+        position: 'relative',
+        overflow: 'hidden'
+      }}
+    >
+      <Box sx={{ position: 'relative', zIndex: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+              <BuildIcon sx={{ fontSize: 32 }} />
+            </Avatar>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                Maintenance Management
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                Comprehensive maintenance job card system for asset management
+              </Typography>
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Refresh Data">
+              <IconButton 
+                onClick={fetchMaintenance} 
+                sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Export Data">
+              <IconButton 
+                onClick={handleExportCSV}
+                sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+              >
+                <ExportIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title={fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+              <IconButton 
+                onClick={() => setFullscreen(!fullscreen)}
+                sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+              >
+                {fullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+        
+        {/* Metrics Cards */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, mt: 3 }}>
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+                {maintenance.length}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Total Job Cards
+              </Typography>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.warning.light }}>
+                {scheduledJobs + inProgressJobs}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Active Jobs
+              </Typography>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.success.light }}>
+                {completedJobs}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Completed Jobs
+              </Typography>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 2 }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.error.light }}>
+                {cancelledJobs}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                Cancelled Jobs
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
       </Box>
       
-      {/* Summary Cards */}
-      <Box display="flex" flexWrap="wrap" gap={2} mb={2}>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <CardContent>
-            <Typography variant="subtitle1">Total Job Cards</Typography>
-            <Typography variant="h5">{maintenance.length}</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <CardContent>
-            <Typography variant="subtitle1">Total Cost</Typography>
-            <Typography variant="h5">{totalCost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <CardContent>
-            <Typography variant="subtitle1">Total Time (hrs)</Typography>
-            <Typography variant="h5">{totalTime.toFixed(1)}</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ flex: '1 1 250px', minWidth: 250 }}>
-          <CardContent>
-            <Typography variant="subtitle1">Avg. Cost per Job</Typography>
-            <Typography variant="h5">{avgCostPerJob.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
-          </CardContent>
-        </Card>
-      </Box>
+      {/* Decorative background elements */}
+      <Box sx={{ 
+        position: 'absolute', 
+        top: -50, 
+        right: -50, 
+        width: 200, 
+        height: 200, 
+        borderRadius: '50%', 
+        background: 'rgba(255,255,255,0.1)',
+        zIndex: 1
+      }} />
+      <Box sx={{ 
+        position: 'absolute', 
+        bottom: -30, 
+        left: -30, 
+        width: 150, 
+        height: 150, 
+        borderRadius: '50%', 
+        background: 'rgba(255,255,255,0.08)',
+        zIndex: 1
+      }} />
+    </Paper>
+  );
 
-      {/* Filters */}
-      <Box display="flex" gap={2} mb={2} flexWrap="wrap" alignItems="center">
-        <TextField select label="Asset" value={filterAsset} onChange={e => setFilterAsset(e.target.value)} sx={{ minWidth: 180 }}>
-          <MenuItem value="">All Assets</MenuItem>
-          {assets.map(a => <MenuItem key={a._id} value={a._id}>{a.description}</MenuItem>)}
-        </TextField>
-        <TextField select label="Type" value={filterType} onChange={e => setFilterType(e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">All Types</MenuItem>
-          <MenuItem value="preventive">Preventive</MenuItem>
-          <MenuItem value="corrective">Corrective</MenuItem>
-        </TextField>
-        <TextField select label="Status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} sx={{ minWidth: 140 }}>
-          <MenuItem value="">All Statuses</MenuItem>
-          <MenuItem value="scheduled">Scheduled</MenuItem>
-          <MenuItem value="in_progress">In Progress</MenuItem>
-          <MenuItem value="completed">Completed</MenuItem>
-          <MenuItem value="cancelled">Cancelled</MenuItem>
-        </TextField>
-        <TextField label="From" type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
-        <TextField label="To" type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
-        <Button variant="outlined" startIcon={<SaveAltIcon />} onClick={handleExportCSV}>Export CSV</Button>
-        <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>Print</Button>
-      </Box>
+  return (
+    <Box sx={{ 
+      p: fullscreen ? 1 : 3, 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+    }}>
+      <AnimatePresence>
+        {/* Dashboard Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          {renderDashboardHeader()}
+        </motion.div>
+              {/* Main Content */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              background: alpha(theme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            {/* Action Bar */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
+                Job Card Management
+              </Typography>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={() => handleOpen()}
+                startIcon={<AddIcon />}
+                sx={{ 
+                  px: 3,
+                  py: 1.5,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: 3
+                  }
+                }}
+              >
+                Add Job Card
+              </Button>
+            </Box>
 
-      {/* Job Cards Table */}
-      <Paper sx={{ p: 2, overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id} style={{ padding: 8, borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows
-              .filter(row => filteredMaintenance.includes(row.original))
-              .map(row => (
-                <tr key={row.id} style={{ background: row.index % 2 === 0 ? '#fafafa' : '#fff' }}>
-                  {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} style={{ padding: 8, borderBottom: '1px solid #eee' }}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-          </tbody>
-        </table>
-        {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      </Paper>
+            {/* Enhanced Summary Cards */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3, mb: 4 }}>
+              <Card 
+                elevation={0}
+                sx={{ 
+                  background: alpha(theme.palette.primary.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.primary.main }}>
+                    {maintenance.length}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Job Cards
+                  </Typography>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                elevation={0}
+                sx={{ 
+                  background: alpha(theme.palette.success.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.3)}`
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.success.main }}>
+                    {totalCost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Cost
+                  </Typography>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                elevation={0}
+                sx={{ 
+                  background: alpha(theme.palette.info.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.3)}`
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.info.main }}>
+                    {totalTime.toFixed(1)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Time (hrs)
+                  </Typography>
+                </CardContent>
+              </Card>
+              
+              <Card 
+                elevation={0}
+                sx={{ 
+                  background: alpha(theme.palette.warning.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                  borderRadius: theme.shape.borderRadius,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.3)}`
+                  }
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.warning.main }}>
+                    {avgCostPerJob.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Avg. Cost per Job
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Box>
 
-      {/* Add/Edit Job Card Dialog */}
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>{editingId ? 'Edit Job Card' : 'Add Job Card'}</DialogTitle>
+                        {/* Search Field */}
+            <Box sx={{ display: 'flex', gap: 2, mb: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+              <TextField
+                label="Search by Job Card Serial Number"
+                value={serialSearch}
+                onChange={e => setSerialSearch(e.target.value)}
+                sx={{ minWidth: 260 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Box>
+
+            {/* Enhanced Filters */}
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 2, 
+                mb: 3, 
+                background: alpha(theme.palette.info.main, 0.05),
+                border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ mb: 2, color: theme.palette.info.main, fontWeight: 600 }}>
+                🔍 Filter & Search Options
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+                <TextField select label="Asset" value={filterAsset} onChange={e => setFilterAsset(e.target.value)} sx={{ minWidth: 180 }}>
+                  <MenuItem value="">All Assets</MenuItem>
+                  {assets.map(a => <MenuItem key={a._id} value={a._id}>{a.description}</MenuItem>)}
+                </TextField>
+                <TextField select label="Type" value={filterType} onChange={e => setFilterType(e.target.value)} sx={{ minWidth: 140 }}>
+                  <MenuItem value="">All Types</MenuItem>
+                  <MenuItem value="preventive">Preventive</MenuItem>
+                  <MenuItem value="corrective">Corrective</MenuItem>
+                </TextField>
+                <TextField select label="Status" value={filterStatus} onChange={e => setFilterStatus(e.target.value)} sx={{ minWidth: 140 }}>
+                  <MenuItem value="">All Statuses</MenuItem>
+                  <MenuItem value="scheduled">Scheduled</MenuItem>
+                  <MenuItem value="in_progress">In Progress</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="cancelled">Cancelled</MenuItem>
+                </TextField>
+                <TextField label="From" type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
+                <TextField label="To" type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)} sx={{ minWidth: 140 }} InputLabelProps={{ shrink: true }} />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button 
+                    variant="outlined" 
+                    startIcon={<SaveAltIcon />} 
+                    onClick={handleExportCSV}
+                    sx={{ 
+                      borderColor: theme.palette.success.main,
+                      color: theme.palette.success.main,
+                      '&:hover': {
+                        borderColor: theme.palette.success.dark,
+                        backgroundColor: alpha(theme.palette.success.main, 0.1)
+                      }
+                    }}
+                  >
+                    Export CSV
+                  </Button>
+                  <Button 
+                    variant="outlined" 
+                    startIcon={<PrintIcon />} 
+                    onClick={handlePrint}
+                    sx={{ 
+                      borderColor: theme.palette.info.main,
+                      color: theme.palette.info.main,
+                      '&:hover': {
+                        borderColor: theme.palette.info.dark,
+                        backgroundColor: alpha(theme.palette.info.main, 0.1)
+                      }
+                    }}
+                  >
+                    Print
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+
+            {/* Enhanced Job Cards Table */}
+            <Paper 
+              elevation={0}
+              sx={{ 
+                overflow: 'hidden',
+                border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ 
+                p: 2, 
+                background: alpha(theme.palette.primary.main, 0.05),
+                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`
+              }}>
+                <Typography variant="subtitle2" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                  📊 Job Cards Details ({filteredMaintenance.length} records)
+                </Typography>
+              </Box>
+              
+              <Box sx={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    {table.getHeaderGroups().map(headerGroup => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map(header => (
+                          <th key={header.id} style={{ 
+                            padding: '16px', 
+                            borderBottom: `2px solid ${alpha(theme.palette.divider, 0.3)}`, 
+                            textAlign: 'left', 
+                            fontWeight: 600, 
+                            color: theme.palette.text.primary,
+                            background: alpha(theme.palette.primary.main, 0.05)
+                          }}>
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody>
+                    {table.getRowModel().rows
+                      .filter(row => filteredMaintenance.includes(row.original))
+                      .map(row => (
+                        <tr 
+                          key={row.id} 
+                          style={{ 
+                            background: row.index % 2 === 0 ? alpha(theme.palette.background.paper, 0.5) : alpha(theme.palette.background.paper, 0.8),
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = alpha(theme.palette.primary.main, 0.05);
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = row.index % 2 === 0 ? alpha(theme.palette.background.paper, 0.5) : alpha(theme.palette.background.paper, 0.8);
+                          }}
+                        >
+                          {row.getVisibleCells().map(cell => (
+                            <td key={cell.id} style={{ 
+                              padding: '16px', 
+                              borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}` 
+                            }}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  
+                  {loading && (
+                    <Box sx={{ p: 3, textAlign: 'center' }}>
+                      <Typography color="text.secondary">Loading job cards...</Typography>
+                    </Box>
+                  )}
+                  
+                  {error && (
+                    <Box sx={{ p: 2 }}>
+                      <Alert severity="error">{error}</Alert>
+                    </Box>
+                  )}
+                  
+                  {filteredMaintenance.length === 0 && !loading && (
+                    <Box sx={{ p: 3, textAlign: 'center' }}>
+                      <Typography color="text.secondary">No job cards found matching the current filters.</Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Paper>
+            </Paper>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Floating Action Button */}
+        <Fab
+          color="primary"
+          aria-label="add job card"
+          onClick={() => handleOpen()}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            bgcolor: theme.palette.primary.main,
+            '&:hover': {
+              bgcolor: theme.palette.primary.dark,
+              transform: 'scale(1.1)'
+            }
+          }}
+        >
+          <AddIcon />
+        </Fab>
+
+        {/* Enhanced Add/Edit Job Card Dialog */}
+        <Dialog 
+          open={open} 
+          onClose={handleClose} 
+          maxWidth="md" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: theme.shape.borderRadius,
+              background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.95)} 0%, ${alpha(theme.palette.primary.main, 0.02)} 100%)`,
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              boxShadow: theme.shadows[8]
+            }
+          }}
+        >
+          {/* Enhanced Dialog Header */}
+          <DialogTitle sx={{ 
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+            color: 'white',
+            borderRadius: `${theme.shape.borderRadius}px ${theme.shape.borderRadius}px 0 0`,
+            p: 3,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2
+          }}>
+            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 40, height: 40 }}>
+              <AddIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                {editingId ? 'Edit Job Card' : 'Add New Job Card'}
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                {editingId ? 'Update existing maintenance job card details' : 'Create a new maintenance job card'}
+              </Typography>
+            </Box>
+          </DialogTitle>
         <DialogContent>
           {/* Show Serial Number if present */}
           {form.serial && (
@@ -928,10 +1386,65 @@ const MaintenancePage: React.FC = () => {
             {error && <Alert severity="error">{error}</Alert>}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit} variant="contained" color="primary">{editingId ? 'Update' : 'Create'}</Button>
-        </DialogActions>
+          {/* Enhanced Dialog Actions */}
+          <DialogActions sx={{ 
+            p: 3, 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.background.paper, 0.9)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+            backdropFilter: 'blur(10px)',
+            borderTop: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+            borderRadius: `0 0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px`,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button 
+                onClick={handleClose}
+                variant="outlined"
+                startIcon={<CloseIcon />}
+                sx={{ 
+                  px: 4,
+                  py: 1.5,
+                  borderColor: theme.palette.grey[400],
+                  color: theme.palette.text.secondary,
+                  borderRadius: theme.shape.borderRadius,
+                  fontWeight: 600,
+                  '&:hover': {
+                    borderColor: theme.palette.grey[600],
+                    backgroundColor: alpha(theme.palette.grey[400], 0.1),
+                    transform: 'translateY(-1px)',
+                    boxShadow: 2
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Cancel
+              </Button>
+            </Box>
+            
+            <Button 
+              onClick={handleSubmit} 
+              variant="contained" 
+              color="primary"
+              startIcon={<AddIcon />}
+              sx={{ 
+                px: 4,
+                py: 1.5,
+                borderRadius: theme.shape.borderRadius,
+                fontWeight: 600,
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.6)}`,
+                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {editingId ? 'Update Job Card' : 'Create Job Card'}
+            </Button>
+          </DialogActions>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
@@ -979,13 +1492,29 @@ const MaintenancePage: React.FC = () => {
         </Alert>
       )}
 
+      {/* Enhanced Snackbar */}
       <Snackbar
         open={!!success}
-        autoHideDuration={3000}
+        autoHideDuration={4000}
         onClose={() => setSuccess('')}
-        message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{success}</span>}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      />
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSuccess('')} 
+          severity="success"
+          sx={{ 
+            width: '100%',
+            '& .MuiAlert-icon': {
+              fontSize: 28
+            }
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <span role="img" aria-label="success">✅</span>
+            {success}
+          </Box>
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

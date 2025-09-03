@@ -29,7 +29,6 @@ import {
   Business as BusinessIcon,
   Build as BuildIcon,
   ShoppingCart as ShoppingCartIcon,
-  Folder as FolderIcon,
   LocalShipping as LocalShippingIcon,
   Inventory as InventoryIcon,
   AdminPanelSettings as AdminIcon,
@@ -49,8 +48,7 @@ export const ColorModeContext = createContext({ toggleColorMode: () => {}, mode:
 
 // Define your nav structure (update as needed)
 const navItems = [
-  { label: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-  { label: 'Documents', path: '/documents', icon: <FolderIcon /> },
+  { label: 'Dashboard', path: '/' },
   { label: 'Budgets', path: '/budgets' },
   // ... add more as needed
 ];
@@ -234,7 +232,6 @@ const NavBar: React.FC = () => {
                     color="inherit"
                     component={RouterLink}
                     to={item.path}
-                    startIcon={item.icon}
                     sx={{
                       backgroundColor: isActive ? alpha(theme.palette.common.white, 0.2) : 'transparent',
                       color: isActive ? 'white' : alpha(theme.palette.common.white, 0.9),
@@ -356,9 +353,8 @@ const NavBar: React.FC = () => {
             onClose={handleHrMenuClose}
             MenuListProps={{ onMouseLeave: handleHrMenuClose }}
           >
-            <MenuItem component={RouterLink} to="/employees" onClick={handleHrMenuClose}>Employees</MenuItem>
-            <MenuItem component={RouterLink} to="/attendance" onClick={handleHrMenuClose}>Attendance System</MenuItem>
             <MenuItem component={RouterLink} to="/payroll" onClick={handleHrMenuClose}>Payroll</MenuItem>
+            <MenuItem component={RouterLink} to="/reimbursements" onClick={handleHrMenuClose}>Reimbursements</MenuItem>
             <MenuItem component={RouterLink} to="/business-trips" onClick={handleHrMenuClose}>Business Trip Management</MenuItem>
           </Menu>
           <Button color="inherit" onClick={handleAssetsMenuOpen} aria-controls="assets-menu" aria-haspopup="true">Assets</Button>
@@ -782,4 +778,4 @@ const NavBar: React.FC = () => {
   );
 };
 
-export default NavBar;
+export default NavBar; 

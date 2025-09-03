@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Typography, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Select, FormControl, InputLabel, Alert, CircularProgress, SelectChangeEvent, Tabs, Tab
+  Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Typography, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Select, FormControl, InputLabel, Alert, CircularProgress, SelectChangeEvent, Tabs, Tab, useTheme, alpha, Avatar, Badge, Divider, LinearProgress, Card, CardContent, Paper
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import BusinessIcon from '@mui/icons-material/Business';
+import PeopleIcon from '@mui/icons-material/People';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import DescriptionIcon from '@mui/icons-material/Description';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
 interface QuotationLine {
@@ -70,6 +75,7 @@ const quotationCaseOptions = [
 ];
 
 const ClientsPage: React.FC = () => {
+  const muiTheme = useTheme();
   const [openQuotationModal, setOpenQuotationModal] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(false);
@@ -396,40 +402,256 @@ const ClientsPage: React.FC = () => {
   }
 
   return (
-    <Box p={3}>
-      <Typography variant="h4" mb={2}>Clients</Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
-      <Tabs
-        value={tab}
-        onChange={(_, v) => setTab(v)}
-        sx={{ mb: 2 }}
-        indicatorColor="primary"
-        textColor="primary"
-      >
-        <Tab label="Quotation-Based Clients" value="quotation" />
-        <Tab label="Contract-Based Clients" value="contract" />
-      </Tabs>
-      <Box display="flex" gap={2} mb={3}>
-        {tab === 'quotation' && (
-          <Button 
-            variant="contained" 
-            color="primary" 
-            startIcon={<AddIcon />} 
-            onClick={handleOpenQuotationModal}
-            disabled={loading}
+    <Box sx={{ 
+      p: 3, 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${alpha(muiTheme.palette.primary.main, 0.05)} 0%, ${alpha(muiTheme.palette.secondary.main, 0.05)} 100%)`
+    }}>
+      <AnimatePresence>
+        {/* Header Section */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 3, 
+              background: `linear-gradient(135deg, ${muiTheme.palette.primary.main} 0%, ${muiTheme.palette.secondary.main} 100%)`,
+              color: 'white',
+              borderRadius: muiTheme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden'
+            }}
           >
-            Add Quotation-Based Client
-          </Button>
-        )}
-        {tab === 'contract' && (
-          <Button variant="outlined" color="secondary" startIcon={<AddIcon />} onClick={handleOpenContractModal} disabled={loading}>
-            Add Contract-Based Client
-          </Button>
-        )}
-      </Box>
-      {tab === 'quotation' && (
-        <Table sx={{ minWidth: 650 }}>
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
+                    <BusinessIcon sx={{ fontSize: 32 }} />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
+                      Client Management
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                      Comprehensive client relationship and contract management system
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+            
+            {/* Decorative background elements */}
+            <Box sx={{ 
+              position: 'absolute', 
+              top: -50, 
+              right: -50, 
+              width: 200, 
+              height: 200, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.1)',
+              zIndex: 1
+            }} />
+            <Box sx={{ 
+              position: 'absolute', 
+              bottom: -30, 
+              left: -30, 
+              width: 150, 
+              height: 150, 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 1
+            }} />
+          </Paper>
+        </motion.div>
+
+        {/* Summary KPI Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+            {[
+              {
+                title: 'Total Clients',
+                value: clients.length,
+                icon: <BusinessIcon />,
+                color: muiTheme.palette.primary.main,
+                bgColor: alpha(muiTheme.palette.primary.main, 0.1)
+              },
+              {
+                title: 'Quotation Clients',
+                value: quotationClients.length,
+                icon: <DescriptionIcon />,
+                color: muiTheme.palette.info.main,
+                bgColor: alpha(muiTheme.palette.info.main, 0.1)
+              },
+              {
+                title: 'Contract Clients',
+                value: contractClients.length,
+                icon: <AttachMoneyIcon />,
+                color: muiTheme.palette.success.main,
+                bgColor: alpha(muiTheme.palette.success.main, 0.1)
+              },
+              {
+                title: 'Active Contracts',
+                value: contractClients.filter(c => c.contractData?.status === 'active').length,
+                icon: <PeopleIcon />,
+                color: muiTheme.palette.warning.main,
+                bgColor: alpha(muiTheme.palette.warning.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 200px', 
+                    minWidth: 200,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: muiTheme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+        </motion.div>
+
+        {/* Alerts Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
+        </motion.div>
+
+        {/* Tabs Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+        >
+          <Paper 
+            sx={{ 
+              mb: 2,
+              background: alpha(muiTheme.palette.background.paper, 0.8),
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+              borderRadius: muiTheme.shape.borderRadius
+            }}
+          >
+            <Tabs
+              value={tab}
+              onChange={(_, v) => setTab(v)}
+              sx={{ mb: 2 }}
+              indicatorColor="primary"
+              textColor="primary"
+            >
+              <Tab label="Quotation-Based Clients" value="quotation" />
+              <Tab label="Contract-Based Clients" value="contract" />
+            </Tabs>
+          </Paper>
+        </motion.div>
+
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.0 }}
+        >
+          <Box display="flex" gap={2} mb={3}>
+            {tab === 'quotation' && (
+              <Button 
+                variant="contained" 
+                color="primary" 
+                startIcon={<AddIcon />} 
+                onClick={handleOpenQuotationModal}
+                disabled={loading}
+                sx={{
+                  background: `linear-gradient(135deg, ${muiTheme.palette.primary.main} 0%, ${muiTheme.palette.primary.dark} 100%)`,
+                  boxShadow: `0 4px 14px ${alpha(muiTheme.palette.primary.main, 0.4)}`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${muiTheme.palette.primary.dark} 0%, ${muiTheme.palette.primary.main} 100%)`,
+                    boxShadow: `0 6px 20px ${alpha(muiTheme.palette.primary.main, 0.6)}`,
+                    transform: 'translateY(-1px)'
+                  }
+                }}
+              >
+                Add Quotation-Based Client
+              </Button>
+            )}
+            {tab === 'contract' && (
+              <Button 
+                variant="contained" 
+                color="secondary" 
+                startIcon={<AddIcon />} 
+                onClick={handleOpenContractModal} 
+                disabled={loading}
+                sx={{
+                  background: `linear-gradient(135deg, ${muiTheme.palette.secondary.main} 0%, ${muiTheme.palette.secondary.dark} 100%)`,
+                  boxShadow: `0 4px 14px ${alpha(muiTheme.palette.secondary.main, 0.4)}`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${muiTheme.palette.secondary.dark} 0%, ${muiTheme.palette.secondary.main} 100%)`,
+                    boxShadow: `0 6px 20px ${alpha(muiTheme.palette.secondary.main, 0.6)}`,
+                    transform: 'translateY(-1px)'
+                  }
+                }}
+              >
+                Add Contract-Based Client
+              </Button>
+            )}
+          </Box>
+        </motion.div>
+
+        {/* Quotation Clients Table */}
+        {tab === 'quotation' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.2 }}
+          >
+            <Paper 
+              sx={{ 
+                p: 3,
+                background: alpha(muiTheme.palette.background.paper, 0.8),
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+                borderRadius: muiTheme.shape.borderRadius
+              }}
+            >
+              <Typography variant="h6" mb={3} sx={{ color: muiTheme.palette.text.primary, fontWeight: 600 }}>
+                📋 Quotation-Based Clients
+              </Typography>
+              <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ minHeight: '60px', verticalAlign: 'middle' }}>Client Name</TableCell>
@@ -487,9 +709,30 @@ const ClientsPage: React.FC = () => {
             ))}
           </TableBody>
         </Table>
-      )}
-      {tab === 'contract' && (
-        <Table sx={{ minWidth: 650 }}>
+              </Paper>
+            </motion.div>
+          )}
+
+          {/* Contract Clients Table */}
+          {tab === 'contract' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1.4 }}
+            >
+              <Paper 
+                sx={{ 
+                  p: 3,
+                  background: alpha(muiTheme.palette.background.paper, 0.8),
+                  backdropFilter: 'blur(10px)',
+                  border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+                  borderRadius: muiTheme.shape.borderRadius
+                }}
+              >
+                <Typography variant="h6" mb={3} sx={{ color: muiTheme.palette.text.primary, fontWeight: 600 }}>
+                  📄 Contract-Based Clients
+                </Typography>
+                <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ minHeight: '60px', verticalAlign: 'middle' }}>Client Name</TableCell>
@@ -531,31 +774,85 @@ const ClientsPage: React.FC = () => {
             ))}
           </TableBody>
         </Table>
-      )}
-      {/* Quotation-Based Client Modal */}
-      <Dialog 
-        open={openQuotationModal} 
-        onClose={handleCloseQuotationModal} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-          sx: { 
-            minHeight: '80vh',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column'
-          }
-        }}
-      >
-        <DialogTitle sx={{ flexShrink: 0 }}>Add Quotation-Based Client</DialogTitle>
-        <DialogContent sx={{ 
-          flex: 1,
-          overflowY: 'auto',
-          padding: 3,
-          '& .MuiTextField-root': {
-            marginBottom: 2
-          }
-        }}>
+              </Paper>
+            </motion.div>
+          )}
+
+                 {/* Quotation-Based Client Modal */}
+       <Dialog 
+         open={openQuotationModal} 
+         onClose={handleCloseQuotationModal} 
+         maxWidth="md" 
+         fullWidth
+         PaperProps={{
+           sx: {
+             borderRadius: muiTheme.shape.borderRadius,
+             background: alpha(muiTheme.palette.background.paper, 0.95),
+             backdropFilter: 'blur(20px)',
+             border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+             boxShadow: muiTheme.shadows[24],
+             minHeight: '80vh',
+             maxHeight: '90vh',
+             display: 'flex',
+             flexDirection: 'column'
+           }
+         }}
+       >
+         <DialogTitle 
+           sx={{ 
+             background: `linear-gradient(135deg, ${alpha(muiTheme.palette.primary.main, 0.15)} 0%, ${alpha(muiTheme.palette.secondary.main, 0.1)} 100%)`,
+             color: muiTheme.palette.primary.main,
+             borderBottom: `1px solid ${alpha(muiTheme.palette.primary.main, 0.2)}`,
+             position: 'relative',
+             overflow: 'hidden',
+             flexShrink: 0
+           }}
+         >
+           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 2 }}>
+             <Avatar sx={{ bgcolor: muiTheme.palette.primary.main, width: 40, height: 40 }}>
+               <BusinessIcon />
+             </Avatar>
+             <Box>
+               <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                 Add Quotation-Based Client
+               </Typography>
+               <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                 Create new quotation-based client with detailed information
+               </Typography>
+             </Box>
+           </Box>
+           
+           {/* Decorative background elements */}
+           <Box sx={{ 
+             position: 'absolute', 
+             top: -20, 
+             right: -20, 
+             width: 80, 
+             height: 80, 
+             borderRadius: '50%', 
+             background: alpha(muiTheme.palette.primary.main, 0.1),
+             zIndex: 1
+           }} />
+           <Box sx={{ 
+             position: 'absolute', 
+             bottom: -15, 
+             left: -15, 
+             width: 60, 
+             height: 60, 
+             borderRadius: '50%', 
+             background: alpha(muiTheme.palette.secondary.main, 0.08),
+             zIndex: 1
+           }} />
+         </DialogTitle>
+                 <DialogContent sx={{ 
+           flex: 1,
+           overflowY: 'auto',
+           padding: 3,
+           mt: 2,
+           '& .MuiTextField-root': {
+             marginBottom: 2
+           }
+         }}>
           <Box display="flex" flexDirection="column" gap={2} mb={3}>
             <TextField 
               label="Client Name" 
@@ -758,22 +1055,115 @@ const ClientsPage: React.FC = () => {
             </FormControl>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ flexShrink: 0, padding: 3, gap: 2 }}>
-          <Button onClick={handleCloseQuotationModal} disabled={loading}>Cancel</Button>
-          <Button 
-            onClick={handleSubmitQuotation} 
-            variant="contained" 
-            color="primary"
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={20} /> : 'Add Client'}
-          </Button>
-        </DialogActions>
+                 <DialogActions 
+           sx={{ 
+             flexShrink: 0, 
+             padding: 3, 
+             gap: 2,
+             background: `linear-gradient(135deg, ${alpha(muiTheme.palette.background.default, 0.8)} 0%, ${alpha(muiTheme.palette.background.paper, 0.9)} 100%)`,
+             borderTop: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`
+           }}
+         >
+           <Button 
+             onClick={handleCloseQuotationModal} 
+             disabled={loading}
+             variant="outlined"
+             sx={{
+               borderColor: muiTheme.palette.text.secondary,
+               color: muiTheme.palette.text.secondary,
+               '&:hover': {
+                 borderColor: muiTheme.palette.text.primary,
+                 color: muiTheme.palette.text.primary,
+               }
+             }}
+           >
+             Cancel
+           </Button>
+           <Button 
+             onClick={handleSubmitQuotation} 
+             variant="contained" 
+             color="primary"
+             disabled={loading}
+             sx={{
+               background: `linear-gradient(135deg, ${muiTheme.palette.primary.main} 0%, ${muiTheme.palette.primary.dark} 100%)`,
+               boxShadow: `0 4px 14px ${alpha(muiTheme.palette.primary.main, 0.4)}`,
+               '&:hover': {
+                 background: `linear-gradient(135deg, ${muiTheme.palette.primary.dark} 0%, ${muiTheme.palette.primary.main} 100%)`,
+                 boxShadow: `0 6px 20px ${alpha(muiTheme.palette.primary.main, 0.6)}`,
+                 transform: 'translateY(-1px)'
+               },
+               '&:disabled': {
+                 background: muiTheme.palette.action.disabledBackground,
+                 color: muiTheme.palette.action.disabled
+               }
+             }}
+           >
+             {loading ? <CircularProgress size={20} /> : 'Add Client'}
+           </Button>
+         </DialogActions>
       </Dialog>
-      {/* Contract-Based Client Modal */}
-      <Dialog open={openContractModal} onClose={handleCloseContractModal} maxWidth="md" fullWidth>
-        <DialogTitle>Add Contract-Based Client</DialogTitle>
-        <DialogContent sx={{ minHeight: '500px', overflowY: 'auto' }}>
+             {/* Contract-Based Client Modal */}
+       <Dialog 
+         open={openContractModal} 
+         onClose={handleCloseContractModal} 
+         maxWidth="md" 
+         fullWidth
+         PaperProps={{
+           sx: {
+             borderRadius: muiTheme.shape.borderRadius,
+             background: alpha(muiTheme.palette.background.paper, 0.95),
+             backdropFilter: 'blur(20px)',
+             border: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`,
+             boxShadow: muiTheme.shadows[24]
+           }
+         }}
+       >
+         <DialogTitle 
+           sx={{ 
+             background: `linear-gradient(135deg, ${alpha(muiTheme.palette.secondary.main, 0.15)} 0%, ${alpha(muiTheme.palette.primary.main, 0.1)} 100%)`,
+             color: muiTheme.palette.secondary.main,
+             borderBottom: `1px solid ${alpha(muiTheme.palette.secondary.main, 0.2)}`,
+             position: 'relative',
+             overflow: 'hidden'
+           }}
+         >
+           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 2 }}>
+             <Avatar sx={{ bgcolor: muiTheme.palette.secondary.main, width: 40, height: 40 }}>
+               <AttachMoneyIcon />
+             </Avatar>
+             <Box>
+               <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                 Add Contract-Based Client
+               </Typography>
+               <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                 Create new contract-based client with pricing and terms
+               </Typography>
+             </Box>
+           </Box>
+           
+           {/* Decorative background elements */}
+           <Box sx={{ 
+             position: 'absolute', 
+             top: -20, 
+             right: -20, 
+             width: 80, 
+             height: 80, 
+             borderRadius: '50%', 
+             background: alpha(muiTheme.palette.secondary.main, 0.1),
+             zIndex: 1
+           }} />
+           <Box sx={{ 
+             position: 'absolute', 
+             bottom: -15, 
+             left: -15, 
+             width: 60, 
+             height: 60, 
+             borderRadius: '50%', 
+             background: alpha(muiTheme.palette.primary.main, 0.08),
+             zIndex: 1
+           }} />
+         </DialogTitle>
+                 <DialogContent sx={{ minHeight: '500px', overflowY: 'auto', mt: 2, p: 3 }}>
           <Box display="flex" flexDirection="column" gap={2} mb={3}>
             <TextField label="Client Name" name="clientName" value={contractForm.clientName} onChange={handleContractFormChange} fullWidth required />
             <TextField label="Contract Start Date" name="startDate" type="date" value={contractForm.startDate} onChange={handleContractFormChange} InputLabelProps={{ shrink: true }} required sx={{ width: '300px' }} />
@@ -875,11 +1265,47 @@ const ClientsPage: React.FC = () => {
           </Box>
           {error && <Alert severity="error">{error}</Alert>}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseContractModal}>Cancel</Button>
-          <Button onClick={handleSubmitContract} variant="contained" color="primary">Add Client</Button>
-        </DialogActions>
+                 <DialogActions 
+           sx={{ 
+             p: 3, 
+             gap: 2,
+             background: `linear-gradient(135deg, ${alpha(muiTheme.palette.background.default, 0.8)} 0%, ${alpha(muiTheme.palette.background.paper, 0.9)} 100%)`,
+             borderTop: `1px solid ${alpha(muiTheme.palette.divider, 0.2)}`
+           }}
+         >
+           <Button 
+             onClick={handleCloseContractModal}
+             variant="outlined"
+             sx={{
+               borderColor: muiTheme.palette.text.secondary,
+               color: muiTheme.palette.text.secondary,
+               '&:hover': {
+                 borderColor: muiTheme.palette.text.primary,
+                 color: muiTheme.palette.text.primary,
+               }
+             }}
+           >
+             Cancel
+           </Button>
+           <Button 
+             onClick={handleSubmitContract} 
+             variant="contained" 
+             color="secondary"
+             sx={{
+               background: `linear-gradient(135deg, ${muiTheme.palette.secondary.main} 0%, ${muiTheme.palette.secondary.dark} 100%)`,
+               boxShadow: `0 4px 14px ${alpha(muiTheme.palette.secondary.main, 0.4)}`,
+               '&:hover': {
+                 background: `linear-gradient(135deg, ${muiTheme.palette.secondary.dark} 0%, ${muiTheme.palette.secondary.main} 100%)`,
+                 boxShadow: `0 6px 20px ${alpha(muiTheme.palette.secondary.main, 0.6)}`,
+                 transform: 'translateY(-1px)'
+               }
+             }}
+           >
+             Add Client
+           </Button>
+         </DialogActions>
       </Dialog>
+      </AnimatePresence>
     </Box>
   );
 };
