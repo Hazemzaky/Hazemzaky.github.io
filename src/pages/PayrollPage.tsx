@@ -88,6 +88,9 @@ const PayrollPage: React.FC = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [populatingEmployees, setPopulatingEmployees] = useState(false);
 
   // Period lock state
   const [periods, setPeriods] = useState<Period[]>([]);
@@ -170,6 +173,101 @@ const PayrollPage: React.FC = () => {
     fetchPeriods();
   }, []);
 
+  // Helper functions for period calculations
+  const addMonths = (date: Date, months: number) => {
+    const d = new Date(date);
+    const targetMonth = d.getMonth() + months;
+    d.setMonth(targetMonth);
+    return d;
+  };
+
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const endExclusiveOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
+  const getWeekStart = (date: Date) => {
+    const d = new Date(startOfDay(date));
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
+    return new Date(d.setDate(diff));
+  };
+
+  const getMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+  const getNextMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+  const getQuarterStart = (date: Date) => {
+    const quarter = Math.floor(date.getMonth() / 3) * 3;
+    return new Date(date.getFullYear(), quarter, 1);
+  };
+  const getNextQuarterStart = (date: Date) => {
+    const start = getQuarterStart(date);
+    return new Date(start.getFullYear(), start.getMonth() + 3, 1);
+  };
+
+  const getHalfYearStart = (date: Date) => {
+    const half = Math.floor(date.getMonth() / 6) * 6;
+    return new Date(date.getFullYear(), half, 1);
+  };
+  const getNextHalfYearStart = (date: Date) => {
+    const start = getHalfYearStart(date);
+    return new Date(start.getFullYear(), start.getMonth() + 6, 1);
+  };
+
+  // Financial year Apr 1 - Mar 31
+  const getFinancialYear = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    return month >= 4 ? year : year - 1;
+  };
+  const getFinancialYearStart = (fy: number) => new Date(fy, 3, 1); // Apr 1
+  const getNextFinancialYearStart = (fy: number) => new Date(fy + 1, 3, 1); // Next Apr 1
+
+  // Calculate payroll costs for a period
+  const calculateCostForPeriod = (startDate: Date, endDateExclusive: Date): number => {
+    return safePayrolls
+      .filter(payroll => {
+        const payrollDate = new Date(payroll.runDate);
+        return payrollDate >= startDate && payrollDate < endDateExclusive;
+      })
+      .reduce((total, payroll) => {
+        // Sum all payroll costs including base salary, benefits, leave cost, reimbursements
+        return total + payroll.baseSalary + payroll.benefits + payroll.leaveCost + payroll.reimbursements;
+      }, 0);
+  };
+
+  // Precompute period boundaries and cost totals
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const tomorrowStart = endExclusiveOfDay(now);
+
+  const weekStart = getWeekStart(now);
+  const nextWeekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
+
+  const monthStart = getMonthStart(now);
+  const nextMonthStart = getNextMonthStart(now);
+
+  const quarterStart = getQuarterStart(now);
+  const nextQuarterStart = getNextQuarterStart(now);
+
+  const halfStart = getHalfYearStart(now);
+  const nextHalfStart = getNextHalfYearStart(now);
+
+  const currentFY = getFinancialYear(now);
+  const fyStart = getFinancialYearStart(currentFY);
+  const nextFyStart = getNextFinancialYearStart(currentFY);
+
+  const periodCosts = {
+    daily: calculateCostForPeriod(todayStart, tomorrowStart),
+    weekly: calculateCostForPeriod(weekStart, nextWeekStart),
+    monthly: calculateCostForPeriod(monthStart, nextMonthStart),
+    quarterly: calculateCostForPeriod(quarterStart, nextQuarterStart),
+    halfYearly: calculateCostForPeriod(halfStart, nextHalfStart),
+    yearly: calculateCostForPeriod(fyStart, nextFyStart),
+  };
+
+  const getMonthName = (date: Date) => date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const getQuarterName = (date: Date) => `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
+  const getHalfYearName = (date: Date) => `H${Math.floor(date.getMonth() / 6) + 1} ${date.getFullYear()}`;
+
   useEffect(() => {
     // Check if form.period is locked
     if (form.period) {
@@ -184,16 +282,22 @@ const PayrollPage: React.FC = () => {
     setLoading(true);
     setError('');
     try {
+      console.log('Fetching payrolls from /payrolls endpoint...');
       const res = await api.get('/payrolls');
+      console.log('Payrolls response:', res.data);
       if (Array.isArray(res.data)) {
         setPayrolls(res.data);
+        console.log(`Successfully loaded ${res.data.length} payrolls`);
       } else {
         setPayrolls([]);
         setError('Unexpected response from server');
         console.error('Expected array, got:', res.data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch payrolls');
+      console.error('Error fetching payrolls:', err);
+      console.error('Error response:', err.response);
+      console.error('Error message:', err.message);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch payrolls');
     } finally {
       setLoading(false);
     }
@@ -201,14 +305,34 @@ const PayrollPage: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await api.get<{ _id: string; name: string }[]>('/employees');
+      console.log('Fetching payroll employees...');
+      const res = await api.get<{ _id: string; fullName: string }[]>('/payrolls/employees');
+      console.log('Payroll employees response:', res.data);
       if (Array.isArray(res.data)) {
-        setEmployees(res.data as { _id: string; name: string }[]);
+        const mappedEmployees = res.data.map(emp => ({ _id: emp._id, name: emp.fullName }));
+        console.log('Mapped employees:', mappedEmployees);
+        setEmployees(mappedEmployees);
       } else {
         setEmployees([]);
         console.error('Expected array, got:', res.data);
       }
-    } catch {}
+    } catch (error) {
+      console.error('Error fetching payroll employees:', error);
+      // If payroll employees don't exist, try to populate them automatically
+      console.log('Attempting to populate payroll employees...');
+      try {
+        await api.post('/payrolls/populate-employees');
+        console.log('Successfully populated payroll employees, fetching again...');
+        const res = await api.get<{ _id: string; fullName: string }[]>('/payrolls/employees');
+        if (Array.isArray(res.data)) {
+          const mappedEmployees = res.data.map(emp => ({ _id: emp._id, name: emp.fullName }));
+          setEmployees(mappedEmployees);
+        }
+      } catch (populateError) {
+        console.error('Error populating payroll employees:', populateError);
+        setEmployees([]);
+      }
+    }
   };
 
   const fetchPeriods = async () => {
@@ -246,7 +370,7 @@ const PayrollPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      await api.post('/payroll', {
+      await api.post('/payrolls', {
         ...form,
         baseSalary: Number(form.baseSalary),
         benefits: Number(form.benefits),
@@ -262,6 +386,35 @@ const PayrollPage: React.FC = () => {
       setError(err.response?.data?.message || 'Failed to create payroll');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    setError('');
+    try {
+      await api.delete('/payrolls/all');
+      setSuccess('All payroll data deleted successfully!');
+      fetchPayrolls();
+      setDeleteAllOpen(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete all payroll data');
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
+  const handlePopulateEmployees = async () => {
+    setPopulatingEmployees(true);
+    setError('');
+    try {
+      await api.post('/payrolls/populate-employees');
+      setSuccess('Payroll employees populated successfully!');
+      fetchEmployees();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to populate payroll employees');
+    } finally {
+      setPopulatingEmployees(false);
     }
   };
 
@@ -369,6 +522,29 @@ const PayrollPage: React.FC = () => {
                     }}
                   >
                     Add Payroll
+                  </Button>
+                  <Button 
+                    variant="contained" 
+                    color="error" 
+                    onClick={() => setDeleteAllOpen(true)}
+                    disabled={payrolls.length === 0}
+                    startIcon={<DeleteIcon />}
+                    sx={{ 
+                      bgcolor: 'rgba(244, 67, 54, 0.2)', 
+                      color: 'white',
+                      border: '1px solid rgba(244, 67, 54, 0.3)',
+                      '&:hover': { 
+                        bgcolor: 'rgba(244, 67, 54, 0.3)',
+                        borderColor: 'rgba(244, 67, 54, 0.5)'
+                      },
+                      '&:disabled': {
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        color: 'rgba(255,255,255,0.5)',
+                        borderColor: 'rgba(255,255,255,0.2)'
+                      }
+                    }}
+                  >
+                    Delete All
                   </Button>
                 </Box>
               </Box>
@@ -510,6 +686,24 @@ const PayrollPage: React.FC = () => {
               {periodLocked && (
                 <Alert severity="warning" sx={{ ml: 2 }}>
                   This period is locked and cannot be edited.
+                </Alert>
+              )}
+              {employees.length === 0 && (
+                <Alert 
+                  severity="info" 
+                  sx={{ ml: 2 }}
+                  action={
+                    <Button 
+                      color="inherit" 
+                      size="small" 
+                      onClick={handlePopulateEmployees}
+                      disabled={populatingEmployees}
+                    >
+                      {populatingEmployees ? 'Populating...' : 'Populate Now'}
+                    </Button>
+                  }
+                >
+                  No payroll employees found. Click to populate from employee data.
                 </Alert>
               )}
             </Box>
@@ -696,6 +890,262 @@ const PayrollPage: React.FC = () => {
             ))
           )}
         </motion.div>
+
+        {/* Cost Analysis Boxes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mt: 3, 
+              background: alpha(theme.palette.primary.main, 0.05),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 3, color: theme.palette.primary.main, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              💰 Payroll Cost Analysis by Time Periods
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Total payroll costs across different time periods based on payroll run dates. 
+              Costs include base salary, benefits, leave costs, and reimbursements for each payroll entry.
+            </Typography>
+            
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+              {/* Daily Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.3 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📅</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        Daily Payroll Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.info.main }}>
+                      {formatCurrency(periodCosts.daily)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {todayStart.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Weekly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.4 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📊</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                        Weekly Payroll Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.success.main }}>
+                      {formatCurrency(periodCosts.weekly)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Week of {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(nextWeekStart.getTime() - 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Monthly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.5 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📆</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                        Monthly Payroll Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.warning.main }}>
+                      {formatCurrency(periodCosts.monthly)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getMonthName(monthStart)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Quarterly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.6 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📈</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                        Quarterly Payroll Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.secondary.main }}>
+                      {formatCurrency(periodCosts.quarterly)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getQuarterName(quarterStart)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Half-Yearly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.7 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.error.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📊</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                        Half-Yearly Payroll Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.error.main }}>
+                      {formatCurrency(periodCosts.halfYearly)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getHalfYearName(halfStart)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Yearly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.8 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>🗓️</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        Financial Year Payroll Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.primary.main }}>
+                      {formatCurrency(periodCosts.yearly)}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      FY {currentFY} (Apr 1 - Mar 31)
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Box>
+          </Paper>
+        </motion.div>
       </AnimatePresence>
 
       {/* Add Payroll Dialog */}
@@ -798,6 +1248,18 @@ const PayrollPage: React.FC = () => {
                     <MenuItem key={e._id} value={e._id}>{e.name}</MenuItem>
                   ))}
                 </TextField>
+                {employees.length === 0 && (
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={handlePopulateEmployees}
+                    disabled={populatingEmployees}
+                    startIcon={<AddIcon />}
+                    sx={{ mt: 1 }}
+                  >
+                    {populatingEmployees ? 'Populating...' : 'Populate Employees from Employee Data'}
+                  </Button>
+                )}
                 <TextField 
                   label="Period" 
                   name="period" 
@@ -1050,6 +1512,151 @@ const PayrollPage: React.FC = () => {
             }}
           >
             {submitting ? 'Creating...' : 'Create Payroll'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete All Confirmation Dialog */}
+      <Dialog 
+        open={deleteAllOpen} 
+        onClose={() => setDeleteAllOpen(false)} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: theme.shape.borderRadius,
+            background: alpha(theme.palette.background.paper, 0.95),
+            backdropFilter: 'blur(20px)',
+            border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`,
+            boxShadow: theme.shadows[24]
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{ 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.15)} 0%, ${alpha(theme.palette.error.dark, 0.1)} 100%)`,
+            color: theme.palette.error.main,
+            borderBottom: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 2 }}>
+            <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+              <DeleteIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                Delete All Payroll Data
+              </Typography>
+              <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                This action cannot be undone
+              </Typography>
+            </Box>
+          </Box>
+          
+          {/* Decorative background elements */}
+          <Box sx={{ 
+            position: 'absolute', 
+            top: -20, 
+            right: -20, 
+            width: 80, 
+            height: 80, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.error.main, 0.1),
+            zIndex: 1
+          }} />
+          <Box sx={{ 
+            position: 'absolute', 
+            bottom: -15, 
+            left: -15, 
+            width: 60, 
+            height: 60, 
+            borderRadius: '50%', 
+            background: alpha(theme.palette.error.dark, 0.08),
+            zIndex: 1
+          }} />
+        </DialogTitle>
+        
+        <DialogContent sx={{ mt: 2, p: 3 }}>
+          <Box sx={{ 
+            p: 2, 
+            background: alpha(theme.palette.error.main, 0.05),
+            borderRadius: 2,
+            border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+            mb: 2
+          }}>
+            <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              ⚠️ Warning
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              You are about to delete <strong>ALL</strong> payroll data including:
+            </Typography>
+            <Box component="ul" sx={{ pl: 2, mb: 0 }}>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                All payroll records ({payrolls.length} entries)
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                All payroll employee data
+              </Typography>
+              <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
+                All payroll history records
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Typography variant="body1" sx={{ fontWeight: 600, color: theme.palette.text.primary, mb: 1 }}>
+            This action is irreversible and will permanently remove all payroll data from the system.
+          </Typography>
+          
+          <Typography variant="body2" color="text.secondary">
+            Are you absolutely sure you want to proceed? Type "DELETE ALL" to confirm.
+          </Typography>
+        </DialogContent>
+        
+        <DialogActions 
+          sx={{ 
+            p: 3, 
+            background: `linear-gradient(135deg, ${alpha(theme.palette.background.default, 0.8)} 0%, ${alpha(theme.palette.background.paper, 0.9)} 100%)`,
+            borderTop: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+            gap: 2
+          }}
+        >
+          <Button 
+            onClick={() => setDeleteAllOpen(false)} 
+            disabled={deletingAll}
+            variant="outlined"
+            sx={{
+              borderColor: theme.palette.text.secondary,
+              color: theme.palette.text.secondary,
+              '&:hover': {
+                borderColor: theme.palette.text.primary,
+                color: theme.palette.text.primary,
+              }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteAll} 
+            variant="contained" 
+            color="error" 
+            disabled={deletingAll}
+            sx={{
+              background: `linear-gradient(135deg, ${theme.palette.error.main} 0%, ${theme.palette.error.dark} 100%)`,
+              boxShadow: `0 4px 14px ${alpha(theme.palette.error.main, 0.4)}`,
+              '&:hover': {
+                background: `linear-gradient(135deg, ${theme.palette.error.dark} 0%, ${theme.palette.error.main} 100%)`,
+                boxShadow: `0 6px 20px ${alpha(theme.palette.error.main, 0.6)}`,
+                transform: 'translateY(-1px)'
+              },
+              '&:disabled': {
+                background: theme.palette.action.disabledBackground,
+                color: theme.palette.action.disabled
+              }
+            }}
+          >
+            {deletingAll ? 'Deleting...' : 'Delete All Data'}
           </Button>
         </DialogActions>
       </Dialog>

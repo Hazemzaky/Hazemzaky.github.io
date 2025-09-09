@@ -1,118 +1,170 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
-  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, FormControl, InputLabel, Select, MenuItem
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import {
-  People as PeopleIcon,
+  TrendingUp as TrendingUpIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   MonetizationOn as MoneyIcon,
   Business as BusinessIcon,
   Assessment as AssessmentIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Error as ErrorIcon,
-  Info as InfoIcon,
-  TrendingUp as TrendingUpIcon
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const defaultPosition = () => ({
-  title: '',
-  department: '',
-  baseSalary: '',
-  headcount: Array(12).fill(''),
-  benefits: '',
-  startMonth: 'Jan'
+const defaultStaff = () => ({
+  id: Date.now() + Math.random(),
+  no: '',
+  description: '',
+  forecastedYearEnded: '',
+  budget1stQuarter: '',
+  budget2ndQuarter: '',
+  budget3rdQuarter: '',
+  budgetTotal: ''
 });
 
 const BudgetStaffing: React.FC = () => {
-  const [positions, setPositions] = useState([defaultPosition()]);
+  const [staffBudgets, setStaffBudgets] = useState([defaultStaff()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    no: '',
+    description: '',
+    forecastedYearEnded: '',
+    budget1stQuarter: '',
+    budget2ndQuarter: '',
+    budget3rdQuarter: '',
+    budgetTotal: ''
+  });
 
   const theme = useTheme();
+  const pageColor = '#ff9800';
 
   useEffect(() => {
-    fetchBudgetStaffing();
+    fetchStaffBudgets();
   }, []);
 
-  const fetchBudgetStaffing = async () => {
+  const fetchStaffBudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget-staffing');
-      // Ensure response.data is always an array
+      const response = await api.get('/budget/staff');
       const data = Array.isArray(response.data) ? response.data : [];
-      setPositions(data.length > 0 ? data : [defaultPosition()]);
+      if (data.length > 0) {
+        setStaffBudgets(data);
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch budget staffing');
-      setPositions([defaultPosition()]);
+      setError(err.response?.data?.message || 'Failed to fetch Staff budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePositionChange = (idx: number, field: string, value: any, monthIdx?: number) => {
-    const newPositions = [...positions];
-    if (field === 'headcount' && monthIdx !== undefined) {
-      newPositions[idx].headcount[monthIdx] = value;
-    } else {
-      // Use type assertion for dynamic property access
-      (newPositions[idx] as any)[field] = value;
+  const handleAddStaff = () => {
+    setEditingStaff(null);
+    setFormData({
+      no: '',
+      description: '',
+      forecastedYearEnded: '',
+      budget1stQuarter: '',
+      budget2ndQuarter: '',
+      budget3rdQuarter: '',
+      budgetTotal: ''
+    });
+    setOpenDialog(true);
+  };
+
+  const handleEditStaff = (staff: any) => {
+    setEditingStaff(staff);
+    setFormData({
+      no: staff.no,
+      description: staff.description,
+      forecastedYearEnded: staff.forecastedYearEnded,
+      budget1stQuarter: staff.budget1stQuarter,
+      budget2ndQuarter: staff.budget2ndQuarter,
+      budget3rdQuarter: staff.budget3rdQuarter,
+      budgetTotal: staff.budgetTotal
+    });
+    setOpenDialog(true);
+  };
+
+  const handleDeleteStaff = (id: number) => {
+    if (staffBudgets.length > 1) {
+      setStaffBudgets(staffBudgets.filter(staff => staff.id !== id));
     }
-    setPositions(newPositions);
   };
 
-  const handleAddPosition = () => setPositions([...positions, defaultPosition()]);
-
-  const handleRemovePosition = (idx: number) => setPositions(positions => positions.filter((_, i) => i !== idx));
-
-  const getPositionCost = (position: any, monthIdx: number) => {
-    const baseSalary = parseFloat(position.baseSalary) || 0;
-    const headcount = parseFloat(position.headcount[monthIdx]) || 0;
-    const benefits = parseFloat(position.benefits) || 0;
-    return (baseSalary + benefits) * headcount;
+  const handleSaveStaff = () => {
+    if (editingStaff) {
+      // Edit existing Staff
+      setStaffBudgets(staffBudgets.map(staff => 
+        staff.id === editingStaff.id 
+          ? { ...staff, ...formData }
+          : staff
+      ));
+    } else {
+      // Add new Staff
+      setStaffBudgets([...staffBudgets, { ...formData, id: Date.now() + Math.random() }]);
+    }
+    setOpenDialog(false);
+    setSuccess(editingStaff ? 'Staff Cost updated successfully!' : 'Staff Cost added successfully!');
   };
 
-  const getPositionTotal = (position: any) => {
-    return months.reduce((sum, _, monthIdx) => sum + getPositionCost(position, monthIdx), 0);
+  const handleFormChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
   };
 
-  const getMonthTotal = (monthIdx: number) => {
-    return positions.reduce((sum, position) => sum + getPositionCost(position, monthIdx), 0);
+  const formatCurrency = (value: string) => {
+    if (!value) return '-';
+    return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
-  const getGrandTotal = () => {
-    return positions.reduce((sum, position) => sum + getPositionTotal(position), 0);
-  };
-
-  const getTotalHeadcount = () => {
-    return positions.reduce((sum, position) => {
-      return sum + position.headcount.reduce((monthSum, headcount) => monthSum + (parseFloat(headcount) || 0), 0);
+  const getTotalForecasted = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.forecastedYearEnded) || 0);
     }, 0);
   };
 
-  const handleSave = async () => {
-    try {
-      await api.post('/budget-staffing', { positions });
-      setSuccess('Budget staffing saved successfully!');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save budget staffing');
-    }
+  const getTotal1stQuarter = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budget1stQuarter) || 0);
+    }, 0);
+  };
+
+  const getTotal2ndQuarter = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budget2ndQuarter) || 0);
+    }, 0);
+  };
+
+  const getTotal3rdQuarter = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budget3rdQuarter) || 0);
+    }, 0);
+  };
+
+  const getTotalBudget = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budgetTotal) || 0);
+    }, 0);
   };
 
   return (
     <Box sx={{ 
       p: 3, 
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+      background: `linear-gradient(135deg, ${alpha(pageColor, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
       <AnimatePresence>
         {/* Header Section */}
@@ -126,7 +178,7 @@ const BudgetStaffing: React.FC = () => {
             sx={{ 
               p: 3, 
               mb: 3, 
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
               color: 'white',
               borderRadius: theme.shape.borderRadius,
               position: 'relative',
@@ -137,22 +189,21 @@ const BudgetStaffing: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <PeopleIcon sx={{ fontSize: 32 }} />
+                    <Typography sx={{ fontSize: '2rem' }}>🎖️</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Staffing Budget
+                      Staff Cost
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and forecast personnel costs by position and month
+                      Plan and manage staff costs and quarterly budgets
                     </Typography>
                   </Box>
                 </Box>
                 <Button 
                   variant="contained" 
-                  color="primary" 
-                  onClick={handleSave}
-                  startIcon={<SaveIcon />}
+                  startIcon={<AddIcon />}
+                  onClick={handleAddStaff}
                   sx={{ 
                     bgcolor: 'rgba(255,255,255,0.2)', 
                     color: 'white',
@@ -160,7 +211,7 @@ const BudgetStaffing: React.FC = () => {
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Save Budget
+                  Add Staff Cost
                 </Button>
               </Box>
             </Box>
@@ -198,32 +249,39 @@ const BudgetStaffing: React.FC = () => {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             {[
               {
-                title: 'Total Staffing Cost',
-                value: `$${getGrandTotal().toLocaleString()}`,
+                title: 'Total Forecasted',
+                value: `KWD ${getTotalForecasted().toLocaleString()}`,
                 icon: <MoneyIcon />,
-                color: theme.palette.primary.main,
-                bgColor: alpha(theme.palette.primary.main, 0.1)
+                color: pageColor,
+                bgColor: alpha(pageColor, 0.1)
               },
               {
-                title: 'Total Headcount',
-                value: getTotalHeadcount(),
-                icon: <PeopleIcon />,
-                color: theme.palette.success.main,
-                bgColor: alpha(theme.palette.success.main, 0.1)
-              },
-              {
-                title: 'Positions',
-                value: positions.length,
-                icon: <BusinessIcon />,
+                title: '1st Quarter',
+                value: `KWD ${getTotal1stQuarter().toLocaleString()}`,
+                icon: <TrendingUpIcon />,
                 color: theme.palette.info.main,
                 bgColor: alpha(theme.palette.info.main, 0.1)
               },
               {
-                title: 'Avg Monthly Cost',
-                value: `$${(getGrandTotal() / 12).toLocaleString()}`,
+                title: '2nd Quarter',
+                value: `KWD ${getTotal2ndQuarter().toLocaleString()}`,
                 icon: <AssessmentIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              },
+              {
+                title: '3rd Quarter',
+                value: `KWD ${getTotal3rdQuarter().toLocaleString()}`,
+                icon: <BusinessIcon />,
                 color: theme.palette.warning.main,
                 bgColor: alpha(theme.palette.warning.main, 0.1)
+              },
+              {
+                title: 'Total Budget',
+                value: `KWD ${getTotalBudget().toLocaleString()}`,
+                icon: <CheckCircleIcon />,
+                color: theme.palette.error.main,
+                bgColor: alpha(theme.palette.error.main, 0.1)
               }
             ].map((card, index) => (
               <motion.div
@@ -265,7 +323,7 @@ const BudgetStaffing: React.FC = () => {
           </Box>
         </motion.div>
 
-        {/* Staffing Table */}
+        {/* Staff Cost Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -277,237 +335,162 @@ const BudgetStaffing: React.FC = () => {
               p: 3, 
               background: alpha(theme.palette.background.paper, 0.8),
               backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-              borderRadius: theme.shape.borderRadius,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: theme.shadows[8]
-              }
+              border: `1px solid ${alpha(pageColor, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-              <Typography variant="h6" sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
-                👥 Staffing Positions
-              </Typography>
-              <Button
-                variant="contained"
-                onClick={handleAddPosition}
-                startIcon={<AddIcon />}
-                sx={{
-                  background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`,
-                  boxShadow: `0 4px 14px ${alpha(theme.palette.success.main, 0.4)}`,
-                  '&:hover': {
-                    background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.success.main} 100%)`,
-                    boxShadow: `0 6px 20px ${alpha(theme.palette.success.main, 0.6)}`,
-                    transform: 'translateY(-1px)'
-                  }
-                }}
-              >
-                Add Position
-              </Button>
-            </Box>
+            <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
+              📊 Staff Cost Overview
+            </Typography>
 
-            {loading ? (
+            {loading && (
               <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
                 <CircularProgress />
               </Box>
-            ) : (
-              <TableContainer>
-                <Table>
+            )}
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+            )}
+
+            {!loading && (
+              <TableContainer sx={{ maxHeight: 600, overflowX: 'auto' }}>
+                <Table stickyHeader>
                   <TableHead>
-                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Position</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Department</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Base Salary</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Benefits</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Start Month</TableCell>
-                      {months.map((month) => (
-                        <TableCell key={month} align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                          {month}
-                        </TableCell>
-                      ))}
-                      <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Total</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Actions</TableCell>
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
+                        NO.
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
+                        Description
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Forecasted Year Ended
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 1st Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 2nd Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 3rd Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget Total
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
+                        Actions
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {positions.map((position, idx) => (
+                    {staffBudgets.map((staff, index) => (
                       <TableRow 
-                        key={idx}
-                        hover
+                        key={staff.id}
                         sx={{ 
-                          background: idx % 2 === 0 ? alpha(theme.palette.background.default, 0.5) : alpha(theme.palette.background.paper, 0.8),
-                          transition: 'all 0.2s ease',
                           '&:hover': {
-                            background: alpha(theme.palette.primary.main, 0.05),
-                            transform: 'scale(1.01)'
+                            background: alpha(pageColor, 0.02)
                           }
                         }}
                       >
-                        <TableCell>
-                          <TextField
-                            value={position.title}
-                            onChange={(e) => handlePositionChange(idx, 'title', e.target.value)}
-                            placeholder="Position title"
-                            size="small"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&:hover fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            value={position.department}
-                            onChange={(e) => handlePositionChange(idx, 'department', e.target.value)}
-                            placeholder="Department"
-                            size="small"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&:hover fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            value={position.baseSalary}
-                            onChange={(e) => handlePositionChange(idx, 'baseSalary', e.target.value)}
-                            placeholder="0.00"
-                            type="number"
-                            size="small"
-                            sx={{
-                              width: 120,
-                              '& .MuiOutlinedInput-root': {
-                                '&:hover fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            value={position.benefits}
-                            onChange={(e) => handlePositionChange(idx, 'benefits', e.target.value)}
-                            placeholder="0.00"
-                            type="number"
-                            size="small"
-                            sx={{
-                              width: 100,
-                              '& .MuiOutlinedInput-root': {
-                                '&:hover fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <FormControl size="small" sx={{ minWidth: 100 }}>
-                            <Select
-                              value={position.startMonth}
-                              onChange={(e) => handlePositionChange(idx, 'startMonth', e.target.value)}
-                              sx={{
-                                '& .MuiOutlinedInput-root': {
-                                  '&:hover fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                },
-                              }}
-                            >
-                              {months.map((month) => (
-                                <MenuItem key={month} value={month}>{month}</MenuItem>
-                              ))}
-                            </Select>
-                          </FormControl>
-                        </TableCell>
-                        {months.map((month, monthIdx) => (
-                          <TableCell key={month} align="right">
-                            <TextField
-                              value={position.headcount[monthIdx]}
-                              onChange={(e) => handlePositionChange(idx, 'headcount', e.target.value, monthIdx)}
-                              placeholder="0"
-                              type="number"
-                              size="small"
-                              sx={{
-                                width: 80,
-                                '& .MuiOutlinedInput-root': {
-                                  '&:hover fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                },
-                              }}
-                            />
-                          </TableCell>
-                        ))}
-                        <TableCell align="right">
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
-                            ${getPositionTotal(position).toLocaleString()}
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {staff.no || '-'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          <IconButton
-                            onClick={() => handleRemovePosition(idx)}
-                            color="error"
-                            disabled={positions.length === 1}
-                            sx={{ 
-                              '&:hover': { 
-                                bgcolor: alpha(theme.palette.error.main, 0.1),
-                                transform: 'scale(1.1)'
-                              }
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {staff.description || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(staff.forecastedYearEnded)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(staff.budget1stQuarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(staff.budget2ndQuarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(staff.budget3rdQuarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(staff.budgetTotal)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <IconButton
+                              onClick={() => handleEditStaff(staff)}
+                              sx={{ 
+                                color: pageColor,
+                                '&:hover': { 
+                                  bgcolor: alpha(pageColor, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => handleDeleteStaff(staff.id)}
+                              disabled={staffBudgets.length === 1}
+                              sx={{ 
+                                color: theme.palette.error.main,
+                                '&:hover': { 
+                                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
                     {/* Totals Row */}
-                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, textAlign: 'center' }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                           TOTAL
                         </Typography>
                       </TableCell>
                       <TableCell />
-                      <TableCell />
-                      <TableCell />
-                      <TableCell />
-                      {months.map((month, monthIdx) => (
-                        <TableCell key={month} align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            ${getMonthTotal(monthIdx).toLocaleString()}
-                          </Typography>
-                        </TableCell>
-                      ))}
-                      <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          ${getGrandTotal().toLocaleString()}
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotalForecasted().toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotal1stQuarter().toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotal2ndQuarter().toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotal3rdQuarter().toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotalBudget().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell />
@@ -518,32 +501,165 @@ const BudgetStaffing: React.FC = () => {
             )}
           </Paper>
         </motion.div>
+
+        {/* Add/Edit Staff Cost Dialog */}
+        <Dialog 
+          open={openDialog} 
+          onClose={() => setOpenDialog(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
+            {editingStaff ? 'Edit Staff Cost' : 'Add Staff Cost'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <TextField
+                label="NO."
+                value={formData.no}
+                onChange={(e) => handleFormChange('no', e.target.value)}
+                fullWidth
+                placeholder="Enter number..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Description"
+                value={formData.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                fullWidth
+                placeholder="Enter description..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Forecasted Year Ended"
+                value={formData.forecastedYearEnded}
+                onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
+                fullWidth
+                placeholder="Enter forecasted year ended amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget 1st Quarter"
+                value={formData.budget1stQuarter}
+                onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
+                fullWidth
+                placeholder="Enter budget 1st quarter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget 2nd Quarter"
+                value={formData.budget2ndQuarter}
+                onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
+                fullWidth
+                placeholder="Enter budget 2nd quarter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget 3rd Quarter"
+                value={formData.budget3rdQuarter}
+                onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
+                fullWidth
+                placeholder="Enter budget 3rd quarter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget Total"
+                value={formData.budgetTotal}
+                onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
+                fullWidth
+                placeholder="Enter budget total amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveStaff}
+              variant="contained"
+              sx={{
+                background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${pageColor} 100%)`,
+                }
+              }}
+            >
+              {editingStaff ? 'Update' : 'Add'} Staff Cost
+            </Button>
+          </DialogActions>
+        </Dialog>
       </AnimatePresence>
 
-      {/* Success/Error Snackbars */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
-          {success}
-        </Alert>
-      </Snackbar>
-      
-      <Snackbar
-        open={!!error}
-        autoHideDuration={3000}
-        onClose={() => setError('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
+      <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity="success" sx={{ width: '100%' }}>{success}</Alert>
       </Snackbar>
     </Box>
   );
 };
 
-export default BudgetStaffing; 
+export default BudgetStaffing;

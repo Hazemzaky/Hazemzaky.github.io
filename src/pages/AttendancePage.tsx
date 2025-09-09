@@ -416,7 +416,7 @@ const AttendancePage: React.FC = () => {
                       WebkitTextFillColor: 'transparent',
                       backgroundClip: 'text'
                     }}>
-                      AI-Powered Attendance System
+                      Attendance System
                     </Typography>
                     <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 300 }}>
                       Next-Generation Workforce Intelligence Platform
@@ -424,81 +424,15 @@ const AttendancePage: React.FC = () => {
                   </Box>
                 </Box>
                 
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Badge badgeContent={liveUpdates.length} color="error">
-                      <Button
-                        variant="contained"
-                        startIcon={realTimeMode ? <WifiIcon /> : <WifiIcon />}
-                        onClick={() => setRealTimeMode(!realTimeMode)}
-                        sx={{
-                          bgcolor: realTimeMode ? 'rgba(76, 175, 80, 0.8)' : 'rgba(255,255,255,0.2)',
-                          backdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255,255,255,0.3)',
-                          '&:hover': {
-                            bgcolor: realTimeMode ? 'rgba(76, 175, 80, 1)' : 'rgba(255,255,255,0.3)'
-                          }
-                        }}
-                      >
-                        {realTimeMode ? 'Live Mode' : 'Static Mode'}
-                      </Button>
-                    </Badge>
-                  </motion.div>
-                  
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      variant="contained"
-                      startIcon={<MagicIcon />}
-                      onClick={() => setShowAdvancedFeatures(!showAdvancedFeatures)}
-                      sx={{
-                        bgcolor: 'rgba(255,255,255,0.2)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        '&:hover': {
-                          bgcolor: 'rgba(255,255,255,0.3)'
-                        }
-                      }}
-                    >
-                      AI Features
-                    </Button>
-                  </motion.div>
-                </Box>
               </Box>
 
               {/* Real-time status indicators */}
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                 <Chip
                   icon={<LightningIcon />}
-                  label={`${stats?.presentToday || 0} Present`}
+                  label="Live Tracking Active"
                   sx={{ 
                     bgcolor: 'rgba(76, 175, 80, 0.8)', 
-                    color: 'white',
-                    fontWeight: 600
-                  }}
-                />
-                <Chip
-                  icon={<HomeIcon />}
-                  label={`${stats?.remoteToday || 0} Remote`}
-                  sx={{ 
-                    bgcolor: 'rgba(33, 150, 243, 0.8)', 
-                    color: 'white',
-                    fontWeight: 600
-                  }}
-                />
-                <Chip
-                  icon={<BrainIcon />}
-                  label={`${stats?.productivityScore || 0}% Productivity`}
-                  sx={{ 
-                    bgcolor: 'rgba(156, 39, 176, 0.8)', 
-                    color: 'white',
-                    fontWeight: 600
-                  }}
-                />
-                <Chip
-                  icon={<ShieldIcon />}
-                  label={`${stats?.biometricSuccessRate || 0}% Biometric Success`}
-                  sx={{ 
-                    bgcolor: 'rgba(255, 152, 0, 0.8)', 
                     color: 'white',
                     fontWeight: 600
                   }}
@@ -554,11 +488,7 @@ const AttendancePage: React.FC = () => {
                 }
               }}
             >
-              <Tab icon={<DashboardIcon />} label="AI Dashboard" />
               <Tab icon={<TimelineIcon />} label="Live Tracking" />
-              <Tab icon={<AnalyticsIcon />} label="Smart Analytics" />
-              <Tab icon={<SecurityIcon />} label="Biometric Hub" />
-              <Tab icon={<RocketIcon />} label="Future Tech" />
             </Tabs>
           </Paper>
         </motion.div>
@@ -567,283 +497,6 @@ const AttendancePage: React.FC = () => {
         <AnimatePresence mode="wait">
           {activeTab === 0 && (
             <motion.div
-              key="dashboard"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* AI Dashboard Content */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 3 }}>
-                {/* Real-time Stats Cards */}
-                <Box>
-                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
-                    {[
-                      {
-                        title: 'Present Today',
-                        value: stats?.presentToday || 0,
-                        total: stats?.totalEmployees || 0,
-                        icon: <CheckCircleIcon />,
-                        color: theme.palette.success.main,
-                        gradient: 'linear-gradient(135deg, #4caf50, #81c784)'
-                      },
-                      {
-                        title: 'Remote Workers',
-                        value: stats?.remoteToday || 0,
-                        total: stats?.totalEmployees || 0,
-                        icon: <HomeIcon />,
-                        color: theme.palette.info.main,
-                        gradient: 'linear-gradient(135deg, #2196f3, #64b5f6)'
-                      },
-                      {
-                        title: 'Late Arrivals',
-                        value: stats?.lateToday || 0,
-                        total: stats?.totalEmployees || 0,
-                        icon: <WarningIcon />,
-                        color: theme.palette.warning.main,
-                        gradient: 'linear-gradient(135deg, #ff9800, #ffb74d)'
-                      },
-                      {
-                        title: 'On Leave',
-                        value: stats?.onLeaveToday || 0,
-                        total: stats?.totalEmployees || 0,
-                        icon: <FlightIcon />,
-                        color: theme.palette.secondary.main,
-                        gradient: 'linear-gradient(135deg, #9c27b0, #ba68c8)'
-                      }
-                    ].map((stat, index) => (
-                      <Box key={index}>
-                        <motion.div
-                          variants={itemVariants}
-                          whileHover={{ y: -5, scale: 1.02 }}
-                          transition={{ type: "spring", stiffness: 300 }}
-                        >
-                          <Card sx={{ 
-                            height: '100%',
-                            background: stat.gradient,
-                            color: 'white',
-                            borderRadius: 3,
-                            position: 'relative',
-                            overflow: 'hidden',
-                            '&::before': {
-                              content: '""',
-                              position: 'absolute',
-                              top: 0,
-                              right: 0,
-                              width: '30%',
-                              height: '100%',
-                              background: 'rgba(255,255,255,0.1)',
-                              borderRadius: '50% 0 0 50%'
-                            }
-                          }}>
-                            <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                                <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
-                                  {stat.icon}
-                                </Avatar>
-                                <Box sx={{ textAlign: 'right' }}>
-                                  <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1 }}>
-                                    {stat.value}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                                    of {stat.total}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                              <Typography variant="body2" sx={{ fontWeight: 500, opacity: 0.9 }}>
-                                {stat.title}
-                              </Typography>
-                              <LinearProgress
-                                variant="determinate"
-                                value={(stat.value / stat.total) * 100}
-                                sx={{
-                                  mt: 1,
-                                  height: 6,
-                                  borderRadius: 3,
-                                  bgcolor: 'rgba(255,255,255,0.2)',
-                                  '& .MuiLinearProgress-bar': {
-                                    bgcolor: 'rgba(255,255,255,0.8)',
-                                    borderRadius: 3
-                                  }
-                                }}
-                              />
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      </Box>
-                    ))}
-                  </Box>
-                </Box>
-
-                {/* Top Performers */}
-                <Box>
-                  <motion.div variants={itemVariants}>
-                    <Card sx={{ 
-                      height: '100%',
-                      borderRadius: 3,
-                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
-                      backdropFilter: 'blur(10px)',
-                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
-                    }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                          <Avatar sx={{ bgcolor: theme.palette.warning.main, mr: 2 }}>
-                            <TrophyIcon />
-                          </Avatar>
-                          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                            🚀 Top Performers Today
-                          </Typography>
-                        </Box>
-                        
-                        <Stack spacing={2}>
-                          {(stats?.topPerformers || []).slice(0, 5).map((performer, index) => (
-                            <motion.div
-                              key={performer.employeeId}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * 0.1 }}
-                            >
-                              <Box sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                p: 2, 
-                                borderRadius: 2,
-                                background: index === 0 ? `linear-gradient(45deg, ${alpha(theme.palette.warning.main, 0.2)}, ${alpha(theme.palette.warning.light, 0.1)})` : 'rgba(255,255,255,0.5)',
-                                border: index === 0 ? `2px solid ${theme.palette.warning.main}` : '1px solid rgba(0,0,0,0.1)',
-                                position: 'relative',
-                                overflow: 'hidden'
-                              }}>
-                                {index === 0 && (
-                                  <motion.div
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                    style={{
-                                      position: 'absolute',
-                                      top: -10,
-                                      right: -10,
-                                      fontSize: '2rem'
-                                    }}
-                                  >
-                                    👑
-                                  </motion.div>
-                                )}
-                                
-                                <Avatar
-                                  src={performer.avatar}
-                                  sx={{ 
-                                    width: 40, 
-                                    height: 40, 
-                                    mr: 2,
-                                    border: index < 3 ? `2px solid ${[theme.palette.warning.main, theme.palette.grey[400], '#CD7F32'][index]}` : 'none'
-                                  }}
-                                >
-                                  {performer.name[0]}
-                                </Avatar>
-                                <Box sx={{ flex: 1 }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                    {performer.name}
-                                  </Typography>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Score: {performer.score}%
-                                    </Typography>
-                                    <Chip
-                                      label={`#${index + 1}`}
-                                      size="small"
-                                      sx={{ 
-                                        bgcolor: index < 3 ? [theme.palette.warning.main, theme.palette.grey[400], '#CD7F32'][index] : theme.palette.grey[300],
-                                        color: 'white',
-                                        fontWeight: 600,
-                                        fontSize: '0.7rem'
-                                      }}
-                                    />
-                                  </Box>
-                                </Box>
-                                {index < 3 && (
-                                  <Box sx={{ fontSize: '1.5rem' }}>
-                                    {['🥇', '🥈', '🥉'][index]}
-                                  </Box>
-                                )}
-                              </Box>
-                            </motion.div>
-                          ))}
-                        </Stack>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </Box>
-              </Box>
-
-              {/* Department Performance */}
-              <Box sx={{ mt: 3 }}>
-                  <motion.div variants={itemVariants}>
-                    <Card sx={{ borderRadius: 3, mb: 3 }}>
-                      <CardContent sx={{ p: 3 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <BusinessIcon color="primary" />
-                          Department Performance Matrix
-                        </Typography>
-                        
-                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
-                          {(stats?.departmentStats || []).map((dept, index) => (
-                            <Box key={dept.department}>
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1 }}
-                                whileHover={{ scale: 1.02 }}
-                              >
-                                <Paper sx={{ 
-                                  p: 2, 
-                                  borderRadius: 2,
-                                  background: `linear-gradient(135deg, ${alpha(getStatusColor('present'), 0.1)} 0%, ${alpha(getStatusColor('present'), 0.05)} 100%)`,
-                                  border: `1px solid ${alpha(getStatusColor('present'), 0.2)}`
-                                }}>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                                    {dept.department}
-                                  </Typography>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="h5" sx={{ fontWeight: 700, color: getStatusColor('present') }}>
-                                      {dept.present}/{dept.total}
-                                    </Typography>
-                                    <Chip
-                                      label={`${Math.round(dept.rate)}%`}
-                                      size="small"
-                                      sx={{
-                                        bgcolor: dept.rate >= 90 ? theme.palette.success.main : 
-                                                dept.rate >= 75 ? theme.palette.warning.main : theme.palette.error.main,
-                                        color: 'white',
-                                        fontWeight: 600
-                                      }}
-                                    />
-                                  </Box>
-                                  <LinearProgress
-                                    variant="determinate"
-                                    value={dept.rate}
-                                    sx={{
-                                      height: 8,
-                                      borderRadius: 4,
-                                      bgcolor: alpha(getStatusColor('present'), 0.2),
-                                      '& .MuiLinearProgress-bar': {
-                                        bgcolor: getStatusColor('present'),
-                                        borderRadius: 4
-                                      }
-                                    }}
-                                  />
-                                </Paper>
-                              </motion.div>
-                            </Box>
-                          ))}
-                        </Box>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </Box>
-            </motion.div>
-          )}
-
-          {activeTab === 1 && (
-            <motion.div
               key="live-tracking"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -851,6 +504,105 @@ const AttendancePage: React.FC = () => {
               transition={{ duration: 0.3 }}
             >
               {/* Live Tracking Content */}
+              
+              {/* Stats Cards at the top */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2, mb: 3 }}>
+                {[
+                  {
+                    title: 'Present Today',
+                    value: stats?.presentToday || 0,
+                    total: stats?.totalEmployees || 0,
+                    icon: <CheckCircleIcon />,
+                    color: theme.palette.success.main,
+                    gradient: 'linear-gradient(135deg, #4caf50, #81c784)'
+                  },
+                  {
+                    title: 'Remote Workers',
+                    value: stats?.remoteToday || 0,
+                    total: stats?.totalEmployees || 0,
+                    icon: <HomeIcon />,
+                    color: theme.palette.info.main,
+                    gradient: 'linear-gradient(135deg, #2196f3, #64b5f6)'
+                  },
+                  {
+                    title: 'Late Arrivals',
+                    value: stats?.lateToday || 0,
+                    total: stats?.totalEmployees || 0,
+                    icon: <WarningIcon />,
+                    color: theme.palette.warning.main,
+                    gradient: 'linear-gradient(135deg, #ff9800, #ffb74d)'
+                  },
+                  {
+                    title: 'On Leave',
+                    value: stats?.onLeaveToday || 0,
+                    total: stats?.totalEmployees || 0,
+                    icon: <FlightIcon />,
+                    color: theme.palette.secondary.main,
+                    gradient: 'linear-gradient(135deg, #9c27b0, #ba68c8)'
+                  }
+                ].map((stat, index) => (
+                  <Box key={index}>
+                    <motion.div
+                      variants={itemVariants}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                    >
+                      <Card sx={{ 
+                        height: '100%',
+                        background: stat.gradient,
+                        color: 'white',
+                        borderRadius: 3,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          right: 0,
+                          width: '30%',
+                          height: '100%',
+                          background: 'rgba(255,255,255,0.1)',
+                          borderRadius: '50% 0 0 50%'
+                        }
+                      }}>
+                        <CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
+                              {stat.icon}
+                            </Avatar>
+                            <Box sx={{ textAlign: 'right' }}>
+                              <Typography variant="h4" sx={{ fontWeight: 700, lineHeight: 1 }}>
+                                {stat.value}
+                              </Typography>
+                              <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                of {stat.total}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Typography variant="body2" sx={{ fontWeight: 500, opacity: 0.9 }}>
+                            {stat.title}
+                          </Typography>
+                          <LinearProgress
+                            variant="determinate"
+                            value={(stat.value / stat.total) * 100}
+                            sx={{
+                              mt: 1,
+                              height: 6,
+                              borderRadius: 3,
+                              bgcolor: 'rgba(255,255,255,0.2)',
+                              '& .MuiLinearProgress-bar': {
+                                bgcolor: 'rgba(255,255,255,0.8)',
+                                borderRadius: 3
+                              }
+                            }}
+                          />
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </Box>
+                ))}
+              </Box>
+
               <Box sx={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 3 }}>
                 <Box>
                   <Card sx={{ borderRadius: 3, height: '70vh', overflow: 'hidden' }}>
@@ -1123,20 +875,6 @@ const AttendancePage: React.FC = () => {
             </motion.div>
           )}
 
-          {/* Other tab contents would go here */}
-          {activeTab === 2 && (
-            <motion.div
-              key="analytics"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Typography variant="h4" sx={{ textAlign: 'center', py: 10, color: 'text.secondary' }}>
-                🚀 Smart Analytics Dashboard Coming Soon...
-              </Typography>
-            </motion.div>
-          )}
         </AnimatePresence>
 
         {/* Floating Action Buttons */}

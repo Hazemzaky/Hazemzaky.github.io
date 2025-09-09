@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
-  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
   TrendingDown as TrendingDownIcon,
@@ -9,6 +9,7 @@ import {
   Refresh as RefreshIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   MonetizationOn as MoneyIcon,
   Business as BusinessIcon,
   Assessment as AssessmentIcon,
@@ -20,75 +21,136 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const defaultCategory = (name = '') => ({
-  name,
-  costs: Array(12).fill('')
+const defaultOPEX = () => ({
+  id: Date.now() + Math.random(),
+  sr: '',
+  serviceAnnualAgreement: '',
+  vendor: '',
+  agreementDescription: '',
+  paymentType: '',
+  typeOfCost: '',
+  annual: '',
+  quarter: ''
 });
 
 const BudgetOpex: React.FC = () => {
-  const [categories, setCategories] = useState([defaultCategory('Staff Costs')]);
+  const [opexBudgets, setOpexBudgets] = useState([defaultOPEX()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingOPEX, setEditingOPEX] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    sr: '',
+    serviceAnnualAgreement: '',
+    vendor: '',
+    agreementDescription: '',
+    paymentType: '',
+    typeOfCost: '',
+    annual: '',
+    quarter: ''
+  });
 
   const theme = useTheme();
+  const pageColor = '#e91e63';
 
   useEffect(() => {
-    fetchBudgetOpex();
+    fetchOPEXBudgets();
   }, []);
 
-  const fetchBudgetOpex = async () => {
+  const fetchOPEXBudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget-opex');
-      // Ensure response.data is always an array
+      const response = await api.get('/budget/opex');
       const data = Array.isArray(response.data) ? response.data : [];
-      setCategories(data.length > 0 ? data : [defaultCategory('Staff Costs')]);
+      if (data.length > 0) {
+        setOpexBudgets(data);
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch budget OPEX');
-      setCategories([defaultCategory('Staff Costs')]);
+      setError(err.response?.data?.message || 'Failed to fetch OPEX budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCategoryChange = (idx: number, field: 'name' | 'costs', value: any, monthIdx?: number) => {
-    const newCategories = [...categories];
-    if (field === 'costs' && monthIdx !== undefined) {
-      newCategories[idx].costs[monthIdx] = value;
-    } else {
-      // Use type assertion for dynamic property access
-      (newCategories[idx] as any)[field] = value;
-    }
-    setCategories(newCategories);
+  const handleAddOPEX = () => {
+    setEditingOPEX(null);
+    setFormData({
+      sr: '',
+      serviceAnnualAgreement: '',
+      vendor: '',
+      agreementDescription: '',
+      paymentType: '',
+      typeOfCost: '',
+      annual: '',
+      quarter: ''
+    });
+    setOpenDialog(true);
   };
 
-  const handleAddCategory = () => setCategories([...categories, defaultCategory()]);
+  const handleEditOPEX = (opex: any) => {
+    setEditingOPEX(opex);
+    setFormData({
+      sr: opex.sr,
+      serviceAnnualAgreement: opex.serviceAnnualAgreement,
+      vendor: opex.vendor,
+      agreementDescription: opex.agreementDescription,
+      paymentType: opex.paymentType,
+      typeOfCost: opex.typeOfCost,
+      annual: opex.annual,
+      quarter: opex.quarter
+    });
+    setOpenDialog(true);
+  };
 
-  const handleRemoveCategory = (idx: number) => setCategories(cats => cats.filter((_, i) => i !== idx));
-
-  const getCategoryTotal = (cat: any) => months.reduce((sum, _, i) => sum + (parseFloat(cat.costs[i]) || 0), 0);
-
-  const getMonthTotal = (monthIdx: number) => categories.reduce((sum, cat) => sum + (parseFloat(cat.costs[monthIdx]) || 0), 0);
-
-  const getGrandTotal = () => categories.reduce((sum, cat) => sum + getCategoryTotal(cat), 0);
-
-  const handleSave = async () => {
-    try {
-      await api.post('/budget-opex', { categories });
-      setSuccess('Budget OPEX saved successfully!');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save budget OPEX');
+  const handleDeleteOPEX = (id: number) => {
+    if (opexBudgets.length > 1) {
+      setOpexBudgets(opexBudgets.filter(opex => opex.id !== id));
     }
+  };
+
+  const handleSaveOPEX = () => {
+    if (editingOPEX) {
+      // Edit existing OPEX
+      setOpexBudgets(opexBudgets.map(opex => 
+        opex.id === editingOPEX.id 
+          ? { ...opex, ...formData }
+          : opex
+      ));
+    } else {
+      // Add new OPEX
+      setOpexBudgets([...opexBudgets, { ...formData, id: Date.now() + Math.random() }]);
+    }
+    setOpenDialog(false);
+    setSuccess(editingOPEX ? 'OPEX updated successfully!' : 'OPEX added successfully!');
+  };
+
+  const handleFormChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
+  const formatCurrency = (value: string) => {
+    if (!value) return '-';
+    return `${parseFloat(value).toLocaleString()} KWD`;
+  };
+
+  const getTotalAnnual = () => {
+    return opexBudgets.reduce((sum, opex) => {
+      return sum + (parseFloat(opex.annual) || 0);
+    }, 0);
+  };
+
+  const getTotalQuarter = () => {
+    return opexBudgets.reduce((sum, opex) => {
+      return sum + (parseFloat(opex.quarter) || 0);
+    }, 0);
   };
 
   return (
     <Box sx={{ 
       p: 3, 
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+      background: `linear-gradient(135deg, ${alpha(pageColor, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
       <AnimatePresence>
         {/* Header Section */}
@@ -102,7 +164,7 @@ const BudgetOpex: React.FC = () => {
             sx={{ 
               p: 3, 
               mb: 3, 
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
               color: 'white',
               borderRadius: theme.shape.borderRadius,
               position: 'relative',
@@ -113,22 +175,21 @@ const BudgetOpex: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <TrendingDownIcon sx={{ fontSize: 32 }} />
+                    <Typography sx={{ fontSize: '2rem' }}>🏢</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Operating Expenses Budget
+                      OPEX
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and forecast operating expenses by category and month
+                      Plan and forecast operating expenses and service agreements
                     </Typography>
                   </Box>
                 </Box>
                 <Button 
                   variant="contained" 
-                  color="primary" 
-                  onClick={handleSave}
-                  startIcon={<SaveIcon />}
+                  startIcon={<AddIcon />}
+                  onClick={handleAddOPEX}
                   sx={{ 
                     bgcolor: 'rgba(255,255,255,0.2)', 
                     color: 'white',
@@ -136,7 +197,7 @@ const BudgetOpex: React.FC = () => {
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Save Budget
+                  Add OPEX
                 </Button>
               </Box>
             </Box>
@@ -165,80 +226,11 @@ const BudgetOpex: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Summary Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
-            {[
-              {
-                title: 'Total OPEX',
-                value: `$${getGrandTotal().toLocaleString()}`,
-                icon: <MoneyIcon />,
-                color: theme.palette.error.main,
-                bgColor: alpha(theme.palette.error.main, 0.1)
-              },
-              {
-                title: 'Categories',
-                value: categories.length,
-                icon: <BusinessIcon />,
-                color: theme.palette.primary.main,
-                bgColor: alpha(theme.palette.primary.main, 0.1)
-              },
-              {
-                title: 'Avg Monthly OPEX',
-                value: `$${(getGrandTotal() / 12).toLocaleString()}`,
-                icon: <AssessmentIcon />,
-                color: theme.palette.warning.main,
-                bgColor: alpha(theme.palette.warning.main, 0.1)
-              }
-            ].map((card, index) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-              >
-                <Card 
-                  sx={{ 
-                    flex: '1 1 200px', 
-                    minWidth: 200,
-                    background: card.bgColor,
-                    border: `1px solid ${alpha(card.color, 0.3)}`,
-                    borderRadius: theme.shape.borderRadius,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
-                    }
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
-                        {card.icon}
-                      </Avatar>
-                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
-                        {card.title}
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
-                      {card.value}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </Box>
-        </motion.div>
-
         {/* OPEX Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
           <Paper 
             elevation={0}
@@ -246,149 +238,159 @@ const BudgetOpex: React.FC = () => {
               p: 3, 
               background: alpha(theme.palette.background.paper, 0.8),
               backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-              borderRadius: theme.shape.borderRadius,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: theme.shadows[8]
-              }
+              border: `1px solid ${alpha(pageColor, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-              <Typography variant="h6" sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
-                📊 Operating Expenses by Category
-              </Typography>
-              <Button
-                variant="contained"
-                onClick={handleAddCategory}
-                startIcon={<AddIcon />}
-                sx={{
-                  background: `linear-gradient(135deg, ${theme.palette.warning.main} 0%, ${theme.palette.warning.dark} 100%)`,
-                  boxShadow: `0 4px 14px ${alpha(theme.palette.warning.main, 0.4)}`,
-                  '&:hover': {
-                    background: `linear-gradient(135deg, ${theme.palette.warning.dark} 0%, ${theme.palette.warning.main} 100%)`,
-                    boxShadow: `0 6px 20px ${alpha(theme.palette.warning.main, 0.6)}`,
-                    transform: 'translateY(-1px)'
-                  }
-                }}
-              >
-                Add Category
-              </Button>
-            </Box>
+            <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
+              📊 OPEX Overview
+            </Typography>
 
-            {loading ? (
+            {loading && (
               <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
                 <CircularProgress />
               </Box>
-            ) : (
-              <TableContainer>
-                <Table>
+            )}
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+            )}
+
+            {!loading && (
+              <TableContainer sx={{ maxHeight: 600, overflowX: 'auto' }}>
+                <Table stickyHeader>
                   <TableHead>
-                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Category</TableCell>
-                      {months.map((month) => (
-                        <TableCell key={month} align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                          {month}
-                        </TableCell>
-                      ))}
-                      <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Total</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Actions</TableCell>
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
+                        SR.
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
+                        Service Annual Agreement
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Vendor
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
+                        Agreement Description
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
+                        Payment Type
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
+                        Type of Cost
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
+                        Annual
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
+                        Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
+                        Actions
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {categories.map((category, idx) => (
+                    {opexBudgets.map((opex, index) => (
                       <TableRow 
-                        key={idx}
-                        hover
+                        key={opex.id}
                         sx={{ 
-                          background: idx % 2 === 0 ? alpha(theme.palette.background.default, 0.5) : alpha(theme.palette.background.paper, 0.8),
-                          transition: 'all 0.2s ease',
                           '&:hover': {
-                            background: alpha(theme.palette.primary.main, 0.05),
-                            transform: 'scale(1.01)'
+                            background: alpha(pageColor, 0.02)
                           }
                         }}
                       >
-                        <TableCell>
-                          <TextField
-                            value={category.name}
-                            onChange={(e) => handleCategoryChange(idx, 'name', e.target.value)}
-                            placeholder="Category name"
-                            size="small"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&:hover fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        {months.map((month, monthIdx) => (
-                          <TableCell key={month} align="right">
-                            <TextField
-                              value={category.costs[monthIdx]}
-                              onChange={(e) => handleCategoryChange(idx, 'costs', e.target.value, monthIdx)}
-                              placeholder="0.00"
-                              type="number"
-                              size="small"
-                              sx={{
-                                width: 100,
-                                '& .MuiOutlinedInput-root': {
-                                  '&:hover fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                },
-                              }}
-                            />
-                          </TableCell>
-                        ))}
-                        <TableCell align="right">
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
-                            ${getCategoryTotal(category).toLocaleString()}
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {opex.sr || '-'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          <IconButton
-                            onClick={() => handleRemoveCategory(idx)}
-                            color="error"
-                            disabled={categories.length === 1}
-                            sx={{ 
-                              '&:hover': { 
-                                bgcolor: alpha(theme.palette.error.main, 0.1),
-                                transform: 'scale(1.1)'
-                              }
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {opex.serviceAnnualAgreement || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {opex.vendor || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {opex.agreementDescription || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {opex.paymentType || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {opex.typeOfCost || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(opex.annual)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(opex.quarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <IconButton
+                              onClick={() => handleEditOPEX(opex)}
+                              sx={{ 
+                                color: pageColor,
+                                '&:hover': { 
+                                  bgcolor: alpha(pageColor, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => handleDeleteOPEX(opex.id)}
+                              disabled={opexBudgets.length === 1}
+                              sx={{ 
+                                color: theme.palette.error.main,
+                                '&:hover': { 
+                                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
                     {/* Totals Row */}
-                    <TableRow sx={{ background: alpha(theme.palette.error.main, 0.05) }}>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.error.main }}>
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, textAlign: 'center' }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                           TOTAL
                         </Typography>
                       </TableCell>
-                      {months.map((month, monthIdx) => (
-                        <TableCell key={month} align="right" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            ${getMonthTotal(monthIdx).toLocaleString()}
-                          </Typography>
-                        </TableCell>
-                      ))}
-                      <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          ${getGrandTotal().toLocaleString()}
+                      <TableCell />
+                      <TableCell />
+                      <TableCell />
+                      <TableCell />
+                      <TableCell />
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotalAnnual().toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotalQuarter().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell />
@@ -399,29 +401,181 @@ const BudgetOpex: React.FC = () => {
             )}
           </Paper>
         </motion.div>
+
+        {/* Add/Edit OPEX Dialog */}
+        <Dialog 
+          open={openDialog} 
+          onClose={() => setOpenDialog(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
+            {editingOPEX ? 'Edit OPEX' : 'Add OPEX'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <TextField
+                label="SR."
+                value={formData.sr}
+                onChange={(e) => handleFormChange('sr', e.target.value)}
+                fullWidth
+                placeholder="Enter SR number..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Service Annual Agreement"
+                value={formData.serviceAnnualAgreement}
+                onChange={(e) => handleFormChange('serviceAnnualAgreement', e.target.value)}
+                fullWidth
+                placeholder="Enter service annual agreement..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Vendor"
+                value={formData.vendor}
+                onChange={(e) => handleFormChange('vendor', e.target.value)}
+                fullWidth
+                placeholder="Enter vendor name..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Agreement Description"
+                value={formData.agreementDescription}
+                onChange={(e) => handleFormChange('agreementDescription', e.target.value)}
+                multiline
+                rows={2}
+                fullWidth
+                placeholder="Enter agreement description..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Payment Type"
+                value={formData.paymentType}
+                onChange={(e) => handleFormChange('paymentType', e.target.value)}
+                fullWidth
+                placeholder="Enter payment type..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Type of Cost"
+                value={formData.typeOfCost}
+                onChange={(e) => handleFormChange('typeOfCost', e.target.value)}
+                fullWidth
+                placeholder="Enter type of cost..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Annual"
+                value={formData.annual}
+                onChange={(e) => handleFormChange('annual', e.target.value)}
+                fullWidth
+                placeholder="Enter annual amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Quarter"
+                value={formData.quarter}
+                onChange={(e) => handleFormChange('quarter', e.target.value)}
+                fullWidth
+                placeholder="Enter quarter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveOPEX}
+              variant="contained"
+              sx={{
+                background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${pageColor} 100%)`,
+                }
+              }}
+            >
+              {editingOPEX ? 'Update' : 'Add'} OPEX
+            </Button>
+          </DialogActions>
+        </Dialog>
       </AnimatePresence>
 
-      {/* Success/Error Snackbars */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
-          {success}
-        </Alert>
-      </Snackbar>
-      
-      <Snackbar
-        open={!!error}
-        autoHideDuration={3000}
-        onClose={() => setError('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
+      <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity="success" sx={{ width: '100%' }}>{success}</Alert>
       </Snackbar>
     </Box>
   );

@@ -26,8 +26,8 @@ import {
   Public as PublicIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useDropzone } from 'react-dropzone';
-import { saveAs } from 'file-saver';
+// import { useDropzone } from 'react-dropzone';
+// import { saveAs } from 'file-saver';
 import api from '../apiBase';
 
 // Interfaces
@@ -179,32 +179,16 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
   }, [loadDocuments]);
 
   // File upload handler
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length === 0) return;
-    
-    setUploadDialog(true);
-    setUploadForm(prev => ({
-      ...prev,
-      title: acceptedFiles[0].name.split('.')[0] // Default title from filename
-    }));
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif'],
-      'text/plain': ['.txt'],
-      'application/zip': ['.zip'],
-      'application/x-rar-compressed': ['.rar']
-    },
-    multiple: true,
-    maxSize: 50 * 1024 * 1024 // 50MB
-  });
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      setUploadDialog(true);
+      setUploadForm(prev => ({
+        ...prev,
+        title: files[0].name.split('.')[0] // Default title from filename
+      }));
+    }
+  };
 
   // Upload documents
   const handleUpload = async () => {
@@ -262,14 +246,20 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
   };
 
   // Download document
-  const handleDownload = async (document: Document) => {
+  const handleDownload = async (doc: Document) => {
     try {
-      const response = await api.get(`/documents/${document._id}/download`, {
+      const response = await api.get(`/documents/${doc._id}/download`, {
         responseType: 'blob'
       });
       
-      const blob = new Blob([response.data as BlobPart]);
-      saveAs(blob, document.originalName);
+      const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', doc.originalName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
       
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -454,12 +444,12 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredDocuments.map((document) => (
+                  {filteredDocuments.map((doc) => (
                     <motion.tr
-                      key={document._id}
+                      key={doc._id}
                       variants={itemVariants}
                       style={{
-                        background: selectedDocuments.includes(document._id) 
+                        background: selectedDocuments.includes(doc._id) 
                           ? alpha(theme.palette.primary.main, 0.05) 
                           : 'transparent'
                       }}
@@ -467,12 +457,12 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                       <TableCell padding="checkbox">
                         <input
                           type="checkbox"
-                          checked={selectedDocuments.includes(document._id)}
+                          checked={selectedDocuments.includes(doc._id)}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedDocuments(prev => [...prev, document._id]);
+                              setSelectedDocuments(prev => [...prev, doc._id]);
                             } else {
-                              setSelectedDocuments(prev => prev.filter(id => id !== document._id));
+                              setSelectedDocuments(prev => prev.filter(id => id !== doc._id));
                             }
                           }}
                         />
@@ -480,18 +470,18 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={2}>
                           <Typography variant="h6" sx={{ fontSize: '1.5rem' }}>
-                            {getFileIcon(document.mimeType)}
+                            {getFileIcon(doc.mimeType)}
                           </Typography>
                           <Box>
                             <Typography variant="body2" fontWeight={600}>
-                              {document.title}
+                              {doc.title}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                              {document.originalName}
+                              {doc.originalName}
                             </Typography>
-                            {document.tags.length > 0 && (
+                            {doc.tags.length > 0 && (
                               <Box sx={{ mt: 0.5 }}>
-                                {document.tags.slice(0, 2).map((tag, index) => (
+                                {doc.tags.slice(0, 2).map((tag, index) => (
                                   <Chip
                                     key={index}
                                     label={tag}
@@ -500,9 +490,9 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                                     sx={{ mr: 0.5, fontSize: '0.7rem', height: 20 }}
                                   />
                                 ))}
-                                {document.tags.length > 2 && (
+                                {doc.tags.length > 2 && (
                                   <Chip
-                                    label={`+${document.tags.length - 2}`}
+                                    label={`+${doc.tags.length - 2}`}
                                     size="small"
                                     variant="outlined"
                                     sx={{ fontSize: '0.7rem', height: 20 }}
@@ -515,7 +505,7 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={document.category}
+                          label={doc.category}
                           size="small"
                           variant="outlined"
                           color="primary"
@@ -523,18 +513,18 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {document.fileSizeFormatted}
+                          {doc.fileSizeFormatted}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
                           <Typography variant="body2">
-                            v{document.currentVersion}
+                            v{doc.currentVersion}
                           </Typography>
-                          {document.totalVersions > 1 && (
-                            <Tooltip title={`${document.totalVersions} total versions`}>
+                          {doc.totalVersions > 1 && (
+                            <Tooltip title={`${doc.totalVersions} total versions`}>
                               <Badge
-                                badgeContent={document.totalVersions}
+                                badgeContent={doc.totalVersions}
                                 color="secondary"
                                 sx={{ '& .MuiBadge-badge': { fontSize: '0.7rem' } }}
                               >
@@ -546,18 +536,18 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {new Date(document.uploadedAt).toLocaleDateString()}
+                          {new Date(doc.uploadedAt).toLocaleDateString()}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          by {document.uploadedBy}
+                          by {doc.uploadedBy}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
                           <Typography variant="body2">
-                            {document.accessCount}
+                            {doc.accessCount}
                           </Typography>
-                          {document.permissions.isPublic ? (
+                          {doc.permissions.isPublic ? (
                             <Tooltip title="Public Document">
                               <PublicIcon sx={{ fontSize: 16, color: theme.palette.success.main }} />
                             </Tooltip>
@@ -573,7 +563,7 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                           <Tooltip title="Download">
                             <IconButton
                               size="small"
-                              onClick={() => handleDownload(document)}
+                              onClick={() => handleDownload(doc)}
                             >
                               <DownloadIcon />
                             </IconButton>
@@ -582,7 +572,7 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                             <IconButton
                               size="small"
                               onClick={() => {
-                                setSelectedDocument(document);
+                                setSelectedDocument(doc);
                                 setAuditDialog(true);
                               }}
                             >
@@ -610,15 +600,13 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
         <DialogTitle>Upload Documents</DialogTitle>
         <DialogContent>
           <Box sx={{ mt: 2 }}>
-            {/* Dropzone */}
+            {/* File Upload */}
             <Box
-              {...getRootProps()}
               sx={{
-                border: `2px dashed ${isDragActive ? theme.palette.primary.main : theme.palette.grey[300]}`,
+                border: `2px dashed ${theme.palette.grey[300]}`,
                 borderRadius: 2,
                 p: 4,
                 textAlign: 'center',
-                cursor: 'pointer',
                 transition: 'all 0.3s ease',
                 '&:hover': {
                   borderColor: theme.palette.primary.main,
@@ -626,17 +614,28 @@ const DocumentManager: React.FC<DocumentManagerProps> = ({
                 }
               }}
             >
-              <input {...getInputProps()} />
-              <UploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
-                {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                or click to browse files
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                Supported formats: PDF, DOC, DOCX, XLS, XLSX, Images, TXT, ZIP, RAR (Max 50MB)
-              </Typography>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpeg,.jpg,.png,.gif,.txt,.zip,.rar"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+                id="file-upload"
+              />
+              <label htmlFor="file-upload">
+                <Box sx={{ cursor: 'pointer' }}>
+                  <UploadIcon sx={{ fontSize: 48, color: theme.palette.primary.main, mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    Click to browse files
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    or drag and drop files here
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    Supported formats: PDF, DOC, DOCX, XLS, XLSX, Images, TXT, ZIP, RAR (Max 50MB)
+                  </Typography>
+                </Box>
+              </label>
             </Box>
 
             {/* Upload Form */}

@@ -11,168 +11,137 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  TableContainer,
   TextField,
-  Snackbar,
-  Alert,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Avatar,
   IconButton,
   Tooltip,
-  Chip,
-  Divider,
-  CircularProgress,
   useTheme,
-  alpha
+  alpha,
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
-  Assessment as AssessmentIcon,
+  Add as AddIcon,
   Save as SaveIcon,
-  Refresh as RefreshIcon,
-  FilterList as FilterIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
-  MonetizationOn as MoneyIcon,
-  Business as BusinessIcon,
-  People as PeopleIcon,
-  Build as BuildIcon
+  Delete as DeleteIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { getVariance, saveVarianceBulk } from '../services/budgetApi';
 
-const months = [
-  'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'
-];
-
-const modules = [
-  { value: 'revenue', label: 'Revenue', icon: <MoneyIcon />, color: '#1976d2' },
-  { value: 'opex', label: 'OPEX', icon: <BusinessIcon />, color: '#d32f2f' },
-  { value: 'staffing', label: 'Staffing', icon: <PeopleIcon />, color: '#388e3c' },
-  { value: 'capex', label: 'CAPEX', icon: <BuildIcon />, color: '#f57c00' },
-];
-
-const defaultData: { [key: string]: any[] } = {
-  revenue: [
-    { name: 'Equipment Rental', budget: Array(12).fill(10000), actual: Array(12).fill('') },
-    { name: 'Water Sales', budget: Array(12).fill(8000), actual: Array(12).fill('') },
-  ],
-  opex: [
-    { name: 'Logistics', budget: Array(12).fill(2000), actual: Array(12).fill('') },
-    { name: 'G&A', budget: Array(12).fill(1500), actual: Array(12).fill('') },
-  ],
-  staffing: [
-    { name: 'Operations', budget: Array(12).fill(3000), actual: Array(12).fill('') },
-    { name: 'Finance', budget: Array(12).fill(1200), actual: Array(12).fill('') },
-  ],
-  capex: [
-    { name: 'Equipment', budget: Array(12).fill(5000), actual: Array(12).fill('') },
-    { name: 'Vehicles', budget: Array(12).fill(4000), actual: Array(12).fill('') },
-  ],
-};
+const defaultVariance = () => ({
+  id: Date.now() + Math.random(),
+  description: '',
+  yearEnded: '',
+  actual9MonthsAmount: '',
+  actual9MonthsPercentage: '',
+  forecastedYearEnded: '',
+  forecastedChangePercentage: '',
+  budgetYearEnded: '',
+  budgetChange: '',
+  budgetChangePercentage: ''
+});
 
 const BudgetVariance: React.FC = () => {
   const theme = useTheme();
-  const [selectedModule, setSelectedModule] = useState<string>('revenue');
-  const [data, setData] = useState<any>(defaultData);
-  const [success, setSuccess] = useState('');
+  const [variances, setVariances] = useState([defaultVariance()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    setLoading(true);
-    setError('');
-    getVariance(2024, selectedModule)
-      .then((res: any) => {
-        if (Array.isArray(res.data)) {
-          setData((prev: any) => ({ ...prev, [selectedModule]: res.data.length > 0 ? res.data : defaultData[selectedModule] }));
-        } else {
-          setData((prev: any) => ({ ...prev, [selectedModule]: defaultData[selectedModule] }));
-        }
-        setLoading(false);
-      })
-      .catch((err: any) => {
-        setError(err.response?.data?.message || 'Failed to load variance data');
-        setData((prev: any) => ({ ...prev, [selectedModule]: defaultData[selectedModule] }));
-        setLoading(false);
-      });
-  }, [selectedModule]);
-
-  const handleActualChange = (rowIdx: number, mIdx: number, value: any) => {
-    setData((prev: any) => {
-      const updated = { ...prev };
-      updated[selectedModule] = updated[selectedModule].map((row: any, i: number) => {
-        if (i !== rowIdx) return row;
-        const actual = [...row.actual];
-        actual[mIdx] = value;
-        return { ...row, actual };
-      });
-      return updated;
-    });
-  };
-
-  // Calculate variance and variance %
-  const getRowVariance = (row: any, mIdx: number) => {
-    const budget = parseFloat(row.budget[mIdx]) || 0;
-    const actual = parseFloat(row.actual[mIdx]) || 0;
-    return actual - budget;
-  };
-  const getVariancePct = (row: any, mIdx: number) => {
-    const budget = parseFloat(row.budget[mIdx]) || 0;
-    if (!budget) return '';
-    return (((parseFloat(row.actual[mIdx]) || 0) - budget) / budget * 100).toFixed(1);
-  };
-
-  // Chart data: total variance per month
-  const chartData = months.map((m, mIdx) => {
-    const totalBudget = data[selectedModule].reduce((sum: number, row: any) => sum + (parseFloat(row.budget[mIdx]) || 0), 0);
-    const totalActual = data[selectedModule].reduce((sum: number, row: any) => sum + (parseFloat(row.actual[mIdx]) || 0), 0);
-    return {
-      month: m,
-      budget: totalBudget,
-      actual: totalActual,
-      variance: totalActual - totalBudget,
-    };
+  const [success, setSuccess] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingVariance, setEditingVariance] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    description: '',
+    yearEnded: '',
+    actual9MonthsAmount: '',
+    actual9MonthsPercentage: '',
+    forecastedYearEnded: '',
+    forecastedChangePercentage: '',
+    budgetYearEnded: '',
+    budgetChange: '',
+    budgetChangePercentage: ''
   });
+  
+  const pageColor = '#f57c00';
 
-  const handleSave = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      await saveVarianceBulk(2024, selectedModule, data[selectedModule]);
-      setSuccess('Variance data saved successfully!');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save variance data');
-    } finally {
-      setLoading(false);
+  const handleAddVariance = () => {
+    setEditingVariance(null);
+    setFormData({
+      description: '',
+      yearEnded: '',
+      actual9MonthsAmount: '',
+      actual9MonthsPercentage: '',
+      forecastedYearEnded: '',
+      forecastedChangePercentage: '',
+      budgetYearEnded: '',
+      budgetChange: '',
+      budgetChangePercentage: ''
+    });
+    setOpenDialog(true);
+  };
+
+  const handleEditVariance = (variance: any) => {
+    setEditingVariance(variance);
+    setFormData({
+      description: variance.description,
+      yearEnded: variance.yearEnded,
+      actual9MonthsAmount: variance.actual9MonthsAmount,
+      actual9MonthsPercentage: variance.actual9MonthsPercentage,
+      forecastedYearEnded: variance.forecastedYearEnded,
+      forecastedChangePercentage: variance.forecastedChangePercentage,
+      budgetYearEnded: variance.budgetYearEnded,
+      budgetChange: variance.budgetChange,
+      budgetChangePercentage: variance.budgetChangePercentage
+    });
+    setOpenDialog(true);
+  };
+
+  const handleDeleteVariance = (id: number) => {
+    if (variances.length > 1) {
+      setVariances(variances.filter(variance => variance.id !== id));
     }
   };
 
-  const getVarianceColor = (variance: number) => {
-    if (variance > 0) return theme.palette.success.main;
-    if (variance < 0) return theme.palette.error.main;
-    return theme.palette.text.secondary;
+  const handleSaveVariance = () => {
+    if (editingVariance) {
+      // Edit existing variance
+      setVariances(variances.map(variance => 
+        variance.id === editingVariance.id 
+          ? { ...variance, ...formData }
+          : variance
+      ));
+    } else {
+      // Add new variance
+      setVariances([...variances, { ...formData, id: Date.now() + Math.random() }]);
+    }
+    setOpenDialog(false);
+    setSuccess(editingVariance ? 'Variance updated successfully!' : 'Variance added successfully!');
   };
 
-  const getVarianceIcon = (variance: number) => {
-    if (variance > 0) return <TrendingUpIcon />;
-    if (variance < 0) return <TrendingDownIcon />;
-    return <InfoIcon />;
+  const handleFormChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
   };
 
-  const selectedModuleData = modules.find(m => m.value === selectedModule);
+  const formatCurrency = (value: string) => {
+    if (!value) return '-';
+    return `${parseFloat(value).toLocaleString()} KWD`;
+  };
+
+  const formatPercentage = (value: string) => {
+    if (!value) return '-';
+    return `${value}%`;
+  };
 
   return (
     <Box sx={{ 
       p: 3, 
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+      background: `linear-gradient(135deg, ${alpha(pageColor, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
       <AnimatePresence>
         {/* Header Section */}
@@ -186,7 +155,7 @@ const BudgetVariance: React.FC = () => {
             sx={{ 
               p: 3, 
               mb: 3, 
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
               color: 'white',
               borderRadius: theme.shape.borderRadius,
               position: 'relative',
@@ -197,31 +166,29 @@ const BudgetVariance: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <AssessmentIcon sx={{ fontSize: 32 }} />
+                    <Typography sx={{ fontSize: '2rem' }}>📊</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Budget Variance Analysis
+                      Budget Variance
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Track actual vs budget performance across all modules
+                      Track and analyze budget variances across different periods
                     </Typography>
                   </Box>
                 </Box>
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  onClick={handleSave}
-                  startIcon={<SaveIcon />}
-                  disabled={loading}
-                  sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddVariance}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Save Variance
+                  Add Variance
                 </Button>
               </Box>
             </Box>
@@ -250,7 +217,7 @@ const BudgetVariance: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Module Selection */}
+        {/* Variance Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -260,234 +227,350 @@ const BudgetVariance: React.FC = () => {
             elevation={0}
             sx={{ 
               p: 3, 
-              mb: 3, 
               background: alpha(theme.palette.background.paper, 0.8),
               backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              border: `1px solid ${alpha(pageColor, 0.2)}`,
               borderRadius: theme.shape.borderRadius
             }}
           >
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
-              📊 Select Module for Variance Analysis
+            <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
+              📊 Budget Variance Analysis
             </Typography>
-            
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              {modules.map((module) => (
-                <motion.div
-                  key={module.value}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 0.4 + modules.indexOf(module) * 0.1 }}
-                >
-                  <Card 
-                    onClick={() => setSelectedModule(module.value)}
-                    sx={{ 
-                      minWidth: 200,
-                      cursor: 'pointer',
-                      background: selectedModule === module.value 
-                        ? alpha(module.color, 0.1) 
-                        : alpha(theme.palette.background.paper, 0.8),
-                      border: `2px solid ${selectedModule === module.value ? module.color : alpha(theme.palette.divider, 0.3)}`,
-                      borderRadius: theme.shape.borderRadius,
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: `0 8px 25px ${alpha(module.color, 0.3)}`,
-                        borderColor: module.color
-                      }
-                    }}
-                  >
-                    <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                      <Avatar sx={{ bgcolor: module.color, width: 48, height: 48, mx: 'auto', mb: 2 }}>
-                        {module.icon}
-                      </Avatar>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: module.color }}>
-                        {module.label}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </Box>
-          </Paper>
-        </motion.div>
 
-        {/* Variance Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
-        >
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              mb: 3, 
-              background: alpha(theme.palette.background.paper, 0.8),
-              backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-              borderRadius: theme.shape.borderRadius
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
-              📈 Monthly Variance Trend - {selectedModuleData?.label}
-            </Typography>
-            
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={alpha(theme.palette.divider, 0.3)} />
-                <XAxis dataKey="month" stroke={theme.palette.text.secondary} />
-                <YAxis stroke={theme.palette.text.secondary} />
-                <RechartsTooltip 
-                  contentStyle={{ 
-                    background: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 8
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="budget" fill={theme.palette.primary.main} name="Budget" />
-                <Bar dataKey="actual" fill={theme.palette.success.main} name="Actual" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Paper>
-        </motion.div>
-
-        {/* Variance Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-        >
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              background: alpha(theme.palette.background.paper, 0.8),
-              backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-              borderRadius: theme.shape.borderRadius,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: theme.shadows[8]
-              }
-            }}
-          >
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
-              📋 Detailed Variance Analysis - {selectedModuleData?.label}
-            </Typography>
-            
-            {loading ? (
+            {loading && (
               <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
                 <CircularProgress />
               </Box>
-            ) : (
-              <Box sx={{ overflowX: 'auto' }}>
-                <Table>
+            )}
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+            )}
+
+            {!loading && (
+              <TableContainer sx={{ maxHeight: 600, overflowX: 'auto' }}>
+                <Table stickyHeader>
                   <TableHead>
-                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Category</TableCell>
-                      {months.map((month) => (
-                        <TableCell key={month} align="center" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                          {month}
-                        </TableCell>
-                      ))}
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
+                        Description
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
+                        Year Ended
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Actual 9 Months Amount
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        % of Change
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Forecasted Year Ended
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Change % of Change
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget Year Ended
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
+                        Change
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        % of Change
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
+                        Actions
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {data[selectedModule].map((row: any, rowIdx: number) => (
+                    {variances.map((variance, index) => (
                       <TableRow 
-                        key={rowIdx}
-                        hover
+                        key={variance.id}
                         sx={{ 
-                          background: rowIdx % 2 === 0 ? alpha(theme.palette.background.default, 0.5) : alpha(theme.palette.background.paper, 0.8),
-                          transition: 'all 0.2s ease',
                           '&:hover': {
-                            background: alpha(theme.palette.primary.main, 0.05),
-                            transform: 'scale(1.01)'
+                            background: alpha(pageColor, 0.02)
                           }
                         }}
                       >
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
-                            {row.name}
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {variance.description || '-'}
                           </Typography>
                         </TableCell>
-                        {months.map((month, mIdx) => {
-                          const variance = getRowVariance(row, mIdx);
-                          const variancePct = getVariancePct(row, mIdx);
-                          return (
-                            <TableCell key={month} align="center">
-                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                <TextField
-                                  value={row.actual[mIdx]}
-                                  onChange={(e) => handleActualChange(rowIdx, mIdx, e.target.value)}
-                                  placeholder="0"
-                                  type="number"
-                                  size="small"
-                                  sx={{
-                                    width: 80,
-                                    '& .MuiOutlinedInput-root': {
-                                      '&:hover fieldset': {
-                                        borderColor: theme.palette.primary.main,
-                                      },
-                                      '&.Mui-focused fieldset': {
-                                        borderColor: theme.palette.primary.main,
-                                      },
-                                    },
-                                  }}
-                                />
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-                                  {getVarianceIcon(variance)}
-                                  <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                      color: getVarianceColor(variance),
-                                      fontWeight: 600
-                                    }}
-                                  >
-                                    {variancePct}%
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            </TableCell>
-                          );
-                        })}
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {variance.yearEnded || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(variance.actual9MonthsAmount)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatPercentage(variance.actual9MonthsPercentage)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(variance.forecastedYearEnded)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatPercentage(variance.forecastedChangePercentage)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(variance.budgetYearEnded)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(variance.budgetChange)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatPercentage(variance.budgetChangePercentage)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <IconButton
+                              onClick={() => handleEditVariance(variance)}
+                              sx={{ 
+                                color: pageColor,
+                                '&:hover': { 
+                                  bgcolor: alpha(pageColor, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => handleDeleteVariance(variance.id)}
+                              disabled={variances.length === 1}
+                              sx={{ 
+                                color: theme.palette.error.main,
+                                '&:hover': { 
+                                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </Box>
+              </TableContainer>
             )}
           </Paper>
         </motion.div>
+
+        {/* Add/Edit Variance Dialog */}
+        <Dialog 
+          open={openDialog} 
+          onClose={() => setOpenDialog(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
+            {editingVariance ? 'Edit Variance' : 'Add Variance'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <TextField
+                label="Description"
+                value={formData.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                multiline
+                rows={2}
+                fullWidth
+                placeholder="Enter description..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Year Ended"
+                value={formData.yearEnded}
+                onChange={(e) => handleFormChange('yearEnded', e.target.value)}
+                fullWidth
+                placeholder="Enter year..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Actual 9 Months Amount"
+                value={formData.actual9MonthsAmount}
+                onChange={(e) => handleFormChange('actual9MonthsAmount', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Percentage of Change"
+                value={formData.actual9MonthsPercentage}
+                onChange={(e) => handleFormChange('actual9MonthsPercentage', e.target.value)}
+                fullWidth
+                placeholder="Enter percentage..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Forecasted Year Ended"
+                value={formData.forecastedYearEnded}
+                onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Change Percentage of Change"
+                value={formData.forecastedChangePercentage}
+                onChange={(e) => handleFormChange('forecastedChangePercentage', e.target.value)}
+                fullWidth
+                placeholder="Enter percentage..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget Year Ended"
+                value={formData.budgetYearEnded}
+                onChange={(e) => handleFormChange('budgetYearEnded', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Change"
+                value={formData.budgetChange}
+                onChange={(e) => handleFormChange('budgetChange', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Percentage of Change"
+                value={formData.budgetChangePercentage}
+                onChange={(e) => handleFormChange('budgetChangePercentage', e.target.value)}
+                fullWidth
+                placeholder="Enter percentage..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveVariance}
+              variant="contained"
+              sx={{
+                background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${pageColor} 100%)`,
+                }
+              }}
+            >
+              {editingVariance ? 'Update' : 'Add'} Variance
+            </Button>
+          </DialogActions>
+        </Dialog>
       </AnimatePresence>
 
-      {/* Success/Error Snackbars */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
-          {success}
-        </Alert>
-      </Snackbar>
-      
-      <Snackbar
-        open={!!error}
-        autoHideDuration={3000}
-        onClose={() => setError('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
+      <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity="success" sx={{ width: '100%' }}>{success}</Alert>
       </Snackbar>
     </Box>
   );
 };
 
-export default BudgetVariance; 
+export default BudgetVariance;

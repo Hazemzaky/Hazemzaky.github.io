@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Typography, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Select, FormControl, InputLabel, Alert, CircularProgress, SelectChangeEvent, Tabs, Tab, useTheme, alpha, Avatar, Badge, Divider, LinearProgress, Card, CardContent, Paper
+  Box, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Typography, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Select, FormControl, InputLabel, Alert, CircularProgress, SelectChangeEvent, Tabs, Tab, useTheme, alpha, Avatar, Badge, Divider, LinearProgress, Card, CardContent, Paper, Chip
 } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -9,6 +10,9 @@ import BusinessIcon from '@mui/icons-material/Business';
 import PeopleIcon from '@mui/icons-material/People';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import DescriptionIcon from '@mui/icons-material/Description';
+import WarningIcon from '@mui/icons-material/Warning';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
@@ -48,6 +52,15 @@ interface Client {
   updatedAt: string;
 }
 
+interface ExpiringContract {
+  _id: string;
+  name: string;
+  endDate: string;
+  status: string;
+  daysUntilExpiry: number;
+  isPastDue?: boolean;
+}
+
 interface QuotationForm {
   clientName: string;
   rfqDate: string;
@@ -75,9 +88,11 @@ const quotationCaseOptions = [
 ];
 
 const ClientsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const muiTheme = useTheme();
   const [openQuotationModal, setOpenQuotationModal] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
+  const [expiringContracts, setExpiringContracts] = useState<ExpiringContract[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -121,12 +136,23 @@ const ClientsPage: React.FC = () => {
   // Add state for tab
   const [tab, setTab] = useState<'quotation' | 'contract'>('quotation');
 
+  // Handle URL parameter for tab navigation
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'contract') {
+      setTab('contract');
+    } else if (tabParam === 'quotation') {
+      setTab('quotation');
+    }
+  }, [searchParams]);
+
   // Filtered client lists
   const quotationClients = clients.filter(c => c.type === 'quotation');
   const contractClients = clients.filter(c => c.type === 'contract');
 
   useEffect(() => {
     fetchClients();
+    fetchExpiringContracts();
   }, []);
 
   const fetchClients = async () => {
@@ -139,6 +165,117 @@ const ClientsPage: React.FC = () => {
       setError(err.response?.data?.message || 'Failed to fetch clients');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchExpiringContracts = async () => {
+    try {
+      const response = await api.get('/dashboard/debug-expiring-contracts');
+      const data = response.data as any;
+      
+      console.log('Debug - Full API response:', data);
+      console.log('Debug - Expiring contracts:', data.debug?.expiringContracts);
+      console.log('Debug - All contract clients:', data.debug?.allContractClients);
+      
+      if (data.debug?.expiringContracts) {
+        const contracts = data.debug.expiringContracts.map((contract: any) => {
+          const daysUntilExpiry = Math.ceil((new Date(contract.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+          return {
+            _id: contract._id,
+            name: contract.name,
+            endDate: contract.endDate,
+            status: contract.status,
+            daysUntilExpiry: daysUntilExpiry,
+            isPastDue: daysUntilExpiry < 0
+          };
+        });
+        console.log('Debug - Processed contracts:', contracts);
+        setExpiringContracts(contracts);
+      } else {
+        console.log('Debug - No expiring contracts found');
+        setExpiringContracts([]);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch expiring contracts:', err);
+      setExpiringContracts([]);
+    }
+  };
+
+  const createTestContract = async () => {
+    try {
+      const testEndDate = new Date();
+      testEndDate.setDate(testEndDate.getDate() + 15); // 15 days from now
+      
+      const testContractData = {
+        name: `Test Contract ${Date.now()}`,
+        type: 'contract',
+        contractData: {
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: testEndDate.toISOString().split('T')[0],
+          paymentTerms: '30',
+          status: 'active',
+          priceList: [{
+            description: 'Test Service',
+            rentType: 'monthly',
+            workHours: '8Hrs',
+            driversOperators: 1,
+            unitPrice: 1000,
+            overtime: 50
+          }]
+        }
+      };
+
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(testContractData));
+
+      await api.post('/clients/contract', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      
+      setSuccess('Test contract created successfully!');
+      fetchClients();
+      fetchExpiringContracts();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create test contract');
+    }
+  };
+
+  const createPastDueTestContract = async () => {
+    try {
+      const testEndDate = new Date();
+      testEndDate.setDate(testEndDate.getDate() - 5); // 5 days ago (past due)
+      
+      const testContractData = {
+        name: `Past Due Test Contract ${Date.now()}`,
+        type: 'contract',
+        contractData: {
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago
+          endDate: testEndDate.toISOString().split('T')[0],
+          paymentTerms: '30',
+          status: 'active',
+          priceList: [{
+            description: 'Past Due Test Service',
+            rentType: 'monthly',
+            workHours: '8Hrs',
+            driversOperators: 1,
+            unitPrice: 1000,
+            overtime: 50
+          }]
+        }
+      };
+
+      const formData = new FormData();
+      formData.append('data', JSON.stringify(testContractData));
+
+      await api.post('/clients/contract', formData, { 
+        headers: { 'Content-Type': 'multipart/form-data' } 
+      });
+      
+      setSuccess('Past due test contract created successfully!');
+      fetchClients();
+      fetchExpiringContracts();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to create past due test contract');
     }
   };
 
@@ -265,6 +402,7 @@ const ClientsPage: React.FC = () => {
       setSuccess('Client created successfully!');
       setOpenQuotationModal(false);
       fetchClients();
+      fetchExpiringContracts();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create client');
     } finally {
@@ -281,6 +419,7 @@ const ClientsPage: React.FC = () => {
       await api.delete(`/clients/${clientId}`);
       setSuccess('Client deleted successfully!');
       fetchClients();
+      fetchExpiringContracts();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to delete client');
     } finally {
@@ -386,6 +525,7 @@ const ClientsPage: React.FC = () => {
       setSuccess('Contract client created!');
       setOpenContractModal(false);
       fetchClients();
+      fetchExpiringContracts();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to create contract client');
     } finally {
@@ -543,6 +683,159 @@ const ClientsPage: React.FC = () => {
             ))}
           </Box>
         </motion.div>
+
+        {/* Debug Box - Always show for testing */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          <Paper 
+            sx={{ 
+              mb: 3,
+              background: `linear-gradient(135deg, ${alpha(muiTheme.palette.info.main, 0.1)} 0%, ${alpha(muiTheme.palette.primary.main, 0.05)} 100%)`,
+              border: `1px solid ${alpha(muiTheme.palette.info.main, 0.3)}`,
+              borderRadius: muiTheme.shape.borderRadius
+            }}
+          >
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ color: muiTheme.palette.info.main, fontWeight: 600, mb: 2 }}>
+                🔍 Debug Info - Expiring Contracts
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Total expiring contracts found:</strong> {expiringContracts.length}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Contract clients in database:</strong> {contractClients.length}
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 2 }}>
+                <strong>All clients:</strong> {clients.length}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  onClick={createTestContract}
+                >
+                  Create Test Contract (expires in 15 days)
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  onClick={createPastDueTestContract}
+                  color="warning"
+                >
+                  Create Past Due Test Contract (expired 5 days ago)
+                </Button>
+              </Box>
+              {expiringContracts.length > 0 && (
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Expiring contracts:</Typography>
+                  {expiringContracts.map((contract, index) => (
+                    <Typography key={index} variant="body2" sx={{ ml: 2, mb: 0.5 }}>
+                      • {contract.name} - {contract.isPastDue ? `${Math.abs(contract.daysUntilExpiry)} days overdue` : `${contract.daysUntilExpiry} days`} - {contract.status}
+                    </Typography>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        </motion.div>
+
+        {/* Expiring Contracts Alert Box */}
+        {expiringContracts.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Paper 
+              sx={{ 
+                mb: 3,
+                background: `linear-gradient(135deg, ${alpha(muiTheme.palette.warning.main, 0.1)} 0%, ${alpha(muiTheme.palette.error.main, 0.05)} 100%)`,
+                border: `1px solid ${alpha(muiTheme.palette.warning.main, 0.3)}`,
+                borderRadius: muiTheme.shape.borderRadius
+              }}
+            >
+              <Box sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                  <Avatar sx={{ bgcolor: muiTheme.palette.warning.main, width: 40, height: 40 }}>
+                    <WarningIcon />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" sx={{ color: muiTheme.palette.warning.dark, fontWeight: 600 }}>
+                      ⚠️ Contracts Expiring Soon
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: muiTheme.palette.text.secondary }}>
+                      {expiringContracts.length} contract{expiringContracts.length !== 1 ? 's' : ''} expiring in the next 30 days
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 2 }}>
+                  {expiringContracts.map((contract, index) => (
+                    <motion.div
+                      key={contract._id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
+                    >
+                      <Card 
+                        sx={{ 
+                          background: alpha(muiTheme.palette.background.paper, 0.8),
+                          backdropFilter: 'blur(10px)',
+                          border: `1px solid ${alpha(muiTheme.palette.warning.main, 0.2)}`,
+                          borderRadius: muiTheme.shape.borderRadius,
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: muiTheme.shadows[8],
+                            borderColor: muiTheme.palette.warning.main
+                          }
+                        }}
+                      >
+                        <CardContent sx={{ p: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: muiTheme.palette.text.primary }}>
+                              {contract.name}
+                            </Typography>
+                            <Chip 
+                              label={contract.isPastDue ? `${Math.abs(contract.daysUntilExpiry)} days overdue` : `${contract.daysUntilExpiry} days`}
+                              color={contract.isPastDue ? 'error' : contract.daysUntilExpiry <= 7 ? 'error' : contract.daysUntilExpiry <= 14 ? 'warning' : 'info'}
+                              size="small"
+                              icon={<ScheduleIcon />}
+                            />
+                          </Box>
+                          
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {contract.isPastDue ? 'Expired:' : 'Expires:'}
+                            </Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {new Date(contract.endDate).toLocaleDateString()}
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Status:
+                            </Typography>
+                            <Chip 
+                              label={contract.status}
+                              size="small"
+                              color={contract.status === 'active' ? 'success' : 'default'}
+                              variant="outlined"
+                            />
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </Box>
+              </Box>
+            </Paper>
+          </motion.div>
+        )}
 
         {/* Alerts Section */}
         <motion.div

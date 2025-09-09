@@ -258,6 +258,120 @@ const AssetsPage: React.FC = () => {
     }, 0);
   }, [assets]);
 
+  // Helpers for period-based depreciation calculations
+  const addMonths = (date: Date, months: number) => {
+    const d = new Date(date);
+    const targetMonth = d.getMonth() + months;
+    d.setMonth(targetMonth);
+    return d;
+  };
+
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const endExclusiveOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
+  const getWeekStart = (date: Date) => {
+    const d = new Date(startOfDay(date));
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
+    return new Date(d.setDate(diff));
+  };
+
+  const getMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+  const getNextMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+  const getQuarterStart = (date: Date) => {
+    const quarter = Math.floor(date.getMonth() / 3) * 3;
+    return new Date(date.getFullYear(), quarter, 1);
+  };
+  const getNextQuarterStart = (date: Date) => {
+    const start = getQuarterStart(date);
+    return new Date(start.getFullYear(), start.getMonth() + 3, 1);
+    };
+
+  const getHalfYearStart = (date: Date) => {
+    const half = Math.floor(date.getMonth() / 6) * 6;
+    return new Date(date.getFullYear(), half, 1);
+  };
+  const getNextHalfYearStart = (date: Date) => {
+    const start = getHalfYearStart(date);
+    return new Date(start.getFullYear(), start.getMonth() + 6, 1);
+  };
+
+  // Financial year Apr 1 - Mar 31
+  const getFinancialYear = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    return month >= 4 ? year : year - 1;
+  };
+  const getFinancialYearStart = (fy: number) => new Date(fy, 3, 1); // Apr 1
+  const getNextFinancialYearStart = (fy: number) => new Date(fy + 1, 3, 1); // Next Apr 1
+
+  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+  // Calculate depreciation expense for an asset within [periodStart, periodEndExclusive)
+  const calculateDepreciationForPeriod = (asset: any, periodStart: Date, periodEndExclusive: Date): number => {
+    if (!asset.purchaseValue || !asset.usefulLifeMonths || asset.purchaseValue <= 0) return 0;
+    const salvage = Number(asset.salvageValue) || 0;
+    const purchaseValue = Number(asset.purchaseValue) || 0;
+    const depreciable = Math.max(0, purchaseValue - salvage);
+    if (depreciable === 0) return 0;
+
+    const purchaseDate = new Date(asset.purchaseDate);
+    const endOfLife = addMonths(purchaseDate, Number(asset.usefulLifeMonths));
+
+    // Determine overlap window where asset is active and depreciating
+    const activeStart = purchaseDate > periodStart ? purchaseDate : periodStart;
+    const activeEndExclusive = endOfLife < periodEndExclusive ? endOfLife : periodEndExclusive;
+
+    if (activeEndExclusive <= activeStart) return 0;
+
+    // Daily straight-line depreciation using average month length
+    const totalLifeDays = Number(asset.usefulLifeMonths) * 30.44;
+    if (totalLifeDays <= 0) return 0;
+    const dailyDep = depreciable / totalLifeDays;
+
+    const days = Math.floor((activeEndExclusive.getTime() - activeStart.getTime()) / (1000 * 60 * 60 * 24));
+    const expense = dailyDep * days;
+    return clamp(expense, 0, depreciable);
+  };
+
+  // Precompute period boundaries and totals
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const tomorrowStart = endExclusiveOfDay(now);
+
+  const weekStart = getWeekStart(now);
+  const nextWeekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
+
+  const monthStart = getMonthStart(now);
+  const nextMonthStart = getNextMonthStart(now);
+
+  const quarterStart = getQuarterStart(now);
+  const nextQuarterStart = getNextQuarterStart(now);
+
+  const halfStart = getHalfYearStart(now);
+  const nextHalfStart = getNextHalfYearStart(now);
+
+  const currentFY = getFinancialYear(now);
+  const fyStart = getFinancialYearStart(currentFY);
+  const nextFyStart = getNextFinancialYearStart(currentFY);
+
+  const periodCostsKWD = useMemo(() => {
+    const reducer = (start: Date, endExclusive: Date) => assets.reduce((sum: number, a: any) => sum + calculateDepreciationForPeriod(a, start, endExclusive), 0);
+    return {
+      daily: reducer(todayStart, tomorrowStart),
+      weekly: reducer(weekStart, nextWeekStart),
+      monthly: reducer(monthStart, nextMonthStart),
+      quarterly: reducer(quarterStart, nextQuarterStart),
+      halfYearly: reducer(halfStart, nextHalfStart),
+      yearly: reducer(fyStart, nextFyStart),
+    };
+  }, [assets]);
+
+  const getMonthName = (date: Date) => date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const getQuarterName = (date: Date) => `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
+  const getHalfName = (date: Date) => `H${Math.floor(date.getMonth() / 6) + 1} ${date.getFullYear()}`;
+
   // Filtering
   const filteredAssets = useMemo(() => {
     return assets.filter(a => {
@@ -1017,6 +1131,81 @@ const AssetsPage: React.FC = () => {
             </table>
             {loading && <Typography align="center" sx={{ mt: 2 }}>Loading...</Typography>}
             {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
+          </Paper>
+        </motion.div>
+
+        {/* Cost Analysis Boxes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.4 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mt: 3, 
+              background: alpha(theme.palette.primary.main, 0.05),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 3, color: theme.palette.primary.main, fontWeight: 600 }}>
+              💰 Cost Analysis by Time Periods (Depreciation/Amortization)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Values represent allocated depreciation/amortization expense for each time period. Financial year runs Apr 1 - Mar 31.
+            </Typography>
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 3 }}>
+              <Card sx={{ background: alpha(theme.palette.info.main, 0.06), border: `1px solid ${alpha(theme.palette.info.main, 0.2)}` }}>
+                <CardContent>
+                  <Typography variant="subtitle2" color={theme.palette.info.main}>Daily Cost</Typography>
+                  <Typography variant="h5" fontWeight={700}>{periodCostsKWD.daily.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography variant="caption" color="text.secondary">{todayStart.toLocaleDateString()}</Typography>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ background: alpha(theme.palette.success.main, 0.06), border: `1px solid ${alpha(theme.palette.success.main, 0.2)}` }}>
+                <CardContent>
+                  <Typography variant="subtitle2" color={theme.palette.success.main}>Weekly Cost</Typography>
+                  <Typography variant="h5" fontWeight={700}>{periodCostsKWD.weekly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography variant="caption" color="text.secondary">{weekStart.toLocaleDateString()} - {new Date(nextWeekStart.getTime() - 1).toLocaleDateString()}</Typography>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ background: alpha(theme.palette.warning.main, 0.06), border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}` }}>
+                <CardContent>
+                  <Typography variant="subtitle2" color={theme.palette.warning.main}>Monthly Cost</Typography>
+                  <Typography variant="h5" fontWeight={700}>{periodCostsKWD.monthly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography variant="caption" color="text.secondary">{getMonthName(monthStart)}</Typography>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ background: alpha(theme.palette.secondary.main, 0.06), border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}` }}>
+                <CardContent>
+                  <Typography variant="subtitle2" color={theme.palette.secondary.main}>Quarterly Cost</Typography>
+                  <Typography variant="h5" fontWeight={700}>{periodCostsKWD.quarterly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography variant="caption" color="text.secondary">{getQuarterName(quarterStart)}</Typography>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ background: alpha(theme.palette.error.main, 0.06), border: `1px solid ${alpha(theme.palette.error.main, 0.2)}` }}>
+                <CardContent>
+                  <Typography variant="subtitle2" color={theme.palette.error.main}>Half-Yearly Cost</Typography>
+                  <Typography variant="h5" fontWeight={700}>{periodCostsKWD.halfYearly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography variant="caption" color="text.secondary">{getHalfName(halfStart)}</Typography>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ background: alpha(theme.palette.primary.main, 0.06), border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }}>
+                <CardContent>
+                  <Typography variant="subtitle2" color={theme.palette.primary.main}>Financial Year Cost</Typography>
+                  <Typography variant="h5" fontWeight={700}>{periodCostsKWD.yearly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
+                  <Typography variant="caption" color="text.secondary">FY {currentFY} (Apr 1 - Mar 31)</Typography>
+                </CardContent>
+              </Card>
+            </Box>
           </Paper>
         </motion.div>
       </AnimatePresence>

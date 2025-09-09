@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
-  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -9,6 +9,7 @@ import {
   Refresh as RefreshIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
   MonetizationOn as MoneyIcon,
   Business as BusinessIcon,
   Assessment as AssessmentIcon,
@@ -20,81 +21,129 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const defaultBusinessLine = () => ({
-  name: '',
-  units: Array(12).fill(''),
-  price: ''
+const defaultSalesBudget = () => ({
+  id: Date.now() + Math.random(),
+  no: '',
+  revenues: '',
+  forecastedYearEnded: '',
+  budget1stQuarter: '',
+  budget2ndQuarter: '',
+  budget3rdQuarter: '',
+  budgetTotal: ''
 });
 
 const BudgetRevenue: React.FC = () => {
-  const [lines, setLines] = useState([defaultBusinessLine()]);
+  const [salesBudgets, setSalesBudgets] = useState([defaultSalesBudget()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingSalesBudget, setEditingSalesBudget] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    no: '',
+    revenues: '',
+    forecastedYearEnded: '',
+    budget1stQuarter: '',
+    budget2ndQuarter: '',
+    budget3rdQuarter: '',
+    budgetTotal: ''
+  });
 
   const theme = useTheme();
+  const pageColor = '#7b1fa2';
 
   useEffect(() => {
-    fetchBudgetRevenue();
+    fetchSalesBudgets();
   }, []);
 
-  const fetchBudgetRevenue = async () => {
+  const fetchSalesBudgets = async () => {
     setLoading(true);
     try {
       const response = await api.get('/budget-revenue');
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setLines(data);
+        setSalesBudgets(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch budget revenue');
+      setError(err.response?.data?.message || 'Failed to fetch sales budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLineChange = (idx: number, field: 'name' | 'units' | 'price', value: any, monthIdx?: number) => {
-    const newLines = [...lines];
-    if (field === 'units' && monthIdx !== undefined) {
-      newLines[idx].units[monthIdx] = value;
+  const handleAddSalesBudget = () => {
+    setEditingSalesBudget(null);
+    setFormData({
+      no: '',
+      revenues: '',
+      forecastedYearEnded: '',
+      budget1stQuarter: '',
+      budget2ndQuarter: '',
+      budget3rdQuarter: '',
+      budgetTotal: ''
+    });
+    setOpenDialog(true);
+  };
+
+  const handleEditSalesBudget = (salesBudget: any) => {
+    setEditingSalesBudget(salesBudget);
+    setFormData({
+      no: salesBudget.no,
+      revenues: salesBudget.revenues,
+      forecastedYearEnded: salesBudget.forecastedYearEnded,
+      budget1stQuarter: salesBudget.budget1stQuarter,
+      budget2ndQuarter: salesBudget.budget2ndQuarter,
+      budget3rdQuarter: salesBudget.budget3rdQuarter,
+      budgetTotal: salesBudget.budgetTotal
+    });
+    setOpenDialog(true);
+  };
+
+  const handleDeleteSalesBudget = (id: number) => {
+    if (salesBudgets.length > 1) {
+      setSalesBudgets(salesBudgets.filter(salesBudget => salesBudget.id !== id));
+    }
+  };
+
+  const handleSaveSalesBudget = () => {
+    if (editingSalesBudget) {
+      // Edit existing sales budget
+      setSalesBudgets(salesBudgets.map(salesBudget => 
+        salesBudget.id === editingSalesBudget.id 
+          ? { ...salesBudget, ...formData }
+          : salesBudget
+      ));
     } else {
-      newLines[idx][field] = value;
+      // Add new sales budget
+      setSalesBudgets([...salesBudgets, { ...formData, id: Date.now() + Math.random() }]);
     }
-    setLines(newLines);
+    setOpenDialog(false);
+    setSuccess(editingSalesBudget ? 'Sales budget updated successfully!' : 'Sales budget added successfully!');
   };
 
-  const handleAddLine = () => setLines([...lines, defaultBusinessLine()]);
-
-  const handleRemoveLine = (idx: number) => setLines(lines => lines.filter((_, i) => i !== idx));
-
-  const getLineRevenue = (line: any, monthIdx: number) => {
-    const units = parseFloat(line.units[monthIdx]) || 0;
-    const price = parseFloat(line.price) || 0;
-    return units * price;
+  const handleFormChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
   };
 
-  const getLineTotal = (line: any) => months.reduce((sum, _, i) => sum + getLineRevenue(line, i), 0);
+  const formatCurrency = (value: string) => {
+    if (!value) return '-';
+    return `${parseFloat(value).toLocaleString()} KWD`;
+  };
 
-  const getMonthTotal = (monthIdx: number) => lines.reduce((sum, line) => sum + getLineRevenue(line, monthIdx), 0);
-
-  const getGrandTotal = () => lines.reduce((sum, line) => sum + getLineTotal(line), 0);
-
-  const handleSave = async () => {
-    try {
-      await api.post('/budget-revenue', { lines });
-      setSuccess('Budget revenue saved successfully!');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save budget revenue');
-    }
+  const getTotalBudget = () => {
+    return salesBudgets.reduce((sum, budget) => {
+      const q1 = parseFloat(budget.budget1stQuarter) || 0;
+      const q2 = parseFloat(budget.budget2ndQuarter) || 0;
+      const q3 = parseFloat(budget.budget3rdQuarter) || 0;
+      return sum + q1 + q2 + q3;
+    }, 0);
   };
 
   return (
     <Box sx={{ 
       p: 3, 
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+      background: `linear-gradient(135deg, ${alpha(pageColor, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
       <AnimatePresence>
         {/* Header Section */}
@@ -108,7 +157,7 @@ const BudgetRevenue: React.FC = () => {
             sx={{ 
               p: 3, 
               mb: 3, 
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
               color: 'white',
               borderRadius: theme.shape.borderRadius,
               position: 'relative',
@@ -119,30 +168,29 @@ const BudgetRevenue: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <TrendingUpIcon sx={{ fontSize: 32 }} />
+                    <Typography sx={{ fontSize: '2rem' }}>🏠</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Revenue Budget
+                      Sales Budget
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and forecast revenue streams by business line and month
+                      Plan and forecast sales budgets by quarters and revenue streams
                     </Typography>
                   </Box>
                 </Box>
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  onClick={handleSave}
-                  startIcon={<SaveIcon />}
-                  sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddSalesBudget}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Save Budget
+                  Add Sales Budget
                 </Button>
               </Box>
             </Box>
@@ -171,80 +219,11 @@ const BudgetRevenue: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Summary Cards */}
+        {/* Sales Budget Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
-            {[
-              {
-                title: 'Total Revenue',
-                value: `$${getGrandTotal().toLocaleString()}`,
-                icon: <MoneyIcon />,
-                color: theme.palette.success.main,
-                bgColor: alpha(theme.palette.success.main, 0.1)
-              },
-              {
-                title: 'Business Lines',
-                value: lines.length,
-                icon: <BusinessIcon />,
-                color: theme.palette.primary.main,
-                bgColor: alpha(theme.palette.primary.main, 0.1)
-              },
-              {
-                title: 'Avg Monthly Revenue',
-                value: `$${(getGrandTotal() / 12).toLocaleString()}`,
-                icon: <AssessmentIcon />,
-                color: theme.palette.info.main,
-                bgColor: alpha(theme.palette.info.main, 0.1)
-              }
-            ].map((card, index) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-              >
-                <Card 
-                  sx={{ 
-                    flex: '1 1 200px', 
-                    minWidth: 200,
-                    background: card.bgColor,
-                    border: `1px solid ${alpha(card.color, 0.3)}`,
-                    borderRadius: theme.shape.borderRadius,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
-                    }
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
-                        {card.icon}
-                      </Avatar>
-                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
-                        {card.title}
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
-                      {card.value}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </Box>
-        </motion.div>
-
-        {/* Revenue Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
         >
           <Paper 
             elevation={0}
@@ -252,170 +231,162 @@ const BudgetRevenue: React.FC = () => {
               p: 3, 
               background: alpha(theme.palette.background.paper, 0.8),
               backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-              borderRadius: theme.shape.borderRadius,
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: theme.shadows[8]
-              }
+              border: `1px solid ${alpha(pageColor, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-              <Typography variant="h6" sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
-                📊 Revenue Budget by Business Line
-              </Typography>
-              <Button
-                variant="contained"
-                onClick={handleAddLine}
-                startIcon={<AddIcon />}
-                sx={{
-                  background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.success.dark} 100%)`,
-                  boxShadow: `0 4px 14px ${alpha(theme.palette.success.main, 0.4)}`,
-                  '&:hover': {
-                    background: `linear-gradient(135deg, ${theme.palette.success.dark} 0%, ${theme.palette.success.main} 100%)`,
-                    boxShadow: `0 6px 20px ${alpha(theme.palette.success.main, 0.6)}`,
-                    transform: 'translateY(-1px)'
-                  }
-                }}
-              >
-                Add Business Line
-              </Button>
-            </Box>
+            <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
+              📊 Sales Budget Overview
+            </Typography>
 
-            {loading ? (
+            {loading && (
               <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
                 <CircularProgress />
               </Box>
-            ) : (
-              <TableContainer>
-                <Table>
+            )}
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+            )}
+
+            {!loading && (
+              <TableContainer sx={{ maxHeight: 600, overflowX: 'auto' }}>
+                <Table stickyHeader>
                   <TableHead>
-                    <TableRow sx={{ background: alpha(theme.palette.primary.main, 0.05) }}>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Business Line</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Unit Price</TableCell>
-                      {months.map((month) => (
-                        <TableCell key={month} align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                          {month}
-                        </TableCell>
-                      ))}
-                      <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Total</TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>Actions</TableCell>
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
+                        NO.
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
+                        Revenues
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Forecasted Year Ended
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 1st Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 2nd Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 3rd Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget Total
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
+                        Actions
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {lines.map((line, idx) => (
+                    {salesBudgets.map((salesBudget, index) => (
                       <TableRow 
-                        key={idx}
-                        hover
+                        key={salesBudget.id}
                         sx={{ 
-                          background: idx % 2 === 0 ? alpha(theme.palette.background.default, 0.5) : alpha(theme.palette.background.paper, 0.8),
-                          transition: 'all 0.2s ease',
                           '&:hover': {
-                            background: alpha(theme.palette.primary.main, 0.05),
-                            transform: 'scale(1.01)'
+                            background: alpha(pageColor, 0.02)
                           }
                         }}
                       >
-                        <TableCell>
-                          <TextField
-                            value={line.name}
-                            onChange={(e) => handleLineChange(idx, 'name', e.target.value)}
-                            placeholder="Business line name"
-                            size="small"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&:hover fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            value={line.price}
-                            onChange={(e) => handleLineChange(idx, 'price', e.target.value)}
-                            placeholder="0.00"
-                            type="number"
-                            size="small"
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&:hover fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                                '&.Mui-focused fieldset': {
-                                  borderColor: theme.palette.primary.main,
-                                },
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        {months.map((month, monthIdx) => (
-                          <TableCell key={month} align="right">
-                            <TextField
-                              value={line.units[monthIdx]}
-                              onChange={(e) => handleLineChange(idx, 'units', e.target.value, monthIdx)}
-                              placeholder="0"
-                              type="number"
-                              size="small"
-                              sx={{
-                                width: 80,
-                                '& .MuiOutlinedInput-root': {
-                                  '&:hover fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: theme.palette.primary.main,
-                                  },
-                                },
-                              }}
-                            />
-                          </TableCell>
-                        ))}
-                        <TableCell align="right">
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                            ${getLineTotal(line).toLocaleString()}
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {salesBudget.no || '-'}
                           </Typography>
                         </TableCell>
-                        <TableCell>
-                          <IconButton
-                            onClick={() => handleRemoveLine(idx)}
-                            color="error"
-                            disabled={lines.length === 1}
-                            sx={{ 
-                              '&:hover': { 
-                                bgcolor: alpha(theme.palette.error.main, 0.1),
-                                transform: 'scale(1.1)'
-                              }
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {salesBudget.revenues || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(salesBudget.forecastedYearEnded)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(salesBudget.budget1stQuarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(salesBudget.budget2ndQuarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(salesBudget.budget3rdQuarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(salesBudget.budgetTotal)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <IconButton
+                              onClick={() => handleEditSalesBudget(salesBudget)}
+                              sx={{ 
+                                color: pageColor,
+                                '&:hover': { 
+                                  bgcolor: alpha(pageColor, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => handleDeleteSalesBudget(salesBudget.id)}
+                              disabled={salesBudgets.length === 1}
+                              sx={{ 
+                                color: theme.palette.error.main,
+                                '&:hover': { 
+                                  bgcolor: alpha(theme.palette.error.main, 0.1),
+                                  transform: 'scale(1.1)'
+                                }
+                              }}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
                     {/* Totals Row */}
-                    <TableRow sx={{ background: alpha(theme.palette.success.main, 0.05) }}>
-                      <TableCell sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, textAlign: 'center' }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                           TOTAL
                         </Typography>
                       </TableCell>
                       <TableCell />
-                      {months.map((month, monthIdx) => (
-                        <TableCell key={month} align="right" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                            ${getMonthTotal(monthIdx).toLocaleString()}
-                          </Typography>
-                        </TableCell>
-                      ))}
-                      <TableCell align="right" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.forecastedYearEnded) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget1stQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget2ndQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget3rdQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          ${getGrandTotal().toLocaleString()}
+                          {formatCurrency(getTotalBudget().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell />
@@ -426,29 +397,164 @@ const BudgetRevenue: React.FC = () => {
             )}
           </Paper>
         </motion.div>
+
+        {/* Add/Edit Sales Budget Dialog */}
+        <Dialog 
+          open={openDialog} 
+          onClose={() => setOpenDialog(false)}
+          maxWidth="lg"
+          fullWidth
+        >
+          <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
+            {editingSalesBudget ? 'Edit Sales Budget' : 'Add Sales Budget'}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <TextField
+                label="NO."
+                value={formData.no}
+                onChange={(e) => handleFormChange('no', e.target.value)}
+                fullWidth
+                placeholder="Enter number..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Revenues"
+                value={formData.revenues}
+                onChange={(e) => handleFormChange('revenues', e.target.value)}
+                multiline
+                rows={2}
+                fullWidth
+                placeholder="Enter revenue description..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Forecasted Year Ended"
+                value={formData.forecastedYearEnded}
+                onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget 1st Quarter"
+                value={formData.budget1stQuarter}
+                onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget 2nd Quarter"
+                value={formData.budget2ndQuarter}
+                onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget 3rd Quarter"
+                value={formData.budget3rdQuarter}
+                onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
+                fullWidth
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget Total"
+                value={formData.budgetTotal}
+                onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
+                fullWidth
+                placeholder="Enter total amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveSalesBudget}
+              variant="contained"
+              sx={{
+                background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
+                '&:hover': {
+                  background: `linear-gradient(135deg, ${theme.palette.secondary.main} 0%, ${pageColor} 100%)`,
+                }
+              }}
+            >
+              {editingSalesBudget ? 'Update' : 'Add'} Sales Budget
+            </Button>
+          </DialogActions>
+        </Dialog>
       </AnimatePresence>
 
-      {/* Success/Error Snackbars */}
-      <Snackbar
-        open={!!success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
-          {success}
-        </Alert>
-      </Snackbar>
-      
-      <Snackbar
-        open={!!error}
-        autoHideDuration={3000}
-        onClose={() => setError('')}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
-          {error}
-        </Alert>
+      <Snackbar open={!!success} autoHideDuration={3000} onClose={() => setSuccess('')} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity="success" sx={{ width: '100%' }}>{success}</Alert>
       </Snackbar>
     </Box>
   );

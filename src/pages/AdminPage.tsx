@@ -42,9 +42,9 @@ import {
   Divider,
   LinearProgress,
   Skeleton,
-  Grid,
   Container
 } from '@mui/material';
+import AdminCostCalculator from '../utils/adminCostCalculations';
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -103,6 +103,50 @@ const statusColors: Record<string, any> = {
   under_renewal: 'warning',
   cancelled: 'default',
   deported: 'error',
+};
+
+// Professional Finance-Grade Cost Calculation Functions
+// These functions now use sophisticated financial calculations following GAAP/IFRS standards
+
+const getFinancialYearStart = (date: Date): Date => {
+  const year = date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1;
+  return new Date(year, 3, 1); // April 1st
+};
+
+const getFinancialYearEnd = (date: Date): Date => {
+  const year = date.getMonth() >= 3 ? date.getFullYear() + 1 : date.getFullYear();
+  return new Date(year, 2, 31); // March 31st
+};
+
+const getQuarterStart = (date: Date): Date => {
+  const quarter = Math.floor(date.getMonth() / 3);
+  return new Date(date.getFullYear(), quarter * 3, 1);
+};
+
+const getQuarterEnd = (date: Date): Date => {
+  const quarter = Math.floor(date.getMonth() / 3);
+  return new Date(date.getFullYear(), (quarter + 1) * 3, 0);
+};
+
+const getHalfYearStart = (date: Date): Date => {
+  const half = Math.floor(date.getMonth() / 6);
+  return new Date(date.getFullYear(), half * 6, 1);
+};
+
+const getHalfYearEnd = (date: Date): Date => {
+  const half = Math.floor(date.getMonth() / 6);
+  return new Date(date.getFullYear(), (half + 1) * 6, 0);
+};
+
+const getWeekStart = (date: Date): Date => {
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+};
+
+const getWeekEnd = (date: Date): Date => {
+  const weekStart = getWeekStart(new Date(date));
+  return new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
 };
 
 const visaTypes = [
@@ -351,6 +395,7 @@ const AdminPage: React.FC = () => {
     status: 'active',
     renewalFee: '',
     renewalProcess: '',
+    amortization: '',
     notes: '',
     documents: {},
   });
@@ -852,6 +897,7 @@ const AdminPage: React.FC = () => {
       fetchAssets();
     } else if (tab === 3) {
       fetchCorrespondences();
+      fetchEmployees();
     } else if (tab === 4) {
       fetchLegalCases();
     } else if (tab === 5) {
@@ -867,6 +913,8 @@ const AdminPage: React.FC = () => {
       
       // Fetch travel requests and authorizations
       fetchTravelRequests();
+      // Fetch employees for travel forms
+      fetchEmployees();
       fetchTravelAuthorizations();
     }
   }, [tab]);
@@ -919,8 +967,10 @@ const AdminPage: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       const res = await api.get('/admin/employees');
-      // Ensure employees is always an array
-      setEmployees(Array.isArray(res.data) ? res.data : []);
+      // The API returns { employees: [...], stats: {...} }
+      const responseData = res.data as { employees: any[]; stats: any };
+      const employeeData = Array.isArray(responseData.employees) ? responseData.employees : [];
+      setEmployees(employeeData);
     } catch (err: any) {
       console.error('Failed to fetch employees:', err);
       // Set empty array on error to prevent .map() errors
@@ -1084,7 +1134,7 @@ const AdminPage: React.FC = () => {
     } else {
       setGovDocEditing(null);
       setGovDocForm({
-        documentType: '', documentNumber: '', title: '', description: '', issuingAuthority: '', issueDate: '', expiryDate: '', status: 'active', renewalFee: '', renewalProcess: '', notes: '', documents: {},
+        documentType: '', documentNumber: '', title: '', description: '', issuingAuthority: '', issueDate: '', expiryDate: '', status: 'active', renewalFee: '', renewalProcess: '', amortization: '', notes: '', documents: {},
       });
     }
     setGovDocOpen(true);
@@ -1093,7 +1143,7 @@ const AdminPage: React.FC = () => {
     setGovDocOpen(false);
     setGovDocEditing(null);
     setGovDocForm({
-      documentType: '', documentNumber: '', title: '', description: '', issuingAuthority: '', issueDate: '', expiryDate: '', status: 'active', renewalFee: '', renewalProcess: '', notes: '', documents: {},
+      documentType: '', documentNumber: '', title: '', description: '', issuingAuthority: '', issueDate: '', expiryDate: '', status: 'active', renewalFee: '', renewalProcess: '', amortization: '', notes: '', documents: {},
     });
   };
   const handleGovDocFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -1134,6 +1184,9 @@ const AdminPage: React.FC = () => {
       setGovDocDeleteId(null);
     }
   };
+
+
+
   const getGovDocExpiryStatus = (expiry: string) => {
     if (!expiry) return 'default';
     const days = dayjs(expiry).diff(dayjs(), 'day');
@@ -1161,9 +1214,14 @@ const AdminPage: React.FC = () => {
 
   const fetchAssets = async () => {
     try {
+      console.log('Fetching assets...');
       const res = await api.get('/admin/assets');
+      console.log('Assets response:', res.data);
       // Ensure assets is always an array
-      setAssets(Array.isArray(res.data) ? res.data : []);
+      const assetsData = Array.isArray(res.data) ? res.data : [];
+      setAssets(assetsData);
+      console.log('Assets set:', assetsData);
+      console.log('🔍 Assets in dropdown:', assetsData);
     } catch (err: any) {
       console.error('Failed to fetch assets:', err);
       // Set empty array on error to prevent .map() errors
@@ -1307,11 +1365,22 @@ const AdminPage: React.FC = () => {
     e.preventDefault();
     setError('');
     try {
+      // Prepare the data for submission, handling ObjectId fields
+      const submitData = {
+        ...correspondenceForm,
+        // assignedTo is required, so keep it as is (it should be a valid ObjectId from the select)
+        assignedTo: correspondenceForm.assignedTo,
+        // Only include assignedEmployee if it's not empty and is a valid ObjectId
+        assignedEmployee: correspondenceForm.assignedEmployee && correspondenceForm.assignedEmployee.trim() !== '' ? correspondenceForm.assignedEmployee : undefined,
+        // Handle file uploads
+        documents: Object.fromEntries(Object.entries(correspondenceForm.documents || {}).map(([k, v]) => [k, (v as any)?.name || '']))
+      };
+
       if (correspondenceEditing) {
-        await api.put(`/admin/government-correspondence/${correspondenceEditing._id}`, correspondenceForm);
+        await api.put(`/admin/government-correspondence/${correspondenceEditing._id}`, submitData);
         setCorrespondenceSuccess('Correspondence updated!');
       } else {
-        await api.post('/admin/government-correspondence', correspondenceForm);
+        await api.post('/admin/government-correspondence', submitData);
         setCorrespondenceSuccess('Correspondence created!');
       }
       fetchCorrespondences();
@@ -1346,6 +1415,156 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Cost calculation functions
+  const calculateAmortizedCost = (cost: number, amortization: number, startDate: Date, periodStart: Date, periodEnd: Date): number => {
+    if (!cost || !amortization || amortization <= 0) return cost || 0;
+    
+    const totalDays = Math.ceil((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+    const amortizationDays = Math.ceil((amortization * 30)); // Convert months to days
+    const overlapDays = Math.max(0, Math.min(periodEnd.getTime(), startDate.getTime() + (amortizationDays * 24 * 60 * 60 * 1000)) - Math.max(periodStart.getTime(), startDate.getTime())) / (1000 * 60 * 60 * 24);
+    
+    return (cost * overlapDays) / amortizationDays;
+  };
+
+  const getFinancialYearStart = (date: Date): Date => {
+    const year = date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1;
+    return new Date(year, 3, 1); // April 1st
+  };
+
+  const getFinancialYearEnd = (date: Date): Date => {
+    const year = date.getMonth() >= 3 ? date.getFullYear() + 1 : date.getFullYear();
+    return new Date(year, 2, 31); // March 31st
+  };
+
+  const getQuarterStart = (date: Date): Date => {
+    const quarter = Math.floor(date.getMonth() / 3);
+    return new Date(date.getFullYear(), quarter * 3, 1);
+  };
+
+  const getQuarterEnd = (date: Date): Date => {
+    const quarter = Math.floor(date.getMonth() / 3);
+    return new Date(date.getFullYear(), (quarter + 1) * 3, 0);
+  };
+
+  const getHalfYearStart = (date: Date): Date => {
+    const halfYear = Math.floor(date.getMonth() / 6);
+    return new Date(date.getFullYear(), halfYear * 6, 1);
+  };
+
+  const getHalfYearEnd = (date: Date): Date => {
+    const halfYear = Math.floor(date.getMonth() / 6);
+    return new Date(date.getFullYear(), (halfYear + 1) * 6, 0);
+  };
+
+  const getWeekStart = (date: Date): Date => {
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Monday as start of week
+    return new Date(date.setDate(diff));
+  };
+
+  const getWeekEnd = (date: Date): Date => {
+    const weekStart = getWeekStart(new Date(date));
+    return new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+  };
+
+  // Professional Finance-Grade Correspondence Cost Calculations
+  const calculateDailyCost = (): number => {
+    const today = new Date();
+    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    
+    return AdminCostCalculator.calculateCorrespondenceCosts(correspondences, dayStart, dayEnd);
+  };
+
+  const calculateWeeklyCost = (): number => {
+    const today = new Date();
+    const weekStart = getWeekStart(new Date(today));
+    const weekEnd = getWeekEnd(new Date(today));
+    
+    return AdminCostCalculator.calculateCorrespondenceCosts(correspondences, weekStart, weekEnd);
+  };
+
+  const calculateMonthlyCost = (): number => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    return AdminCostCalculator.calculateCorrespondenceCosts(correspondences, monthStart, monthEnd);
+  };
+
+  const calculateQuarterlyCost = (): number => {
+    const today = new Date();
+    const quarterStart = getQuarterStart(today);
+    const quarterEnd = getQuarterEnd(today);
+    
+    return AdminCostCalculator.calculateCorrespondenceCosts(correspondences, quarterStart, quarterEnd);
+  };
+
+  const calculateHalfYearlyCost = (): number => {
+    const today = new Date();
+    const halfYearStart = getHalfYearStart(today);
+    const halfYearEnd = getHalfYearEnd(today);
+    
+    return AdminCostCalculator.calculateCorrespondenceCosts(correspondences, halfYearStart, halfYearEnd);
+  };
+
+  const calculateYearlyCost = (): number => {
+    const today = new Date();
+    const yearStart = getFinancialYearStart(today);
+    const yearEnd = getFinancialYearEnd(today);
+    
+    return AdminCostCalculator.calculateCorrespondenceCosts(correspondences, yearStart, yearEnd);
+  };
+
+  const getCurrentMonthName = (): string => {
+    return new Date().toLocaleString('default', { month: 'long' });
+  };
+
+  const getCurrentQuarter = (): string => {
+    const quarter = Math.floor(new Date().getMonth() / 3) + 1;
+    return `Q${quarter}`;
+  };
+
+  const getCurrentHalfYear = (): string => {
+    const halfYear = Math.floor(new Date().getMonth() / 6) + 1;
+    return `H${halfYear}`;
+  };
+
+  const getWeekRange = (): string => {
+    const today = new Date();
+    const weekStart = getWeekStart(new Date(today));
+    const weekEnd = getWeekEnd(new Date(today));
+    return `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+  };
+
+  const getMonthRange = (): string => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return `${monthStart.toLocaleDateString()} - ${monthEnd.toLocaleDateString()}`;
+  };
+
+  const getQuarterRange = (): string => {
+    const today = new Date();
+    const quarterStart = getQuarterStart(today);
+    const quarterEnd = getQuarterEnd(today);
+    return `${quarterStart.toLocaleDateString()} - ${quarterEnd.toLocaleDateString()}`;
+  };
+
+  const getHalfYearRange = (): string => {
+    const today = new Date();
+    const halfYearStart = getHalfYearStart(today);
+    const halfYearEnd = getHalfYearEnd(today);
+    return `${halfYearStart.toLocaleDateString()} - ${halfYearEnd.toLocaleDateString()}`;
+  };
+
+  const getFinancialYearRange = (): string => {
+    const today = new Date();
+    const yearStart = getFinancialYearStart(today);
+    const yearEnd = getFinancialYearEnd(today);
+    return `${yearStart.toLocaleDateString()} - ${yearEnd.toLocaleDateString()}`;
+  };
+
   const getCorrespondencePriorityColor = (priority: string) => {
     switch (priority) {
       case 'low': return 'success';
@@ -1354,6 +1573,137 @@ const AdminPage: React.FC = () => {
       case 'urgent': return 'error';
       default: return 'default';
     }
+  };
+
+  // Legal Case Cost calculation functions
+  const calculateLegalCost = (contractAmount: number, actualCost: number, actualLegalRepCost: number, otherCosts: number, totalActualCost: number, filingDate: Date, periodStart: Date, periodEnd: Date): number => {
+    // Sum all actual costs: contractAmount + actualCost + actualLegalRepCost + otherCosts + totalActualCost
+    // Exclude estimatedCost as per requirement
+    const totalCost = contractAmount + actualCost + actualLegalRepCost + otherCosts + totalActualCost;
+    if (!totalCost || totalCost <= 0) return 0;
+    
+    // For legal cases, no amortization - use actual costs if filing date falls within the period
+    const filingDateObj = new Date(filingDate);
+    if (filingDateObj >= periodStart && filingDateObj < periodEnd) {
+      return totalCost;
+    }
+    
+    return 0;
+  };
+
+  // Calculate costs for different periods for legal cases
+  const calculateLegalDailyCost = (): number => {
+    const today = new Date();
+    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    
+    return legalCases.reduce((total, legalCase) => {
+      if (!legalCase.filingDate) return total;
+      
+      const filingDate = new Date(legalCase.filingDate);
+      const contractAmount = parseFloat(legalCase.legalRepresentative?.contractAmount) || 0;
+      const actualCost = parseFloat(legalCase.actualCost) || 0;
+      const actualLegalRepCost = parseFloat(legalCase.actualLegalRepCost) || 0;
+      const otherCosts = parseFloat(legalCase.otherCosts) || 0;
+      const totalActualCost = parseFloat(legalCase.totalActualCost) || 0;
+      
+      return total + calculateLegalCost(contractAmount, actualCost, actualLegalRepCost, otherCosts, totalActualCost, filingDate, dayStart, dayEnd);
+    }, 0);
+  };
+
+  const calculateLegalWeeklyCost = (): number => {
+    const today = new Date();
+    const weekStart = getWeekStart(new Date(today));
+    const weekEnd = getWeekEnd(new Date(today));
+    
+    return legalCases.reduce((total, legalCase) => {
+      if (!legalCase.filingDate) return total;
+      
+      const filingDate = new Date(legalCase.filingDate);
+      const contractAmount = parseFloat(legalCase.legalRepresentative?.contractAmount) || 0;
+      const actualCost = parseFloat(legalCase.actualCost) || 0;
+      const actualLegalRepCost = parseFloat(legalCase.actualLegalRepCost) || 0;
+      const otherCosts = parseFloat(legalCase.otherCosts) || 0;
+      const totalActualCost = parseFloat(legalCase.totalActualCost) || 0;
+      
+      return total + calculateLegalCost(contractAmount, actualCost, actualLegalRepCost, otherCosts, totalActualCost, filingDate, weekStart, weekEnd);
+    }, 0);
+  };
+
+  const calculateLegalMonthlyCost = (): number => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    return legalCases.reduce((total, legalCase) => {
+      if (!legalCase.filingDate) return total;
+      
+      const filingDate = new Date(legalCase.filingDate);
+      const contractAmount = parseFloat(legalCase.legalRepresentative?.contractAmount) || 0;
+      const actualCost = parseFloat(legalCase.actualCost) || 0;
+      const actualLegalRepCost = parseFloat(legalCase.actualLegalRepCost) || 0;
+      const otherCosts = parseFloat(legalCase.otherCosts) || 0;
+      const totalActualCost = parseFloat(legalCase.totalActualCost) || 0;
+      
+      return total + calculateLegalCost(contractAmount, actualCost, actualLegalRepCost, otherCosts, totalActualCost, filingDate, monthStart, monthEnd);
+    }, 0);
+  };
+
+  const calculateLegalQuarterlyCost = (): number => {
+    const today = new Date();
+    const quarterStart = getQuarterStart(today);
+    const quarterEnd = getQuarterEnd(today);
+    
+    return legalCases.reduce((total, legalCase) => {
+      if (!legalCase.filingDate) return total;
+      
+      const filingDate = new Date(legalCase.filingDate);
+      const contractAmount = parseFloat(legalCase.legalRepresentative?.contractAmount) || 0;
+      const actualCost = parseFloat(legalCase.actualCost) || 0;
+      const actualLegalRepCost = parseFloat(legalCase.actualLegalRepCost) || 0;
+      const otherCosts = parseFloat(legalCase.otherCosts) || 0;
+      const totalActualCost = parseFloat(legalCase.totalActualCost) || 0;
+      
+      return total + calculateLegalCost(contractAmount, actualCost, actualLegalRepCost, otherCosts, totalActualCost, filingDate, quarterStart, quarterEnd);
+    }, 0);
+  };
+
+  const calculateLegalHalfYearlyCost = (): number => {
+    const today = new Date();
+    const halfYearStart = getHalfYearStart(today);
+    const halfYearEnd = getHalfYearEnd(today);
+    
+    return legalCases.reduce((total, legalCase) => {
+      if (!legalCase.filingDate) return total;
+      
+      const filingDate = new Date(legalCase.filingDate);
+      const contractAmount = parseFloat(legalCase.legalRepresentative?.contractAmount) || 0;
+      const actualCost = parseFloat(legalCase.actualCost) || 0;
+      const actualLegalRepCost = parseFloat(legalCase.actualLegalRepCost) || 0;
+      const otherCosts = parseFloat(legalCase.otherCosts) || 0;
+      const totalActualCost = parseFloat(legalCase.totalActualCost) || 0;
+      
+      return total + calculateLegalCost(contractAmount, actualCost, actualLegalRepCost, otherCosts, totalActualCost, filingDate, halfYearStart, halfYearEnd);
+    }, 0);
+  };
+
+  const calculateLegalYearlyCost = (): number => {
+    const today = new Date();
+    const yearStart = getFinancialYearStart(today);
+    const yearEnd = getFinancialYearEnd(today);
+    
+    return legalCases.reduce((total, legalCase) => {
+      if (!legalCase.filingDate) return total;
+      
+      const filingDate = new Date(legalCase.filingDate);
+      const contractAmount = parseFloat(legalCase.legalRepresentative?.contractAmount) || 0;
+      const actualCost = parseFloat(legalCase.actualCost) || 0;
+      const actualLegalRepCost = parseFloat(legalCase.actualLegalRepCost) || 0;
+      const otherCosts = parseFloat(legalCase.otherCosts) || 0;
+      const totalActualCost = parseFloat(legalCase.totalActualCost) || 0;
+      
+      return total + calculateLegalCost(contractAmount, actualCost, actualLegalRepCost, otherCosts, totalActualCost, filingDate, yearStart, yearEnd);
+    }, 0);
   };
 
   // Legal Case Management functions
@@ -1467,10 +1817,37 @@ const AdminPage: React.FC = () => {
 
   const handleLegalCaseFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    setLegalCaseForm({
-      ...legalCaseForm,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
-    });
+    
+    // Handle nested object properties like legalRepresentative.phone
+    if (name.includes('.')) {
+      const [parentKey, childKey] = name.split('.');
+      
+      if (parentKey === 'legalRepresentative') {
+        setLegalCaseForm((prev: any) => {
+          const newForm = { ...prev };
+          newForm.legalRepresentative = {
+            ...prev.legalRepresentative,
+            [childKey]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+          };
+          return newForm;
+        });
+      } else {
+        // Handle other nested objects if needed
+        setLegalCaseForm((prev: any) => {
+          const newForm = { ...prev };
+          newForm[parentKey] = {
+            ...prev[parentKey],
+            [childKey]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+          };
+          return newForm;
+        });
+      }
+    } else {
+      setLegalCaseForm({
+        ...legalCaseForm,
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+      });
+    }
   };
 
   const handleLegalCaseSubmit = async (e: React.FormEvent) => {
@@ -1479,12 +1856,18 @@ const AdminPage: React.FC = () => {
     try {
       const submitData = {
         ...legalCaseForm,
+        // Map frontend field names to backend field names
+        ministry: legalCaseForm.court,
+        caseReviewLocation: legalCaseForm.courtLocation,
         estimatedCost: Number(legalCaseForm.estimatedCost),
         actualCost: Number(legalCaseForm.actualCost),
         legalRepresentative: {
           ...legalCaseForm.legalRepresentative,
           contractAmount: Number(legalCaseForm.legalRepresentative.contractAmount),
         },
+        // Remove the frontend field names that don't match backend
+        court: undefined,
+        courtLocation: undefined,
       };
 
       if (legalCaseEditing) {
@@ -1534,6 +1917,34 @@ const AdminPage: React.FC = () => {
       case 'low': return 'default';
       default: return 'default';
     }
+  };
+
+  // Professional Finance-Grade Cost Calculation Functions
+  // These functions now use sophisticated financial calculations following GAAP/IFRS standards
+
+  // Professional Finance-Grade Facility Cost Calculations
+  const calculateFacilityDailyCost = (): number => {
+    return AdminCostCalculator.calculateDailyFacilityCosts(facilities);
+  };
+
+  const calculateFacilityWeeklyCost = (): number => {
+    return AdminCostCalculator.calculateWeeklyFacilityCosts(facilities);
+  };
+
+  const calculateFacilityMonthlyCost = (): number => {
+    return AdminCostCalculator.calculateMonthlyFacilityCosts(facilities);
+  };
+
+  const calculateFacilityQuarterlyCost = (): number => {
+    return AdminCostCalculator.calculateQuarterlyFacilityCosts(facilities);
+  };
+
+  const calculateFacilityHalfYearlyCost = (): number => {
+    return AdminCostCalculator.calculateHalfYearlyFacilityCosts(facilities);
+  };
+
+  const calculateFacilityYearlyCost = (): number => {
+    return AdminCostCalculator.calculateYearlyFacilityCosts(facilities);
   };
 
   // Company Facility Documents functions
@@ -2089,31 +2500,156 @@ const AdminPage: React.FC = () => {
 
   const handleVehicleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Prepare payload
-    let submitData = { ...vehicleForm };
-    if (vehicleForm.insurancePaymentSystem !== 'installments') {
-      submitData.installmentValue = '';
-      submitData.installmentCalculationMode = 'auto';
-    } else {
-      // If auto, ensure value is calculated
-      if (vehicleForm.installmentCalculationMode === 'auto') {
-        const cost = parseFloat(vehicleForm.insuranceCost);
-        const period = parseInt(vehicleForm.insuranceInstallmentPeriod, 10);
-        if (!isNaN(cost) && !isNaN(period) && period > 0) {
-          submitData.installmentValue = (cost / period).toFixed(2);
-        } else {
-          submitData.installmentValue = '';
-        }
-      }
-      // If manual, use entered value (already in form)
+    console.log('=== FORM SUBMISSION STARTED ===');
+    console.log('Vehicle form data:', vehicleForm);
+    console.log('Form validation starting...');
+    
+    // Basic validation with detailed logging
+    if (!vehicleForm.vehicle) {
+      console.log('❌ Validation failed: No asset selected');
+      setError('Please select an asset');
+      return;
     }
-    // TODO: Send submitData to backend (implement actual API call)
-    setVehicleOpen(false);
+    console.log('✅ Asset selected:', vehicleForm.vehicle);
+    
+    if (!vehicleForm.plateNumber) {
+      console.log('❌ Validation failed: No plate number');
+      setError('Please enter plate number');
+      return;
+    }
+    console.log('✅ Plate number provided:', vehicleForm.plateNumber);
+    
+    if (!vehicleForm.registrationNumber) {
+      console.log('❌ Validation failed: No registration number');
+      setError('Please enter registration number');
+      return;
+    }
+    console.log('✅ Registration number provided:', vehicleForm.registrationNumber);
+    
+    if (!vehicleForm.insuranceCompany) {
+      console.log('❌ Validation failed: No insurance company');
+      setError('Please enter insurance company');
+      return;
+    }
+    console.log('✅ Insurance company provided:', vehicleForm.insuranceCompany);
+    
+    console.log('✅ All validations passed, proceeding with submission...');
+    
+    setLoading(true);
+    
+    try {
+      // Prepare payload
+      let submitData = { ...vehicleForm };
+      console.log('Prepared submit data:', submitData);
+      if (vehicleForm.insurancePaymentSystem !== 'installments') {
+        submitData.installmentValue = '';
+        submitData.installmentCalculationMode = 'auto';
+      } else {
+        // If auto, ensure value is calculated
+        if (vehicleForm.installmentCalculationMode === 'auto') {
+          const cost = parseFloat(vehicleForm.insuranceCost);
+          const period = parseInt(vehicleForm.insuranceInstallmentPeriod, 10);
+          if (!isNaN(cost) && !isNaN(period) && period > 0) {
+            submitData.installmentValue = (cost / period).toFixed(2);
+          } else {
+            submitData.installmentValue = '';
+          }
+        }
+        // If manual, use entered value (already in form)
+      }
+
+      // Send data to backend
+      console.log('Sending data to backend...');
+      console.log('API base URL:', api.defaults.baseURL);
+      console.log('Submit data:', submitData);
+      
+      if (vehicleEditing) {
+        // Update existing vehicle
+        console.log('Updating existing vehicle:', vehicleEditing);
+        const response = await api.put(`/admin/vehicle-registrations/${vehicleEditing}`, submitData);
+        console.log('Update response:', response);
+        setSuccess('Vehicle registration updated successfully!');
+      } else {
+        // Create new vehicle
+        console.log('Creating new vehicle registration');
+        console.log('Making POST request to:', '/admin/vehicle-registrations');
+        const response = await api.post('/admin/vehicle-registrations', submitData);
+        console.log('Create response:', response);
+        setSuccess('Vehicle registration created successfully!');
+      }
+
+      // Refresh vehicle data
+      await fetchVehicles();
+      
+      // Reset form and close dialog
+      setVehicleForm({
+        vehicle: '',
+        plateNumber: '',
+        chassisNumber: '',
+        engineNumber: '',
+        registrationNumber: '',
+        registrationExpiry: '',
+        insuranceCompany: '',
+        insurancePolicyNumber: '',
+        insuranceExpiry: '',
+        insuranceCost: '',
+        insurancePaymentSystem: 'cash',
+        insuranceInstallmentPeriod: '',
+        status: 'active',
+        renewalReminders: {
+          enabled: false,
+          reminderDays: [],
+          lastReminderSent: ''
+        },
+        notes: '',
+        hasPasses: 'no',
+        passes: [],
+        periodicCheck: {
+          issuanceDate: '',
+          expiryDate: ''
+        },
+        assetRegistrationType: 'public',
+        installmentValue: '',
+        installmentCalculationMode: 'auto',
+        registrationCardCountry: '',
+        registrationCardBrand: '',
+        registrationCardCapacity: '',
+        registrationCardShape: '',
+        registrationCardColour: ''
+      });
+      setVehicleOpen(false);
+      setVehicleEditing(null);
+      
+    } catch (err: any) {
+      console.error('Error submitting vehicle:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText
+      });
+      setError(err.response?.data?.message || err.message || 'Failed to save vehicle registration');
+    } finally {
+      setLoading(false);
+      console.log('Form submission completed');
+    }
   };
 
   const handleVehicleDelete = async () => {
-    // Stub: implement delete logic
-    setVehicleDeleteId(null);
+    if (!vehicleDeleteId) return;
+    
+    setLoading(true);
+    try {
+      await api.delete(`/admin/vehicle-registrations/${vehicleDeleteId}`);
+      setSuccess('Vehicle registration deleted successfully!');
+      await fetchVehicles(); // Refresh the vehicle list
+    } catch (err: any) {
+      console.error('Error deleting vehicle:', err);
+      setError(err.response?.data?.message || 'Failed to delete vehicle registration');
+    } finally {
+      setLoading(false);
+      setVehicleDeleteId(null);
+    }
   };
 
   const getVehicleExpiryStatus = (expiry: string) => {
@@ -2124,6 +2660,56 @@ const AdminPage: React.FC = () => {
     const diff = (exp.getTime() - today.getTime()) / (1000 * 3600 * 24);
     if (diff < 30) return 'warning';
     return 'success';
+  };
+
+  // Insurance Cost Calculation Functions
+  const calculateTotalInsuranceCost = (vehicles: any[]) => {
+    return vehicles.reduce((total, vehicle) => {
+      const cost = parseFloat(vehicle.insuranceCost) || 0;
+      return total + cost;
+    }, 0);
+  };
+
+  const calculateCashPayments = (vehicles: any[]) => {
+    return vehicles
+      .filter(vehicle => vehicle.insurancePaymentSystem === 'cash')
+      .reduce((total, vehicle) => {
+        const cost = parseFloat(vehicle.insuranceCost) || 0;
+        return total + cost;
+      }, 0);
+  };
+
+  const calculateInstallmentPayments = (vehicles: any[]) => {
+    return vehicles
+      .filter(vehicle => vehicle.insurancePaymentSystem === 'installments')
+      .reduce((total, vehicle) => {
+        const cost = parseFloat(vehicle.insuranceCost) || 0;
+        const period = parseInt(vehicle.insuranceInstallmentPeriod) || 1;
+        // For installments, we show the total cost, not the per-installment amount
+        return total + cost;
+      }, 0);
+  };
+
+  const calculateAverageCostPerVehicle = (vehicles: any[]) => {
+    if (vehicles.length === 0) return 0;
+    const totalCost = calculateTotalInsuranceCost(vehicles);
+    return Math.round(totalCost / vehicles.length);
+  };
+
+  const calculateAverageInstallmentPeriod = (vehicles: any[]) => {
+    const installmentVehicles = vehicles.filter(vehicle => 
+      vehicle.insurancePaymentSystem === 'installments' && 
+      vehicle.insuranceInstallmentPeriod
+    );
+    
+    if (installmentVehicles.length === 0) return 0;
+    
+    const totalPeriod = installmentVehicles.reduce((total, vehicle) => {
+      const period = parseInt(vehicle.insuranceInstallmentPeriod) || 0;
+      return total + period;
+    }, 0);
+    
+    return Math.round(totalPeriod / installmentVehicles.length);
   };
 
   // Compute dashboard stats
@@ -4674,6 +5260,28 @@ const AdminPage: React.FC = () => {
                           },
                         }}
                       />
+                      <TextField 
+                        select 
+                        label="Amortization Period" 
+                        name="amortization" 
+                        value={govDocForm.amortization} 
+                        onChange={handleGovDocFormChange} 
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.info.main,
+                            },
+                          },
+                        }}
+                      >
+                        <MenuItem value="">Select Amortization Period</MenuItem>
+                        {Array.from({ length: 60 }, (_, i) => i + 1).map((month) => (
+                          <MenuItem key={month} value={month}>
+                            {month} {month === 1 ? 'Month' : 'Months'}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                     </Box>
                     <TextField 
                       label="Renewal Process" 
@@ -4917,6 +5525,182 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{govDocSuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
+
+            {/* Cost Calculation Boxes */}
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
+                💰 Government Document Cost Analysis
+              </Typography>
+              
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 2 }}>
+                {/* Daily Cost Box */}
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: alpha(theme.palette.primary.main, 0.05),
+                    border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.15)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700, mb: 1 }}>
+                      {calculateDailyCost().toLocaleString()} KWD
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Today's Document Cost
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date().toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </Typography>
+                  </CardContent>
+                </Card>
+
+                {/* Weekly Cost Box */}
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: alpha(theme.palette.success.main, 0.05),
+                    border: `2px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.15)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700, mb: 1 }}>
+                      {calculateWeeklyCost().toLocaleString()} KWD
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      This Week's Document Cost
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getWeekRange()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+
+                {/* Monthly Cost Box */}
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: alpha(theme.palette.warning.main, 0.05),
+                    border: `2px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.15)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Typography variant="h4" sx={{ color: theme.palette.warning.main, fontWeight: 700, mb: 1 }}>
+                      {calculateMonthlyCost().toLocaleString()} KWD
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {getCurrentMonthName()} Document Cost
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getMonthRange()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+
+                {/* Quarterly Cost Box */}
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: alpha(theme.palette.info.main, 0.05),
+                    border: `2px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.15)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700, mb: 1 }}>
+                      {calculateQuarterlyCost().toLocaleString()} KWD
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {getCurrentQuarter()} Document Cost
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getQuarterRange()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+
+                {/* Half-Year Cost Box */}
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: alpha(theme.palette.secondary.main, 0.05),
+                    border: `2px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.15)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700, mb: 1 }}>
+                      {calculateHalfYearlyCost().toLocaleString()} KWD
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {getCurrentHalfYear()} Document Cost
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getHalfYearRange()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+
+                {/* Annual Cost Box */}
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: alpha(theme.palette.error.main, 0.05),
+                    border: `2px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.15)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Typography variant="h4" sx={{ color: theme.palette.error.main, fontWeight: 700, mb: 1 }}>
+                      {calculateYearlyCost().toLocaleString()} KWD
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      Financial Year Document Cost
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getFinancialYearRange()}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Box>
+            </Box>
           </motion.div>
         )}
         {tab === 2 && (
@@ -5145,6 +5929,144 @@ const AdminPage: React.FC = () => {
                 ))}
               </Box>
             )}
+
+            {/* Total Cost Summary Box */}
+            {Array.isArray(vehicles) && vehicles.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    mt: 3,
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                    backdropFilter: 'blur(10px)',
+                    border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 12px 30px ${alpha(theme.palette.primary.main, 0.2)}`,
+                      border: `2px solid ${alpha(theme.palette.primary.main, 0.4)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 48, height: 48 }}>
+                        <AttachMoneyIcon />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                          💰 Total Insurance Cost Summary
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Comprehensive cost breakdown for all vehicle insurance
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 3 }}>
+                      {/* Total Insurance Cost */}
+                      <Box sx={{ 
+                        p: 2, 
+                        background: alpha(theme.palette.success.main, 0.1),
+                        borderRadius: 2,
+                        border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                        textAlign: 'center'
+                      }}>
+                        <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700, mb: 1 }}>
+                          KWD {calculateTotalInsuranceCost(vehicles).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                          Total Insurance Cost
+                        </Typography>
+                      </Box>
+
+                      {/* Cash Payments */}
+                      <Box sx={{ 
+                        p: 2, 
+                        background: alpha(theme.palette.info.main, 0.1),
+                        borderRadius: 2,
+                        border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                        textAlign: 'center'
+                      }}>
+                        <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700, mb: 1 }}>
+                          KWD {calculateCashPayments(vehicles).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                          Cash Payments
+                        </Typography>
+                      </Box>
+
+                      {/* Installment Payments */}
+                      <Box sx={{ 
+                        p: 2, 
+                        background: alpha(theme.palette.warning.main, 0.1),
+                        borderRadius: 2,
+                        border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                        textAlign: 'center'
+                      }}>
+                        <Typography variant="h4" sx={{ color: theme.palette.warning.main, fontWeight: 700, mb: 1 }}>
+                          KWD {calculateInstallmentPayments(vehicles).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                          Installment Payments
+                        </Typography>
+                      </Box>
+
+                      {/* Average Cost per Vehicle */}
+                      <Box sx={{ 
+                        p: 2, 
+                        background: alpha(theme.palette.secondary.main, 0.1),
+                        borderRadius: 2,
+                        border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                        textAlign: 'center'
+                      }}>
+                        <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700, mb: 1 }}>
+                          KWD {calculateAverageCostPerVehicle(vehicles).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                          Avg Cost per Vehicle
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Detailed Breakdown */}
+                    <Box sx={{ mt: 3, p: 2, background: alpha(theme.palette.background.paper, 0.5), borderRadius: 2 }}>
+                      <Typography variant="subtitle2" sx={{ color: theme.palette.primary.main, fontWeight: 600, mb: 2 }}>
+                        📊 Detailed Breakdown
+                      </Typography>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 2 }}>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Total Vehicles: <strong>{vehicles.length}</strong>
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Cash Payment Vehicles: <strong>{vehicles.filter(v => v.insurancePaymentSystem === 'cash').length}</strong>
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Installment Vehicles: <strong>{vehicles.filter(v => v.insurancePaymentSystem === 'installments').length}</strong>
+                          </Typography>
+                        </Box>
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            Avg Installment Period: <strong>{calculateAverageInstallmentPeriod(vehicles)} months</strong>
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
             {/* Add/Edit Dialog */}
             <Dialog 
               open={vehicleOpen} 
@@ -5181,7 +6103,15 @@ const AdminPage: React.FC = () => {
                 </Box>
               </DialogTitle>
               <DialogContent sx={{ p: 3 }}>
-                <Box component="form" onSubmit={handleVehicleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Box 
+                  component="form" 
+                  onSubmit={(e) => {
+                    console.log('📝 Form onSubmit triggered!');
+                    console.log('Form event:', e);
+                    handleVehicleSubmit(e);
+                  }} 
+                  sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}
+                >
                   {/* Vehicle Information Section */}
                   <Paper 
                     elevation={0}
@@ -5203,7 +6133,7 @@ const AdminPage: React.FC = () => {
                     <Box display="flex" gap={2} mb={2}>
                       <TextField 
                         select 
-                        label="Vehicle" 
+                        label={`Asset (${assets.length} available)`} 
                         name="vehicle" 
                         value={vehicleForm.vehicle} 
                         onChange={handleVehicleFormChange} 
@@ -5217,10 +6147,38 @@ const AdminPage: React.FC = () => {
                           },
                         }}
                       >
-                        <MenuItem value="">Select Vehicle</MenuItem>
-                        {Array.isArray(assets) && assets.map(asset => (
-                          <MenuItem key={asset._id} value={asset._id}>🚗 {asset.description} - {asset.plateNumber || asset.serialNumber || asset.fleetNumber}</MenuItem>
-                        ))}
+                        <MenuItem value="">Select Asset</MenuItem>
+                        {/* Assets dropdown */}
+                        {Array.isArray(assets) && assets.length > 0 ? (
+                          assets.map(asset => {
+                            // Get appropriate icon based on asset type
+                            const getAssetIcon = (type: string) => {
+                              switch (type?.toLowerCase()) {
+                                case 'vehicle': return '🚗';
+                                case 'equipment': return '⚙️';
+                                case 'attachment': return '🔧';
+                                case 'other': return '📦';
+                                default: return '🚗';
+                              }
+                            };
+                            
+                            // Get identifier (plate number, serial number, or fleet number)
+                            const identifier = asset.plateNumber || asset.serialNumber || asset.fleetNumber || asset.chassisNumber;
+                            
+                            return (
+                              <MenuItem key={asset._id} value={asset._id}>
+                                {getAssetIcon(asset.type)} {asset.description} 
+                                {identifier && ` - ${identifier}`}
+                                {asset.brand && ` (${asset.brand})`}
+                                {asset.type && ` [${asset.type}]`}
+                              </MenuItem>
+                            );
+                          })
+                        ) : (
+                          <MenuItem value="" disabled>
+                            {assets.length === 0 ? 'No assets available' : 'Loading assets...'}
+                          </MenuItem>
+                        )}
                       </TextField>
                       <TextField 
                         label="Plate Number" 
@@ -6009,8 +6967,17 @@ const AdminPage: React.FC = () => {
                   Cancel
                 </Button>
                 <Button 
-                  onClick={handleVehicleSubmit} 
+                  type="submit"
                   variant="contained"
+                  disabled={loading}
+                  onClick={(e) => {
+                    console.log('🔘 Submit button clicked!');
+                    console.log('Event:', e);
+                    console.log('Form data at click:', vehicleForm);
+                    // Test direct function call
+                    console.log('🧪 Testing direct function call...');
+                    handleVehicleSubmit(e);
+                  }}
                   sx={{
                     background: `linear-gradient(135deg, ${theme.palette.success.main} 0%, ${theme.palette.primary.main} 100%)`,
                     '&:hover': {
@@ -6018,10 +6985,14 @@ const AdminPage: React.FC = () => {
                       transform: 'translateY(-2px)',
                       boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.3)}`
                     },
+                    '&:disabled': {
+                      background: theme.palette.grey[300],
+                      color: theme.palette.grey[500]
+                    },
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  {vehicleEditing ? '✏️ Update Vehicle' : '🚗 Add Vehicle'}
+                  {loading ? '⏳ Processing...' : (vehicleEditing ? '✏️ Update Vehicle' : '🚗 Add Vehicle')}
                 </Button>
               </DialogActions>
             </Dialog>
@@ -6553,9 +7524,11 @@ const AdminPage: React.FC = () => {
                         }}
                       >
                         <MenuItem value="">None</MenuItem>
-                        {employees.map(emp => (
-                          <MenuItem key={emp._id} value={emp._id}>👤 {emp.name}</MenuItem>
-                        ))}
+                        {Array.isArray(employees) && employees.length > 0 ? employees.map(emp => (
+                          <MenuItem key={emp._id || emp.id || Math.random()} value={emp._id || emp.id}>👤 {emp.name}</MenuItem>
+                        )) : (
+                          <MenuItem value="" disabled>No employees available</MenuItem>
+                        )}
                       </TextField>
                       <TextField 
                         select 
@@ -6879,6 +7852,7 @@ const AdminPage: React.FC = () => {
                         <MenuItem value="urgent">🔴 Urgent</MenuItem>
                       </TextField>
                       <TextField 
+                        select 
                         label="Assigned To" 
                         name="assignedTo" 
                         value={correspondenceForm.assignedTo} 
@@ -6892,7 +7866,14 @@ const AdminPage: React.FC = () => {
                             },
                           },
                         }}
-                      />
+                      >
+                        <MenuItem value="">Select Employee</MenuItem>
+                        {Array.isArray(employees) && employees.length > 0 ? employees.map(emp => (
+                          <MenuItem key={emp._id || emp.id || Math.random()} value={emp._id || emp.id}>👤 {emp.name}</MenuItem>
+                        )) : (
+                          <MenuItem value="" disabled>No employees available</MenuItem>
+                        )}
+                      </TextField>
                     </Box>
                     <TextField 
                       label="Notes" 
@@ -7108,6 +8089,225 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{correspondenceSuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
+            
+            {/* Cost Calculation Boxes */}
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 3, color: theme.palette.primary.main, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                💰 Cost Analysis Dashboard
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {/* Daily Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `2px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                      borderRadius: 3,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40 }}>
+                        📅
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                          Daily Cost
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date().toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700 }}>
+                      {calculateDailyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Weekly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `2px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                      borderRadius: 3,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}>
+                        📊
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                          Weekly Cost
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {getWeekRange()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700 }}>
+                      {calculateWeeklyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Monthly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                      border: `2px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                      borderRadius: 3,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 40, height: 40 }}>
+                        📈
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                          Monthly Cost
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {getCurrentMonthName()} {new Date().getFullYear()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.warning.main, fontWeight: 700 }}>
+                      {calculateMonthlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Quarterly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                      border: `2px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                      borderRadius: 3,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 40, height: 40 }}>
+                        📋
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                          Quarterly Cost
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {getCurrentQuarter()} {new Date().getFullYear()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700 }}>
+                      {calculateQuarterlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Half Yearly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                      border: `2px solid ${alpha(theme.palette.error.main, 0.3)}`,
+                      borderRadius: 3,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>
+                        📊
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                          Half Yearly Cost
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {getCurrentHalfYear()} {new Date().getFullYear()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.error.main, fontWeight: 700 }}>
+                      {calculateHalfYearlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Yearly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                      borderRadius: 3,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>
+                        🏆
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                          Financial Year Cost
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Apr 1 - Mar 31 ({new Date().getFullYear()})
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700 }}>
+                      {calculateYearlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+              </Box>
+            </Box>
           </motion.div>
         )}
         {tab === 4 && (
@@ -7474,6 +8674,24 @@ const AdminPage: React.FC = () => {
                         }}
                       />
                     </Box>
+                    <TextField 
+                      label="Filing Date" 
+                      name="filingDate" 
+                      value={legalCaseForm.filingDate} 
+                      onChange={handleLegalCaseFormChange} 
+                      type="date" 
+                      InputLabelProps={{ shrink: true }} 
+                      required 
+                      fullWidth
+                      sx={{
+                        mb: 2,
+                        '& .MuiOutlinedInput-root': {
+                          '&:hover fieldset': {
+                            borderColor: theme.palette.error.main,
+                          },
+                        },
+                      }}
+                    />
                     <Box display="flex" gap={2} mb={2}>
                       <TextField 
                         select 
@@ -8005,6 +9223,189 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{legalCaseSuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
+
+            {/* Legal Case Cost Analysis Dashboard */}
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 3, color: theme.palette.error.main, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                💰 Legal Case Cost Analysis Dashboard
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {/* Daily Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                      borderRadius: theme.shape.borderRadius,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40 }}>📅</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>Daily Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{new Date().toLocaleDateString()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700 }}>
+                      {calculateLegalDailyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Weekly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                      borderRadius: theme.shape.borderRadius,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}>📊</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>Weekly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getWeekRange()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700 }}>
+                      {calculateLegalWeeklyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Monthly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                      borderRadius: theme.shape.borderRadius,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 40, height: 40 }}>📈</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>Monthly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getCurrentMonthName()} {new Date().getFullYear()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.warning.main, fontWeight: 700 }}>
+                      {calculateLegalMonthlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Quarterly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                      borderRadius: theme.shape.borderRadius,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 40, height: 40 }}>📊</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>Quarterly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getCurrentQuarter()} {new Date().getFullYear()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700 }}>
+                      {calculateLegalQuarterlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Half Yearly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.error.main, 0.3)}`,
+                      borderRadius: theme.shape.borderRadius,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>📊</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>Half Yearly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getCurrentHalfYear()} {new Date().getFullYear()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.error.main, fontWeight: 700 }}>
+                      {calculateLegalHalfYearlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Yearly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper 
+                    elevation={3}
+                    sx={{ 
+                      p: 3, 
+                      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                      borderRadius: theme.shape.borderRadius,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.2)}`
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>📅</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>Financial Year Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getFinancialYearRange()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700 }}>
+                      {calculateLegalYearlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+              </Box>
+            </Box>
           </motion.div>
         )}
         {tab === 5 && (
@@ -8055,6 +9456,7 @@ const AdminPage: React.FC = () => {
                 </Button>
               </Box>
             </Paper>
+
 
             {loading ? (
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 3 }}>
@@ -9290,6 +10692,171 @@ const AdminPage: React.FC = () => {
               message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{facilitySuccess}</span>}
               anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
             />
+
+            {/* Company Facility Cost Analysis Dashboard */}
+            <Box sx={{ mt: 4 }}>
+              <Typography variant="h5" sx={{ mb: 3, color: theme.palette.neutral?.main || '#795548', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                💰 Company Facility Cost Analysis Dashboard
+              </Typography>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {/* Daily Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper elevation={3} sx={{ 
+                    p: 3, 
+                    borderRadius: 2, 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.dark, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.2)}`
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40 }}>📅</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>Daily Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{new Date().toLocaleDateString()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700 }}>
+                      {calculateFacilityDailyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Weekly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper elevation={3} sx={{ 
+                    p: 3, 
+                    borderRadius: 2, 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.dark, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.2)}`
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40 }}>📊</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>Weekly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getWeekRange()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700 }}>
+                      {calculateFacilityWeeklyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Monthly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper elevation={3} sx={{ 
+                    p: 3, 
+                    borderRadius: 2, 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.dark, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.2)}`
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 40, height: 40 }}>📆</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>Monthly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getCurrentMonthName()} {new Date().getFullYear()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.warning.main, fontWeight: 700 }}>
+                      {calculateFacilityMonthlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Quarterly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper elevation={3} sx={{ 
+                    p: 3, 
+                    borderRadius: 2, 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.dark, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.2)}`
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 40, height: 40 }}>📈</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>Quarterly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getCurrentQuarter()} {new Date().getFullYear()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700 }}>
+                      {calculateFacilityQuarterlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Half Yearly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper elevation={3} sx={{ 
+                    p: 3, 
+                    borderRadius: 2, 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.error.dark, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.2)}`
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40 }}>📊</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>Half Yearly Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getCurrentHalfYear()} {new Date().getFullYear()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.error.main, fontWeight: 700 }}>
+                      {calculateFacilityHalfYearlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+
+                {/* Yearly Cost Box */}
+                <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+                  <Paper elevation={3} sx={{ 
+                    p: 3, 
+                    borderRadius: 2, 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.dark, 0.05)} 100%)`,
+                    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.2)}`
+                    }
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40 }}>🏢</Avatar>
+                      <Box>
+                        <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>Financial Year Cost</Typography>
+                        <Typography variant="body2" color="text.secondary">{getFinancialYearRange()}</Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700 }}>
+                      {calculateFacilityYearlyCost().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KWD
+                    </Typography>
+                  </Paper>
+                </Box>
+              </Box>
+            </Box>
           </motion.div>
         )}
         {tab === 6 && (
@@ -9916,7 +11483,7 @@ const AdminPage: React.FC = () => {
                   <Card sx={{ flex: '1 1 200px', minWidth: 200, background: 'linear-gradient(135deg, #45B7D1 0%, #2196F3 100%)', color: 'white' }}>
                     <CardContent>
                       <Typography variant="h6">Total Cost</Typography>
-                      <Typography variant="h3">${calculateTravelOverview.totalCost.toLocaleString()}</Typography>
+                      <Typography variant="h3">{calculateTravelOverview.totalCost.toLocaleString()} KWD</Typography>
                     </CardContent>
                   </Card>
                 </Box>
@@ -10077,8 +11644,8 @@ const AdminPage: React.FC = () => {
                             <TableCell><strong>{country}</strong></TableCell>
                             <TableCell>{stats.count}</TableCell>
                             <TableCell>{Array.from(stats.employees).join(', ')}</TableCell>
-                            <TableCell>${stats.totalCost.toLocaleString()}</TableCell>
-                            <TableCell>${(stats.totalCost / stats.count).toLocaleString()}</TableCell>
+                            <TableCell>{stats.totalCost.toLocaleString()} KWD</TableCell>
+                            <TableCell>{(stats.totalCost / stats.count).toLocaleString()} KWD</TableCell>
                           </TableRow>
                         ))}
                     </TableBody>
@@ -10106,8 +11673,8 @@ const AdminPage: React.FC = () => {
                             <TableCell><strong>{employee}</strong></TableCell>
                             <TableCell>{stats.count}</TableCell>
                             <TableCell>{Array.from(stats.countries).join(', ')}</TableCell>
-                            <TableCell>${stats.totalCost.toLocaleString()}</TableCell>
-                            <TableCell>${(stats.totalCost / stats.count).toLocaleString()}</TableCell>
+                            <TableCell>{stats.totalCost.toLocaleString()} KWD</TableCell>
+                            <TableCell>{(stats.totalCost / stats.count).toLocaleString()} KWD</TableCell>
                           </TableRow>
                         ))}
                     </TableBody>
@@ -10156,7 +11723,7 @@ const AdminPage: React.FC = () => {
                                 size="small" 
                               />
                             </TableCell>
-                            <TableCell>${(trip.actualAmount || 0).toLocaleString()}</TableCell>
+                            <TableCell>{(trip.actualAmount || 0).toLocaleString()} KWD</TableCell>
                             <TableCell>
                               <IconButton size="small" color="primary" onClick={() => handleItineraryOpen(trip)}>
                                 <EditIcon />

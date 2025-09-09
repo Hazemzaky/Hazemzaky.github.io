@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Box, Button, TextField, MenuItem, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Select, InputLabel, FormControl, Snackbar, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Autocomplete, SelectChangeEvent, Tabs, Tab, Chip, Avatar, Card, CardContent, useTheme, alpha, Tooltip, Fab, InputAdornment, Divider
 } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 import InfoIcon from '@mui/icons-material/Info';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -17,6 +18,8 @@ import PrintIcon from '@mui/icons-material/Print';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 import theme from '../theme';
+import CostAnalysisDashboard from '../components/CostAnalysisDashboard';
+import useModulePnLSync from '../services/useModulePnLSync';
 
 const priorities = [
   { value: 'low', label: 'Low' },
@@ -62,6 +65,7 @@ const PROCUREMENT_TABS = [
 ];
 
 const ProcurementPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [prs, setPrs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -160,8 +164,12 @@ const ProcurementPage: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/purchase-requests');
-      setPrs(Array.isArray(res.data) ? res.data : []);
+      const prData = Array.isArray(res.data) ? res.data : [];
+      console.log('Fetched PRs:', prData); // Debug log
+      console.log('PRs for dropdowns:', prData.filter(pr => pr.status === 'sent_to_procurement' || pr.status === 'in_progress')); // Debug log
+      setPrs(prData);
     } catch (e) {
+      console.error('Error fetching PRs:', e); // Debug log
       setSnackbar({ open: true, message: 'Failed to fetch PRs', severity: 'error' });
     } finally {
       setLoading(false);
@@ -186,8 +194,12 @@ const ProcurementPage: React.FC = () => {
   const fetchPOs = async () => {
     try {
       const res = await api.get('/purchase-orders');
-      setPOs(Array.isArray(res.data) ? res.data : []);
+      const poData = Array.isArray(res.data) ? res.data : [];
+      console.log('Fetched POs:', poData); // Debug log
+      console.log('POs for GRN dropdown:', poData.filter(po => po.status === 'open')); // Debug log
+      setPOs(poData);
     } catch (e) {
+      console.error('Error fetching POs:', e); // Debug log
       setSnackbar({ open: true, message: 'Failed to fetch POs', severity: 'error' });
     }
   };
@@ -607,20 +619,23 @@ const ProcurementPage: React.FC = () => {
   // Approve/Send/Reject PR
   const handleStatusChange = async (id: string, status: string) => {
     try {
+      console.log('Updating PR status:', id, 'to', status); // Debug log
       const res = await api.put(`/purchase-requests/${id}`, { status }, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
       });
+      console.log('Status update response:', res.data); // Debug log
       if (res.status !== 200) {
-        const errorData: any = res.data;
+        const errorData = res.data as any;
         setSnackbar({ open: true, message: errorData?.message || 'Failed to update status', severity: 'error' });
         return;
       }
       setSnackbar({ open: true, message: 'Status updated', severity: 'success' });
       fetchPRs();
     } catch (e) {
+      console.error('Error updating status:', e); // Debug log
       setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' });
     }
   };
@@ -716,8 +731,117 @@ const ProcurementPage: React.FC = () => {
 
   const [tab, setTab] = useState(0);
 
+  // Handle URL parameter for tab navigation
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      const tabIndex = parseInt(tabParam, 10);
+      if (tabIndex >= 0 && tabIndex < PROCUREMENT_TABS.length) {
+        setTab(tabIndex);
+      }
+    }
+  }, [searchParams]);
+
   const muiTheme = useTheme();
   const [fullscreen, setFullscreen] = useState(false);
+
+  // Build procurement cost records for dashboard & PnL sync
+  const procurementRecords = React.useMemo(() => (
+    [
+      // Purchase Requests
+      ...prs.map(pr => {
+        const estimatedCost = typeof pr.estimatedCost === 'string' ?
+          parseFloat(pr.estimatedCost) || 0 :
+          (pr.estimatedCost || 0);
+
+        return {
+          _id: pr._id,
+          amount: estimatedCost,
+          date: pr.createdAt ? new Date(pr.createdAt).toISOString() : new Date().toISOString(),
+          type: 'purchase_request',
+          description: pr.itemDescription || 'Purchase Request',
+          isAmortized: pr.priority === 'high' && estimatedCost > 1000,
+          amortizationPeriod: pr.priority === 'high' && estimatedCost > 1000 ? 12 : undefined,
+          depreciationStart: pr.priority === 'high' && estimatedCost > 1000 ?
+            (pr.createdAt ? new Date(pr.createdAt).toISOString() : new Date().toISOString()) : undefined,
+          depreciationEnd: pr.priority === 'high' && estimatedCost > 1000 ?
+            new Date(new Date(pr.createdAt || new Date()).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString() : undefined
+        };
+      }),
+      // Purchase Orders
+      ...pos.map(po => {
+        const totalAmount = po.totalAmount || 0;
+        const isDelivered = po.status === 'closed';
+
+        return {
+          _id: po._id,
+          amount: totalAmount,
+          date: po.createdAt ? new Date(po.createdAt).toISOString() : new Date().toISOString(),
+          type: 'purchase_order',
+          description: po.purchaseRequest?.itemDescription || 'Purchase Order',
+          isAmortized: isDelivered && totalAmount > 1000,
+          amortizationPeriod: isDelivered && totalAmount > 1000 ? 24 : undefined,
+          depreciationStart: isDelivered && totalAmount > 1000 ?
+            (po.createdAt ? new Date(po.createdAt).toISOString() : new Date().toISOString()) : undefined,
+          depreciationEnd: isDelivered && totalAmount > 1000 ?
+            new Date(new Date(po.createdAt || new Date()).getTime() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString() : undefined
+        };
+      }),
+      // Procurement Invoices
+      ...invoices.map(inv => {
+        const amount = typeof inv.amount === 'string' ?
+          parseFloat(inv.amount) || 0 :
+          (inv.amount || 0);
+        const isPaid = inv.status === 'paid';
+
+        return {
+          _id: inv._id,
+          amount: amount,
+          date: inv.paymentDate ? new Date(inv.paymentDate).toISOString() :
+                inv.createdAt ? new Date(inv.createdAt).toISOString() :
+                new Date().toISOString(),
+          type: 'procurement_invoice',
+          description: 'Procurement Invoice',
+          isAmortized: isPaid && amount > 500,
+          amortizationPeriod: isPaid && amount > 500 ? 12 : undefined,
+          depreciationStart: isPaid && amount > 500 ?
+            (inv.paymentDate ? new Date(inv.paymentDate).toISOString() :
+             inv.createdAt ? new Date(inv.createdAt).toISOString() :
+             new Date().toISOString()) : undefined,
+          depreciationEnd: isPaid && amount > 500 ?
+            new Date(new Date(inv.paymentDate || inv.createdAt || new Date()).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString() : undefined
+        };
+      }),
+      // Goods Receipts
+      ...grns.map(grn => {
+        let totalAmount = 0;
+        if (grn.items && Array.isArray(grn.items)) {
+          totalAmount = grn.items.reduce((sum: number, item: any) => {
+            const quantity = typeof item.quantity === 'string' ? parseFloat(item.quantity) || 0 : (item.quantity || 0);
+            const price = typeof item.price === 'string' ? parseFloat(item.price) || 0 : (item.price || 0);
+            return sum + (quantity * price);
+          }, 0);
+        }
+
+        return {
+          _id: grn._id,
+          amount: totalAmount,
+          date: grn.receivedDate ? new Date(grn.receivedDate).toISOString() :
+                grn.createdAt ? new Date(grn.createdAt).toISOString() :
+                new Date().toISOString(),
+          type: 'goods_receipt',
+          description: 'Goods Receipt',
+          isAmortized: false,
+          amortizationPeriod: undefined,
+          depreciationStart: undefined,
+          depreciationEnd: undefined
+        };
+      })
+    ]
+  ), [prs, pos, invoices, grns]);
+
+  // Sync procurement totals to P&L
+  useModulePnLSync('procurement', procurementRecords, 'date', 'amount');
 
   // Render Dashboard Header
   const renderDashboardHeader = () => (
@@ -1487,7 +1611,39 @@ const ProcurementPage: React.FC = () => {
                   </Button>
                 </Box>
             </Paper>
-            <Typography variant="h6" gutterBottom>All Purchase Requests</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" gutterBottom sx={{ mb: 0 }}>All Purchase Requests</Typography>
+              <Button 
+                variant="outlined" 
+                color="secondary"
+                onClick={async () => {
+                  try {
+                    const testPR = {
+                      itemDescription: 'Test Item for Dropdown',
+                      quantity: '1',
+                      priority: 'medium',
+                      department: 'Test Department',
+                      itemStatus: 'available',
+                      procurementNotes: 'Test PR for dropdown testing',
+                      estimatedCost: '100'
+                    };
+                    const res = await api.post('/purchase-requests', testPR);
+                    if (res.status === 201) {
+                      // Immediately update status to sent_to_procurement
+                      const prData = res.data as { _id: string };
+                      await api.put(`/purchase-requests/${prData._id}`, { status: 'sent_to_procurement' });
+                      setSnackbar({ open: true, message: 'Test PR created and sent to procurement', severity: 'success' });
+                      fetchPRs();
+                    }
+                  } catch (e) {
+                    setSnackbar({ open: true, message: 'Failed to create test PR', severity: 'error' });
+                  }
+                }}
+                sx={{ ml: 2 }}
+              >
+                Create Test PR
+              </Button>
+            </Box>
             {loading ? <CircularProgress /> : (
               <TableContainer component={Paper}>
                 <Table size="small">
@@ -1541,16 +1697,18 @@ const ProcurementPage: React.FC = () => {
                         </TableCell>
                         <TableCell>{pr.estimatedCost ? `$${pr.estimatedCost}` : '-'}</TableCell>
                         <TableCell>
-                          <Box sx={{ 
-                            px: 1, 
-                            py: 0.5, 
-                            borderRadius: 1, 
-                            backgroundColor: pr.status === 'in_progress' ? '#fff3e0' : 
-                                           pr.status === 'sent_to_procurement' ? '#e3f2fd' : 
-                                           pr.status === 'approved' ? '#e8f5e8' : '#f5f5f5'
-                          }}>
-                            {pr.status}
-                          </Box>
+                          <Chip
+                            label={pr.status}
+                            size="small"
+                            color={
+                              pr.status === 'in_progress' ? 'warning' :
+                              pr.status === 'sent_to_procurement' ? 'info' :
+                              pr.status === 'approved' ? 'success' :
+                              pr.status === 'pending' ? 'default' :
+                              pr.status === 'rejected' ? 'error' : 'default'
+                            }
+                            sx={{ fontWeight: 600 }}
+                          />
                         </TableCell>
                         <TableCell>{pr.requester?.email || pr.requester}</TableCell>
                         <TableCell>
@@ -1576,7 +1734,10 @@ const ProcurementPage: React.FC = () => {
                             <Button size="small" color="error" onClick={() => handleStatusChange(pr._id, 'rejected')}>Reject</Button>
                           )}
                           {pr.status === 'sent_to_procurement' && (
-                            <Button size="small" color="primary" onClick={() => handleStatusChange(pr._id, 'approved')}>Approve</Button>
+                            <>
+                              <Button size="small" color="primary" onClick={() => handleStatusChange(pr._id, 'in_progress')}>Start Processing</Button>
+                              <Button size="small" color="success" onClick={() => handleStatusChange(pr._id, 'approved')}>Approve</Button>
+                            </>
                           )}
                         </TableCell>
                       </TableRow>
@@ -1623,9 +1784,13 @@ const ProcurementPage: React.FC = () => {
                         } 
                       }}
                     >
-                      {prs.filter(pr => pr.status === 'approved').map((pr) => (
-                        <MenuItem key={pr._id} value={pr._id}>{pr.itemDescription} - {pr.department}</MenuItem>
-                      ))}
+                      {prs.filter(pr => pr.status === 'sent_to_procurement' || pr.status === 'in_progress').length === 0 ? (
+                        <MenuItem disabled>No purchase requests available (need 'sent_to_procurement' or 'in_progress' status)</MenuItem>
+                      ) : (
+                        prs.filter(pr => pr.status === 'sent_to_procurement' || pr.status === 'in_progress').map((pr) => (
+                          <MenuItem key={pr._id} value={pr._id}>{pr.itemDescription} - {pr.department}</MenuItem>
+                        ))
+                      )}
                     </Select>
                   </FormControl>
                   <FormControl sx={{ minWidth: 200 }}>
@@ -1687,9 +1852,26 @@ const ProcurementPage: React.FC = () => {
                   </Button>
                 </Box>
             </Paper>
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
-              📊 All Purchase Orders
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 0 }}>
+                📊 All Purchase Orders
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  PRs for PO: {prs.filter(pr => pr.status === 'sent_to_procurement' || pr.status === 'in_progress').length}
+                </Typography>
+                <Button 
+                  size="small" 
+                  variant="outlined"
+                  onClick={() => {
+                    console.log('All PRs:', prs);
+                    console.log('PRs for PO dropdown:', prs.filter(pr => pr.status === 'sent_to_procurement' || pr.status === 'in_progress'));
+                  }}
+                >
+                  Debug PRs
+                </Button>
+              </Box>
+            </Box>
             
             {/* Enhanced Purchase Orders Table */}
             <Paper 
@@ -1743,8 +1925,8 @@ const ProcurementPage: React.FC = () => {
                           label={po.status}
                           size="small"
                           color={
-                            po.status === 'approved' ? 'success' :
-                            po.status === 'in_progress' ? 'warning' :
+                            po.status === 'closed' ? 'success' :
+                            po.status === 'open' ? 'info' :
                             po.status === 'cancelled' ? 'error' : 'default'
                           }
                           sx={{ fontWeight: 600 }}
@@ -1757,7 +1939,7 @@ const ProcurementPage: React.FC = () => {
                           size="small" 
                           variant="contained"
                           color="success" 
-                          onClick={() => handlePOStatus(po._id, 'approved')}
+                          onClick={() => handlePOStatus(po._id, 'closed')}
                           sx={{ 
                             fontWeight: 600,
                             mr: 1,
@@ -1773,7 +1955,7 @@ const ProcurementPage: React.FC = () => {
                           size="small" 
                           variant="contained"
                           color="warning" 
-                          onClick={() => handlePOStatus(po._id, 'in_progress')}
+                          onClick={() => handlePOStatus(po._id, 'open')}
                           sx={{ 
                             fontWeight: 600,
                             mr: 1,
@@ -1845,9 +2027,13 @@ const ProcurementPage: React.FC = () => {
                         } 
                       }}
                     >
-                      {prs.filter(pr => pr.status === 'sent_to_procurement').map((pr) => (
-                        <MenuItem key={pr._id} value={pr._id}>{pr.itemDescription} - {pr.department}</MenuItem>
-                      ))}
+                      {prs.filter(pr => pr.status === 'sent_to_procurement').length === 0 ? (
+                        <MenuItem disabled>No purchase requests available (need 'sent_to_procurement' status)</MenuItem>
+                      ) : (
+                        prs.filter(pr => pr.status === 'sent_to_procurement').map((pr) => (
+                          <MenuItem key={pr._id} value={pr._id}>{pr.itemDescription} - {pr.department}</MenuItem>
+                        ))
+                      )}
                     </Select>
                   </FormControl>
                   <Autocomplete
@@ -1892,9 +2078,26 @@ const ProcurementPage: React.FC = () => {
                   </Button>
                 </Box>
             </Paper>
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
-              📊 All Quotation Requests
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 0 }}>
+                📊 All Quotation Requests
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  PRs for Quotes: {prs.filter(pr => pr.status === 'sent_to_procurement').length}
+                </Typography>
+                <Button 
+                  size="small" 
+                  variant="outlined"
+                  onClick={() => {
+                    console.log('All PRs:', prs);
+                    console.log('PRs for Quote dropdown:', prs.filter(pr => pr.status === 'sent_to_procurement'));
+                  }}
+                >
+                  Debug PRs
+                </Button>
+              </Box>
+            </Box>
             
             {/* Enhanced Quotations Table */}
             <Paper 
@@ -2068,9 +2271,13 @@ const ProcurementPage: React.FC = () => {
                         } 
                       }}
                     >
-                      {pos.filter(po => po.status === 'approved').map((po) => (
-                        <MenuItem key={po._id} value={po._id}>{po.poNumber || po._id.slice(-6)} - {po.purchaseRequest?.itemDescription}</MenuItem>
-                      ))}
+                      {pos.filter(po => po.status === 'open').length === 0 ? (
+                        <MenuItem disabled>No purchase orders available (need 'open' status)</MenuItem>
+                      ) : (
+                        pos.filter(po => po.status === 'open').map((po) => (
+                          <MenuItem key={po._id} value={po._id}>{po.poNumber || po._id.slice(-6)} - {po.purchaseRequest?.itemDescription}</MenuItem>
+                        ))
+                      )}
                     </Select>
                   </FormControl>
                   <TextField 
@@ -2136,9 +2343,26 @@ const ProcurementPage: React.FC = () => {
                   </Button>
                 </Box>
             </Paper>
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
-              📊 All Goods Receipts
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 0 }}>
+                📊 All Goods Receipts
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  POs for GRN: {pos.filter(po => po.status === 'open').length}
+                </Typography>
+                <Button 
+                  size="small" 
+                  variant="outlined"
+                  onClick={() => {
+                    console.log('All POs:', pos);
+                    console.log('POs for GRN dropdown:', pos.filter(po => po.status === 'open'));
+                  }}
+                >
+                  Debug POs
+                </Button>
+              </Box>
+            </Box>
             
             {/* Enhanced Goods Receipts Table */}
             <Paper 
@@ -3100,6 +3324,25 @@ const ProcurementPage: React.FC = () => {
       >
         <RefreshIcon />
       </Fab>
+
+      {/* Cost Analysis Dashboard */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.6 }}
+      >
+        <CostAnalysisDashboard
+          title="Procurement Cost Analysis"
+          subtitle="Total procurement costs across all periods with depreciation and amortization"
+          emoji="💰"
+          module="procurement"
+          records={procurementRecords}
+          dateField="date"
+          costField="amount"
+          loading={loading}
+          enablePnLIntegration={true}
+        />
+      </motion.div>
 
       {/* Enhanced Snackbar */}
       <Snackbar 

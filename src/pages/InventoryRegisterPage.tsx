@@ -56,6 +56,7 @@ interface InventoryItem {
   serial?: string; // Added serial number field
   costType?: 'direct' | 'depreciated'; // Added cost type field
   depreciationDuration?: number; // Added depreciation duration field
+  createdAt?: string; // Added creation date field
 }
 
 interface Asset {
@@ -120,6 +121,153 @@ const InventoryRegisterPage: React.FC = () => {
     lowStockItems: items.filter(item => (item.quantity || 0) <= (Number(item.rop) || 0)).length,
     totalTypes: new Set(items.map(item => item.type)).size,
     warrantyItems: items.filter(item => item.warranty === "true").length
+  };
+
+  // Cost calculation functions
+  const calculateDepreciatedCost = (item: InventoryItem, daysElapsed: number): number => {
+    if (item.costType !== 'depreciated' || !item.depreciationDuration || !item.purchaseCost) {
+      return item.purchaseCost || 0;
+    }
+    
+    // Calculate total days in depreciation period (more accurate than 30 days per month)
+    const totalDepreciationDays = item.depreciationDuration * 30.44; // Average days per month
+    const depreciationPerDay = item.purchaseCost / totalDepreciationDays;
+    const depreciatedAmount = depreciationPerDay * daysElapsed;
+    
+    // Ensure we don't go below 0 and apply straight-line depreciation
+    return Math.max(0, item.purchaseCost - depreciatedAmount);
+  };
+
+  // Helper functions for period calculations
+  const addMonths = (date: Date, months: number) => {
+    const d = new Date(date);
+    const targetMonth = d.getMonth() + months;
+    d.setMonth(targetMonth);
+    return d;
+  };
+
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const endExclusiveOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
+  const getWeekStart = (date: Date) => {
+    const d = new Date(startOfDay(date));
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
+    return new Date(d.setDate(diff));
+  };
+
+  const getMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+  const getNextMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+  const getQuarterStart = (date: Date) => {
+    const quarter = Math.floor(date.getMonth() / 3) * 3;
+    return new Date(date.getFullYear(), quarter, 1);
+  };
+  const getNextQuarterStart = (date: Date) => {
+    const start = getQuarterStart(date);
+    return new Date(start.getFullYear(), start.getMonth() + 3, 1);
+  };
+
+  const getHalfYearStart = (date: Date) => {
+    const half = Math.floor(date.getMonth() / 6) * 6;
+    return new Date(date.getFullYear(), half, 1);
+  };
+  const getNextHalfYearStart = (date: Date) => {
+    const start = getHalfYearStart(date);
+    return new Date(start.getFullYear(), start.getMonth() + 6, 1);
+  };
+
+  // Financial year Apr 1 - Mar 31
+  const getFinancialYear = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    return month >= 4 ? year : year - 1;
+  };
+  const getFinancialYearStart = (fy: number) => new Date(fy, 3, 1); // Apr 1
+  const getNextFinancialYearStart = (fy: number) => new Date(fy + 1, 3, 1); // Next Apr 1
+
+  const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+
+  // Calculate depreciation expense for an inventory item within [periodStart, periodEndExclusive)
+  const calculateDepreciationForPeriod = (item: InventoryItem, periodStart: Date, periodEndExclusive: Date): number => {
+    if (!item.purchaseCost || item.purchaseCost <= 0) return 0;
+    
+    // For direct cost items, return full purchase cost
+    if (item.costType !== 'depreciated' || !item.depreciationDuration) {
+      return item.purchaseCost * (item.quantity || 0);
+    }
+
+    const purchaseValue = Number(item.purchaseCost) || 0;
+    const quantity = item.quantity || 0;
+    const totalValue = purchaseValue * quantity;
+    
+    // Calculate depreciation period in days
+    const totalDepreciationDays = item.depreciationDuration * 30.44; // Average days per month
+    if (totalDepreciationDays <= 0) return totalValue;
+
+    // Use item creation date or current date for backward compatibility
+    const itemDate = item.createdAt ? new Date(item.createdAt) : new Date();
+    
+    // Determine overlap window where item is active and depreciating
+    const activeStart = itemDate > periodStart ? itemDate : periodStart;
+    const endOfLife = addMonths(itemDate, item.depreciationDuration);
+    const activeEndExclusive = endOfLife < periodEndExclusive ? endOfLife : periodEndExclusive;
+
+    if (activeEndExclusive <= activeStart) return 0;
+
+    // Daily straight-line depreciation
+    const dailyDep = totalValue / totalDepreciationDays;
+    const days = Math.floor((activeEndExclusive.getTime() - activeStart.getTime()) / (1000 * 60 * 60 * 24));
+    const expense = dailyDep * days;
+    
+    return clamp(expense, 0, totalValue);
+  };
+
+  // Precompute period boundaries and totals
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const tomorrowStart = endExclusiveOfDay(now);
+
+  const weekStart = getWeekStart(now);
+  const nextWeekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
+
+  const monthStart = getMonthStart(now);
+  const nextMonthStart = getNextMonthStart(now);
+
+  const quarterStart = getQuarterStart(now);
+  const nextQuarterStart = getNextQuarterStart(now);
+
+  const halfStart = getHalfYearStart(now);
+  const nextHalfStart = getNextHalfYearStart(now);
+
+  const currentFY = getFinancialYear(now);
+  const fyStart = getFinancialYearStart(currentFY);
+  const nextFyStart = getNextFinancialYearStart(currentFY);
+
+  const periodCosts = useMemo(() => {
+    const reducer = (start: Date, endExclusive: Date) => items.reduce((sum: number, item: InventoryItem) => sum + calculateDepreciationForPeriod(item, start, endExclusive), 0);
+    return {
+      daily: reducer(todayStart, tomorrowStart),
+      weekly: reducer(weekStart, nextWeekStart),
+      monthly: reducer(monthStart, nextMonthStart),
+      quarterly: reducer(quarterStart, nextQuarterStart),
+      halfYearly: reducer(halfStart, nextHalfStart),
+      yearly: reducer(fyStart, nextFyStart),
+    };
+  }, [items]);
+
+  const getMonthName = (date: Date) => {
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
+
+  const getQuarterName = (date: Date) => {
+    const quarter = Math.floor(date.getMonth() / 3) + 1;
+    return `Q${quarter} ${date.getFullYear()}`;
+  };
+
+  const getHalfYearName = (date: Date) => {
+    const half = Math.floor(date.getMonth() / 6) + 1;
+    return `H${half} ${date.getFullYear()}`;
   };
 
   useEffect(() => {
@@ -1048,7 +1196,263 @@ const InventoryRegisterPage: React.FC = () => {
               </Box>
             </Box>
           </Paper>
-                    )}
+        )}
+
+        {/* Cost Analysis Boxes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mt: 3, 
+              background: alpha(theme.palette.primary.main, 0.05),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 3, color: theme.palette.primary.main, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+              💰 Cost Analysis by Time Periods
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Total costs calculated with depreciation/amortization applied for different time periods. 
+              Direct costs show full purchase value, while depreciated costs show allocated expense for each period.
+            </Typography>
+            
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3 }}>
+              {/* Daily Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.7 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.1)} 0%, ${alpha(theme.palette.info.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.info.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.info.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📅</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.info.main, fontWeight: 600 }}>
+                        Daily Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.info.main }}>
+                      ${periodCosts.daily.toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {todayStart.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Weekly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.8 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.success.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.success.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📊</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
+                        Weekly Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.success.main }}>
+                      ${periodCosts.weekly.toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Week of {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(nextWeekStart.getTime() - 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Monthly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.9 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.warning.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.warning.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📆</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.warning.main, fontWeight: 600 }}>
+                        Monthly Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.warning.main }}>
+                      ${periodCosts.monthly.toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getMonthName(monthStart)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Quarterly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.0 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.secondary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.secondary.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.secondary.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📈</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.secondary.main, fontWeight: 600 }}>
+                        Quarterly Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.secondary.main }}>
+                      ${periodCosts.quarterly.toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getQuarterName(quarterStart)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Half-Yearly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.1 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.error.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.error.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.error.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>📊</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
+                        Half-Yearly Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.error.main }}>
+                      ${periodCosts.halfYearly.toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {getHalfYearName(halfStart)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Yearly Cost Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 1.2 }}
+              >
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
+                    border: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 40, height: 40, mr: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>🗓️</Typography>
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                        Financial Year Cost
+                      </Typography>
+                    </Box>
+                    <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.primary.main }}>
+                      ${periodCosts.yearly.toLocaleString()}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      FY {currentFY} (Apr 1 - Mar 31)
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </Box>
+          </Paper>
+        </motion.div>
           </Paper>
         </motion.div>
 

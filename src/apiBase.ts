@@ -3,6 +3,7 @@ import axios from 'axios';
 const API_BASE = process.env.REACT_APP_API_BASE || 'https://masar-production-1c03.up.railway.app';
 
 // Create axios instance with automatic token inclusion
+console.log('API Base URL configured as:', API_BASE);
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
 });

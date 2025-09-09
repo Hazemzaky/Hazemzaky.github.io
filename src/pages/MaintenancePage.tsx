@@ -73,6 +73,9 @@ interface Maintenance {
   completedBy?: string;
   serial?: string; // Added serial/document number
   cancellationReason?: string;
+  // Optional breakdowns if backend supplies them
+  depreciatedCost?: number;
+  amortizedCost?: number;
 }
 
 const defaultForm = {
@@ -743,6 +746,75 @@ const MaintenancePage: React.FC = () => {
     </Paper>
   );
 
+  // ===== Periodic Cost Calculations =====
+  const getRecordDate = (m: Maintenance) => new Date(m.completedDate || m.scheduledDate);
+
+  const calcTotalsInRange = (start: Date, end: Date) => {
+    const inRange = maintenance.filter(m => {
+      const d = getRecordDate(m);
+      return d >= start && d <= end;
+    });
+    const total = inRange.reduce((sum, m) => sum + (m.totalCost || 0), 0);
+    const depreciated = inRange.reduce((sum, m) => sum + ((m as any).depreciatedCost || 0), 0);
+    const amortized = inRange.reduce((sum, m) => sum + ((m as any).amortizedCost || 0), 0);
+    return { total, depreciated, amortized };
+  };
+
+  const now = new Date();
+
+  // Day
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfDay = new Date(startOfDay);
+  endOfDay.setDate(endOfDay.getDate() + 1);
+  endOfDay.setMilliseconds(endOfDay.getMilliseconds() - 1);
+  const dayTotals = calcTotalsInRange(startOfDay, endOfDay);
+
+  // Week (Mon-Sun)
+  const dayIdx = (now.getDay() + 6) % 7; // Monday=0
+  const startOfWeek = new Date(startOfDay);
+  startOfWeek.setDate(startOfWeek.getDate() - dayIdx);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 7);
+  endOfWeek.setMilliseconds(endOfWeek.getMilliseconds() - 1);
+  const weekTotals = calcTotalsInRange(startOfWeek, endOfWeek);
+
+  // Month (calendar month)
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  endOfMonth.setMilliseconds(endOfMonth.getMilliseconds() - 1);
+  const monthTotals = calcTotalsInRange(startOfMonth, endOfMonth);
+  const monthName = startOfMonth.toLocaleString(undefined, { month: 'long' });
+
+  // Fiscal helpers (FY starts Apr 1)
+  const getFiscalYearStart = (date: Date) => {
+    const y = date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1;
+    return new Date(y, 3, 1); // Apr 1
+  };
+  const fyStart = getFiscalYearStart(now);
+  const fyEnd = new Date(fyStart.getFullYear() + 1, 3, 1);
+  fyEnd.setMilliseconds(fyEnd.getMilliseconds() - 1);
+
+  // Quarter within fiscal year
+  const monthsSinceFyStart = (now.getFullYear() - fyStart.getFullYear()) * 12 + (now.getMonth() - 3);
+  const quarterIndex = Math.floor(monthsSinceFyStart / 3); // 0..3
+  const quarterStart = new Date(fyStart.getFullYear(), 3 + quarterIndex * 3, 1);
+  const quarterEnd = new Date(fyStart.getFullYear(), 3 + (quarterIndex + 1) * 3, 1);
+  quarterEnd.setMilliseconds(quarterEnd.getMilliseconds() - 1);
+  const quarterTotals = calcTotalsInRange(quarterStart, quarterEnd);
+  const quarterLabel = `Q${quarterIndex + 1}`;
+
+  // Half-year (H1: Apr-Sep, H2: Oct-Mar)
+  const isH1 = monthsSinceFyStart < 6;
+  const halfStart = new Date(fyStart.getFullYear(), isH1 ? 3 : 9, 1);
+  const halfEnd = new Date(fyStart.getFullYear(), isH1 ? 9 : 12 + 3, 1);
+  halfEnd.setMilliseconds(halfEnd.getMilliseconds() - 1);
+  const halfTotals = calcTotalsInRange(halfStart, halfEnd);
+  const halfLabel = isH1 ? 'H1' : 'H2';
+
+  // Fiscal Year totals
+  const yearTotals = calcTotalsInRange(fyStart, fyEnd);
+  const fyLabel = `FY ${fyStart.getFullYear()}/${(fyEnd.getFullYear() % 100).toString().padStart(2, '0')}`;
+
   return (
     <Box sx={{ 
       p: fullscreen ? 1 : 3, 
@@ -1066,6 +1138,115 @@ const MaintenancePage: React.FC = () => {
                   )}
                 </Box>
               </Paper>
+            </Paper>
+          </motion.div>
+ 
+          {/* Periodic Cost Summary (Bottom Section) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3, 
+                mt: 3,
+                background: alpha(theme.palette.background.paper, 0.8),
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                borderRadius: theme.shape.borderRadius
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+                Periodic Maintenance Cost Summary
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 2 }}>
+                {/* Day */}
+                <Card elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}` }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">Today</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
+                      {dayTotals.total.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                    </Typography>
+                    {(dayTotals.depreciated || dayTotals.amortized) ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Dep: {dayTotals.depreciated.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} · Amo: {dayTotals.amortized.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                      </Typography>
+                    ) : null}
+                  </CardContent>
+                </Card>
+                {/* Week */}
+                <Card elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.success.main, 0.2)}` }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">This Week</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.success.main }}>
+                      {weekTotals.total.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                    </Typography>
+                    {(weekTotals.depreciated || weekTotals.amortized) ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Dep: {weekTotals.depreciated.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} · Amo: {weekTotals.amortized.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                      </Typography>
+                    ) : null}
+                  </CardContent>
+                </Card>
+                {/* Month */}
+                <Card elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.info.main, 0.2)}` }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">{monthName}</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.info.main }}>
+                      {monthTotals.total.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                    </Typography>
+                    {(monthTotals.depreciated || monthTotals.amortized) ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Dep: {monthTotals.depreciated.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} · Amo: {monthTotals.amortized.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                      </Typography>
+                    ) : null}
+                  </CardContent>
+                </Card>
+                {/* Quarter */}
+                <Card elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}` }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">{quarterLabel}</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>
+                      {quarterTotals.total.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                    </Typography>
+                    {(quarterTotals.depreciated || quarterTotals.amortized) ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Dep: {quarterTotals.depreciated.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} · Amo: {quarterTotals.amortized.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                      </Typography>
+                    ) : null}
+                  </CardContent>
+                </Card>
+                {/* Half Year */}
+                <Card elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.secondary.main, 0.2)}` }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">{halfLabel}</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.secondary.main }}>
+                      {halfTotals.total.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                    </Typography>
+                    {(halfTotals.depreciated || halfTotals.amortized) ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Dep: {halfTotals.depreciated.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} · Amo: {halfTotals.amortized.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                      </Typography>
+                    ) : null}
+                  </CardContent>
+                </Card>
+                {/* Fiscal Year */}
+                <Card elevation={0} sx={{ border: `1px solid ${alpha(theme.palette.neutral?.main || theme.palette.text.primary, 0.2)}` }}>
+                  <CardContent>
+                    <Typography variant="subtitle2" color="text.secondary">{fyLabel}</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                      {yearTotals.total.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                    </Typography>
+                    {(yearTotals.depreciated || yearTotals.amortized) ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Dep: {yearTotals.depreciated.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} · Amo: {yearTotals.amortized.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
+                      </Typography>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </Box>
             </Paper>
           </motion.div>
         </AnimatePresence>

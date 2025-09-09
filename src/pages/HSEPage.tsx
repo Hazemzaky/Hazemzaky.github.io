@@ -77,15 +77,6 @@ const HSE_DASHBOARD_CARDS = [
   { label: 'Site Risk Level', key: 'siteRisk', color: 'error' },
 ];
 
-const HSE_QUICK_ACTIONS = [
-  { label: 'Report Incident', icon: <AddIcon />, action: () => {} },
-  { label: 'Start Audit', icon: <EditIcon />, action: () => {} },
-  { label: 'View Training Matrix', icon: <VisibilityIcon />, action: () => {} },
-  { label: 'Export HSE Report', icon: <SaveAltIcon />, action: () => {} },
-  { label: 'Launch Emergency Plan', icon: <AlertIcon />, action: () => {} },
-  { label: 'Add New Hazard', icon: <AddIcon />, action: () => {} },
-  { label: 'Search Safety Docs', icon: <SearchIcon />, action: () => {} },
-];
 
 const HSE_SECTIONS = [
   'Dashboard',
@@ -1314,6 +1305,73 @@ const SafetyInspections: React.FC = () => {
   );
 };
 
+// Cost calculation helper functions
+const calculateAmortizedCost = (cost: number, amortization: number, startDate: Date, periodStart: Date, periodEnd: Date): number => {
+  if (!amortization || amortization <= 0) return cost;
+  
+  // Calculate the monthly amortized amount
+  const monthlyAmortizedAmount = cost / amortization;
+  
+  // Find the overlap between the training period and the reporting period
+  const trainingStart = new Date(startDate);
+  const trainingEnd = new Date(trainingStart.getTime() + (amortization * 30.44 * 24 * 60 * 60 * 1000)); // Approximate end date
+  
+  // Check if there's any overlap between training period and reporting period
+  if (trainingStart > periodEnd || trainingEnd < periodStart) {
+    return 0; // No overlap, no cost for this period
+  }
+  
+  // Calculate the overlap period
+  const overlapStart = new Date(Math.max(trainingStart.getTime(), periodStart.getTime()));
+  const overlapEnd = new Date(Math.min(trainingEnd.getTime(), periodEnd.getTime()));
+  
+  // Calculate how many months of amortization fall within this period
+  const overlapMonths = Math.ceil((overlapEnd.getTime() - overlapStart.getTime()) / (30.44 * 24 * 60 * 60 * 1000));
+  
+  return monthlyAmortizedAmount * Math.max(0, overlapMonths);
+};
+
+const getFinancialYearStart = (date: Date): Date => {
+  const year = date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1;
+  return new Date(year, 3, 1); // April 1st
+};
+
+const getFinancialYearEnd = (date: Date): Date => {
+  const year = date.getMonth() >= 3 ? date.getFullYear() + 1 : date.getFullYear();
+  return new Date(year, 2, 31); // March 31st
+};
+
+const getQuarterStart = (date: Date): Date => {
+  const quarter = Math.floor(date.getMonth() / 3);
+  return new Date(date.getFullYear(), quarter * 3, 1);
+};
+
+const getQuarterEnd = (date: Date): Date => {
+  const quarter = Math.floor(date.getMonth() / 3);
+  return new Date(date.getFullYear(), (quarter + 1) * 3, 0);
+};
+
+const getHalfYearStart = (date: Date): Date => {
+  const half = Math.floor(date.getMonth() / 6);
+  return new Date(date.getFullYear(), half * 6, 1);
+};
+
+const getHalfYearEnd = (date: Date): Date => {
+  const half = Math.floor(date.getMonth() / 6);
+  return new Date(date.getFullYear(), (half + 1) * 6, 0);
+};
+
+const getWeekStart = (date: Date): Date => {
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+};
+
+const getWeekEnd = (date: Date): Date => {
+  const weekStart = getWeekStart(new Date(date));
+  return new Date(weekStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+};
+
 const TrainingCertifications: React.FC = () => {
   const muiTheme = useTheme();
   const [trainings, setTrainings] = useState<any[]>([]);
@@ -1412,6 +1470,212 @@ const TrainingCertifications: React.FC = () => {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  // Cost calculation functions
+  const calculateDailyCost = (): number => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return trainings.reduce((total, training) => {
+      const cost = Number(training.cost) || 0;
+      const amortization = Number(training.amortization) || 0;
+      const trainingDate = new Date(training.startDate);
+      
+      if (amortization > 0) {
+        // For amortized costs, calculate the daily portion
+        const monthlyAmount = cost / amortization;
+        const dailyAmount = monthlyAmount / 30.44; // Approximate days per month
+        return total + dailyAmount;
+      } else {
+        // For non-amortized costs, only count if training is today
+        if (trainingDate.toDateString() === today.toDateString()) {
+          return total + cost;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const calculateWeeklyCost = (): number => {
+    const today = new Date();
+    const weekStart = getWeekStart(new Date(today));
+    const weekEnd = getWeekEnd(new Date(today));
+
+    return trainings.reduce((total, training) => {
+      const cost = Number(training.cost) || 0;
+      const amortization = Number(training.amortization) || 0;
+      const trainingDate = new Date(training.startDate);
+      
+      if (amortization > 0) {
+        // For amortized costs, calculate the weekly portion
+        const monthlyAmount = cost / amortization;
+        const weeklyAmount = monthlyAmount * (7 / 30.44); // Approximate weeks per month
+        return total + weeklyAmount;
+      } else {
+        // For non-amortized costs, only count if training is in this week
+        if (trainingDate >= weekStart && trainingDate <= weekEnd) {
+          return total + cost;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const calculateMonthlyCost = (): number => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    return trainings.reduce((total, training) => {
+      const cost = Number(training.cost) || 0;
+      const amortization = Number(training.amortization) || 0;
+      const trainingDate = new Date(training.startDate);
+      
+      if (amortization > 0) {
+        // For amortized costs, calculate the monthly portion
+        const monthlyAmount = cost / amortization;
+        return total + monthlyAmount;
+      } else {
+        // For non-amortized costs, only count if training is in this month
+        if (trainingDate >= monthStart && trainingDate <= monthEnd) {
+          return total + cost;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const calculateQuarterlyCost = (): number => {
+    const today = new Date();
+    const quarterStart = getQuarterStart(today);
+    const quarterEnd = getQuarterEnd(today);
+
+    return trainings.reduce((total, training) => {
+      const cost = Number(training.cost) || 0;
+      const amortization = Number(training.amortization) || 0;
+      const trainingDate = new Date(training.startDate);
+      
+      if (amortization > 0) {
+        // For amortized costs, calculate the quarterly portion
+        const monthlyAmount = cost / amortization;
+        const quarterlyAmount = monthlyAmount * 3; // 3 months per quarter
+        return total + quarterlyAmount;
+      } else {
+        // For non-amortized costs, only count if training is in this quarter
+        if (trainingDate >= quarterStart && trainingDate <= quarterEnd) {
+          return total + cost;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const calculateHalfYearCost = (): number => {
+    const today = new Date();
+    const halfYearStart = getHalfYearStart(today);
+    const halfYearEnd = getHalfYearEnd(today);
+
+    return trainings.reduce((total, training) => {
+      const cost = Number(training.cost) || 0;
+      const amortization = Number(training.amortization) || 0;
+      const trainingDate = new Date(training.startDate);
+      
+      if (amortization > 0) {
+        // For amortized costs, calculate the half-year portion
+        const monthlyAmount = cost / amortization;
+        const halfYearAmount = monthlyAmount * 6; // 6 months per half year
+        return total + halfYearAmount;
+      } else {
+        // For non-amortized costs, only count if training is in this half year
+        if (trainingDate >= halfYearStart && trainingDate <= halfYearEnd) {
+          return total + cost;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const calculateAnnualCost = (): number => {
+    const today = new Date();
+    const financialYearStart = getFinancialYearStart(today);
+    const financialYearEnd = getFinancialYearEnd(today);
+
+    return trainings.reduce((total, training) => {
+      const cost = Number(training.cost) || 0;
+      const amortization = Number(training.amortization) || 0;
+      const trainingDate = new Date(training.startDate);
+      
+      if (amortization > 0) {
+        // For amortized costs, calculate the annual portion
+        const monthlyAmount = cost / amortization;
+        const annualAmount = monthlyAmount * 12; // 12 months per year
+        return total + annualAmount;
+      } else {
+        // For non-amortized costs, only count if training is in this financial year
+        if (trainingDate >= financialYearStart && trainingDate <= financialYearEnd) {
+          return total + cost;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  // Date range helper functions
+  const getCurrentMonthName = (): string => {
+    return new Date().toLocaleDateString('en-US', { month: 'long' });
+  };
+
+  const getCurrentQuarter = (): string => {
+    const quarter = Math.floor(new Date().getMonth() / 3) + 1;
+    return `Q${quarter}`;
+  };
+
+  const getCurrentHalfYear = (): string => {
+    const half = Math.floor(new Date().getMonth() / 6) + 1;
+    return `H${half}`;
+  };
+
+  const getWeekRange = (): string => {
+    const today = new Date();
+    const weekStart = getWeekStart(new Date(today));
+    const weekEnd = getWeekEnd(new Date(today));
+    
+    return `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
+
+  const getMonthRange = (): string => {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    return `${monthStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${monthEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
+
+  const getQuarterRange = (): string => {
+    const today = new Date();
+    const quarterStart = getQuarterStart(today);
+    const quarterEnd = getQuarterEnd(today);
+    
+    return `${quarterStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${quarterEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
+
+  const getHalfYearRange = (): string => {
+    const today = new Date();
+    const halfYearStart = getHalfYearStart(today);
+    const halfYearEnd = getHalfYearEnd(today);
+    
+    return `${halfYearStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${halfYearEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
+
+  const getFinancialYearRange = (): string => {
+    const today = new Date();
+    const financialYearStart = getFinancialYearStart(today);
+    const financialYearEnd = getFinancialYearEnd(today);
+    
+    return `${financialYearStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${financialYearEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   };
 
   return (
@@ -1854,6 +2118,182 @@ const TrainingCertifications: React.FC = () => {
         message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{success}</span>}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       />
+
+      {/* Cost Calculation Boxes */}
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
+          💰 Training Cost Analysis
+        </Typography>
+        
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 2 }}>
+          {/* Daily Cost Box */}
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: alpha(theme.palette.primary.main, 0.05),
+              border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.15)}`
+              }
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 3 }}>
+              <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700, mb: 1 }}>
+                ${calculateDailyCost().toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Today's Training Cost
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* Weekly Cost Box */}
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: alpha(theme.palette.success.main, 0.05),
+              border: `2px solid ${alpha(theme.palette.success.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: `0 8px 25px ${alpha(theme.palette.success.main, 0.15)}`
+              }
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 3 }}>
+              <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700, mb: 1 }}>
+                ${calculateWeeklyCost().toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                This Week's Training Cost
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {getWeekRange()}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* Monthly Cost Box */}
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: alpha(theme.palette.warning.main, 0.05),
+              border: `2px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: `0 8px 25px ${alpha(theme.palette.warning.main, 0.15)}`
+              }
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 3 }}>
+              <Typography variant="h4" sx={{ color: theme.palette.warning.main, fontWeight: 700, mb: 1 }}>
+                ${calculateMonthlyCost().toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {getCurrentMonthName()} Training Cost
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {getMonthRange()}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* Quarterly Cost Box */}
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: alpha(theme.palette.info.main, 0.05),
+              border: `2px solid ${alpha(theme.palette.info.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: `0 8px 25px ${alpha(theme.palette.info.main, 0.15)}`
+              }
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 3 }}>
+              <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700, mb: 1 }}>
+                ${calculateQuarterlyCost().toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {getCurrentQuarter()} Training Cost
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {getQuarterRange()}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* Half-Year Cost Box */}
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: alpha(theme.palette.secondary.main, 0.05),
+              border: `2px solid ${alpha(theme.palette.secondary.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: `0 8px 25px ${alpha(theme.palette.secondary.main, 0.15)}`
+              }
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 3 }}>
+              <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700, mb: 1 }}>
+                ${calculateHalfYearCost().toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                {getCurrentHalfYear()} Training Cost
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {getHalfYearRange()}
+              </Typography>
+            </CardContent>
+          </Card>
+
+          {/* Annual Cost Box */}
+          <Card 
+            elevation={0}
+            sx={{ 
+              background: alpha(theme.palette.error.main, 0.05),
+              border: `2px solid ${alpha(theme.palette.error.main, 0.2)}`,
+              borderRadius: theme.shape.borderRadius,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: `0 8px 25px ${alpha(theme.palette.error.main, 0.15)}`
+              }
+            }}
+          >
+            <CardContent sx={{ textAlign: 'center', p: 3 }}>
+              <Typography variant="h4" sx={{ color: theme.palette.error.main, fontWeight: 700, mb: 1 }}>
+                ${calculateAnnualCost().toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Financial Year Training Cost
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {getFinancialYearRange()}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
     </Box>
   );
 };
@@ -2241,10 +2681,11 @@ const HSEDashboard: React.FC = () => {
     setPlansLoading(true);
     setPlansError('');
     try {
-      // Mock data for now since the endpoint doesn't exist
-      setPlans([]);
+      const res = await api.get('/hse/emergency-plans');
+      setPlans(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
-      setPlansError('Failed to fetch plans');
+      console.error('Failed to fetch plans:', err);
+      setPlansError(err.response?.data?.message || 'Failed to fetch plans');
     } finally {
       setPlansLoading(false);
     }
@@ -2255,10 +2696,11 @@ const HSEDashboard: React.FC = () => {
     setContactsLoading(true);
     setContactsError('');
     try {
-      // Mock data for now since the endpoint doesn't exist
-      setContacts([]);
+      const res = await api.get('/hse/emergency-contacts');
+      setContacts(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
-      setContactsError('Failed to fetch contacts');
+      console.error('Failed to fetch contacts:', err);
+      setContactsError(err.response?.data?.message || 'Failed to fetch contacts');
     } finally {
       setContactsLoading(false);
     }
@@ -2298,6 +2740,36 @@ const HSEDashboard: React.FC = () => {
       setPlanForm({ title: '', type: '', file: null, description: '', effectiveDate: '', expiryDate: '', notes: '' });
     }
     setPlanModalOpen(true);
+  };
+
+  const handleSubmitPlan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPlansError('');
+    try {
+      const formData = new FormData();
+      formData.append('title', planForm.title);
+      formData.append('type', planForm.type);
+      formData.append('description', planForm.description);
+      formData.append('effectiveDate', planForm.effectiveDate);
+      formData.append('expiryDate', planForm.expiryDate);
+      formData.append('notes', planForm.notes);
+      
+      if (planForm.file && typeof planForm.file !== 'string') {
+        formData.append('file', planForm.file);
+      }
+
+      if (editingPlan) {
+        await api.put(`/hse/emergency-plans/${editingPlan._id}`, formData);
+      } else {
+        await api.post('/hse/emergency-plans', formData);
+      }
+      
+      setPlanModalOpen(false);
+      fetchPlans();
+    } catch (err: any) {
+      console.error('Plan submission error:', err);
+      setPlansError(err.response?.data?.message || 'Failed to save plan');
+    }
   };
 
   // Training & Competency Summary state
@@ -2664,47 +3136,6 @@ const HSEDashboard: React.FC = () => {
             </Box>
           </Paper>
 
-          {/* Quick Action Buttons */}
-          <Paper 
-            elevation={0}
-            sx={{ 
-              p: 3, 
-              mb: 3, 
-              background: alpha(theme.palette.background.paper, 0.8),
-              backdropFilter: 'blur(10px)',
-              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-              borderRadius: theme.shape.borderRadius
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 2, color: 'text.primary', fontWeight: 600 }}>
-              Quick Actions
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              {HSE_QUICK_ACTIONS.map((action, idx) => (
-                <Button 
-                  key={action.label} 
-                  variant="contained" 
-                  color="primary" 
-                  startIcon={action.icon} 
-                  onClick={action.action} 
-                  sx={{ 
-                    minWidth: 180,
-                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                    '&:hover': {
-                      background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                      transform: 'translateY(-2px)',
-                      boxShadow: `0 8px 25px ${alpha(theme.palette.primary.main, 0.3)}`
-                    },
-                    transition: 'all 0.3s ease',
-                    borderRadius: theme.shape.borderRadius,
-                    fontWeight: 600
-                  }}
-                >
-                  {action.label}
-                </Button>
-              ))}
-            </Box>
-          </Paper>
 
           {/* Main Sections as Tabs */}
           <Paper 
@@ -2865,7 +3296,7 @@ const HSEDashboard: React.FC = () => {
                     >
                       <CardContent sx={{ textAlign: 'center', p: 2 }}>
                         <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700 }}>
-                          3
+                          N/A
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Drills Conducted
@@ -2911,7 +3342,7 @@ const HSEDashboard: React.FC = () => {
                     >
                       <CardContent sx={{ textAlign: 'center', p: 2 }}>
                         <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700 }}>
-                          5
+                          N/A
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           Site Maps
@@ -3085,6 +3516,84 @@ const HSEDashboard: React.FC = () => {
                 </Paper>
               </Box>
             )}
+
+            {/* Emergency Plan Modal */}
+            <Dialog open={planModalOpen} onClose={() => setPlanModalOpen(false)} maxWidth="md" fullWidth>
+              <DialogTitle>{editingPlan ? 'Edit Emergency Plan' : 'Add Emergency Plan'}</DialogTitle>
+              <Box component="form" onSubmit={handleSubmitPlan}>
+                <DialogContent>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                    <TextField
+                      label="Plan Title"
+                      value={planForm.title}
+                      onChange={(e) => setPlanForm({ ...planForm, title: e.target.value })}
+                      required
+                      fullWidth
+                    />
+                    <TextField
+                      label="Plan Type"
+                      value={planForm.type}
+                      onChange={(e) => setPlanForm({ ...planForm, type: e.target.value })}
+                      required
+                      fullWidth
+                    />
+                    <TextField
+                      label="Description"
+                      value={planForm.description}
+                      onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })}
+                      multiline
+                      rows={3}
+                      fullWidth
+                    />
+                    <Box display="flex" gap={2}>
+                      <TextField
+                        label="Effective Date"
+                        type="date"
+                        value={planForm.effectiveDate}
+                        onChange={(e) => setPlanForm({ ...planForm, effectiveDate: e.target.value })}
+                        fullWidth
+                        InputLabelProps={{ shrink: true }}
+                      />
+                      <TextField
+                        label="Expiry Date"
+                        type="date"
+                        value={planForm.expiryDate}
+                        onChange={(e) => setPlanForm({ ...planForm, expiryDate: e.target.value })}
+                        fullWidth
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Box>
+                    <TextField
+                      label="Notes"
+                      value={planForm.notes}
+                      onChange={(e) => setPlanForm({ ...planForm, notes: e.target.value })}
+                      multiline
+                      rows={2}
+                      fullWidth
+                    />
+                    {!editingPlan && (
+                      <Button variant="outlined" component="label" sx={{ mt: 1 }}>
+                        {planForm.file ? (typeof planForm.file === 'string' ? planForm.file : planForm.file.name) : 'Choose File'}
+                        <input
+                          type="file"
+                          hidden
+                          onChange={(e) => setPlanForm({ ...planForm, file: e.target.files?.[0] || null })}
+                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                        />
+                      </Button>
+                    )}
+                    {plansError && <Alert severity="error">{plansError}</Alert>}
+                  </Box>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setPlanModalOpen(false)}>Cancel</Button>
+                  <Button type="submit" variant="contained">
+                    {editingPlan ? 'Update' : 'Add Plan'}
+                  </Button>
+                </DialogActions>
+              </Box>
+            </Dialog>
+
             {tab === 4 && <TrainingCertifications />}
             {tab === 5 && <SafetyInspections />}
             {tab === 6 && <HSEDocumentLibrary />}
@@ -3224,6 +3733,7 @@ const AccidentIncident: React.FC = () => {
       handleClose();
       fetchAccidents();
     } catch (err: any) {
+      console.error('Accident submission error:', err);
       setError(err.response?.data?.message || 'Failed to save accident');
     }
   };
@@ -3576,133 +4086,135 @@ const AccidentIncident: React.FC = () => {
       {/* Add/Edit Accident Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>{editingId ? 'Edit Accident' : 'Report Accident'}</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField 
-              label="Serial Number" 
-              name="serialNumber" 
-              value={form.serialNumber} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth 
-            />
-            <TextField 
-              label="Date" 
-              name="date" 
-              type="date" 
-              value={form.date} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth 
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField 
-              label="Description" 
-              name="description" 
-              value={form.description} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              required 
-              fullWidth 
-            />
-            <TextField 
-              select 
-              label="Driver" 
-              name="driver" 
-              value={form.driver} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Driver</MenuItem>
-              {driversLoading ? (
-                <MenuItem disabled>Loading drivers...</MenuItem>
-              ) : (
-                Array.isArray(drivers) && drivers.map((driver) => (
-                  <MenuItem key={driver._id} value={driver._id}>
-                    {driver.name}
-                  </MenuItem>
-                ))
-              )}
-            </TextField>
-            <TextField 
-              select 
-              label="Abbreviation" 
-              name="abbreviation" 
-              value={form.abbreviation} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Type</MenuItem>
-              <MenuItem value="Motor Vehicle Accident">Motor Vehicle Accident</MenuItem>
-              <MenuItem value="Property Damage">Property Damage</MenuItem>
-              <MenuItem value="Injury">Injury</MenuItem>
-            </TextField>
-            <TextField 
-              select 
-              label="Incident Severity" 
-              name="incidentSeverity" 
-              value={form.incidentSeverity} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Severity</MenuItem>
-              <MenuItem value="Normal">Normal</MenuItem>
-              <MenuItem value="Low">Low</MenuItem>
-              <MenuItem value="Medium">Medium</MenuItem>
-              <MenuItem value="High">High</MenuItem>
-            </TextField>
-            <TextField 
-              select 
-              label="Driver at Fault" 
-              name="driverAtFault" 
-              value={form.driverAtFault} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Fault Status</MenuItem>
-              <MenuItem value="At Fault">At Fault</MenuItem>
-              <MenuItem value="Not At Fault">Not At Fault</MenuItem>
-            </TextField>
-            <TextField 
-              label="Damage Description" 
-              name="damageDescription" 
-              value={form.damageDescription} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              fullWidth 
-            />
-            <TextField 
-              label="Direct or Root Cause" 
-              name="directOrRootCause" 
-              value={form.directOrRootCause} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              fullWidth 
-            />
-            <TextField 
-              label="Action Taken" 
-              name="actionTaken" 
-              value={form.actionTaken} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              fullWidth 
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="submit" variant="contained" color="primary">
-            {editingId ? 'Update' : 'Submit'}
-          </Button>
-        </DialogActions>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <TextField 
+                label="Serial Number" 
+                name="serialNumber" 
+                value={form.serialNumber} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth 
+              />
+              <TextField 
+                label="Date" 
+                name="date" 
+                type="date" 
+                value={form.date} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth 
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField 
+                label="Description" 
+                name="description" 
+                value={form.description} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                required 
+                fullWidth 
+              />
+              <TextField 
+                select 
+                label="Driver" 
+                name="driver" 
+                value={form.driver} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Driver</MenuItem>
+                {driversLoading ? (
+                  <MenuItem disabled>Loading drivers...</MenuItem>
+                ) : (
+                  Array.isArray(drivers) && drivers.map((driver) => (
+                    <MenuItem key={driver._id} value={driver._id}>
+                      {driver.name}
+                    </MenuItem>
+                  ))
+                )}
+              </TextField>
+              <TextField 
+                select 
+                label="Abbreviation" 
+                name="abbreviation" 
+                value={form.abbreviation} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Type</MenuItem>
+                <MenuItem value="Motor Vehicle Accident">Motor Vehicle Accident</MenuItem>
+                <MenuItem value="Property Damage">Property Damage</MenuItem>
+                <MenuItem value="Injury">Injury</MenuItem>
+              </TextField>
+              <TextField 
+                select 
+                label="Incident Severity" 
+                name="incidentSeverity" 
+                value={form.incidentSeverity} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Severity</MenuItem>
+                <MenuItem value="Normal">Normal</MenuItem>
+                <MenuItem value="Low">Low</MenuItem>
+                <MenuItem value="Medium">Medium</MenuItem>
+                <MenuItem value="High">High</MenuItem>
+              </TextField>
+              <TextField 
+                select 
+                label="Driver at Fault" 
+                name="driverAtFault" 
+                value={form.driverAtFault} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Fault Status</MenuItem>
+                <MenuItem value="At Fault">At Fault</MenuItem>
+                <MenuItem value="Not At Fault">Not At Fault</MenuItem>
+              </TextField>
+              <TextField 
+                label="Damage Description" 
+                name="damageDescription" 
+                value={form.damageDescription} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                fullWidth 
+              />
+              <TextField 
+                label="Direct or Root Cause" 
+                name="directOrRootCause" 
+                value={form.directOrRootCause} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                fullWidth 
+              />
+              <TextField 
+                label="Action Taken" 
+                name="actionTaken" 
+                value={form.actionTaken} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                fullWidth 
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button type="submit" variant="contained" color="primary">
+              {editingId ? 'Update' : 'Submit'}
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
 
       {/* View Accident Dialog */}
@@ -4243,133 +4755,135 @@ const NearMissLog: React.FC = () => {
       {/* Add/Edit Near Miss Dialog */}
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogTitle>{editingId ? 'Edit Near Miss' : 'Report Near Miss'}</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField 
-              label="Serial Number" 
-              name="serialNumber" 
-              value={form.serialNumber} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth 
-            />
-            <TextField 
-              label="Date" 
-              name="date" 
-              type="date" 
-              value={form.date} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth 
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField 
-              label="Description" 
-              name="description" 
-              value={form.description} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              required 
-              fullWidth 
-            />
-            <TextField 
-              select 
-              label="Driver" 
-              name="driver" 
-              value={form.driver} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Driver</MenuItem>
-              {driversLoading ? (
-                <MenuItem disabled>Loading drivers...</MenuItem>
-              ) : (
-                Array.isArray(drivers) && drivers.map((driver) => (
-                  <MenuItem key={driver._id} value={driver._id}>
-                    {driver.name}
-                  </MenuItem>
-                ))
-              )}
-            </TextField>
-            <TextField 
-              select 
-              label="Abbreviation" 
-              name="abbreviation" 
-              value={form.abbreviation} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Type</MenuItem>
-              <MenuItem value="Motor Vehicle Accident">Motor Vehicle Accident</MenuItem>
-              <MenuItem value="Property Damage">Property Damage</MenuItem>
-              <MenuItem value="Injury">Injury</MenuItem>
-            </TextField>
-            <TextField 
-              select 
-              label="Incident Severity" 
-              name="incidentSeverity" 
-              value={form.incidentSeverity} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Severity</MenuItem>
-              <MenuItem value="Normal">Normal</MenuItem>
-              <MenuItem value="Low">Low</MenuItem>
-              <MenuItem value="Medium">Medium</MenuItem>
-              <MenuItem value="High">High</MenuItem>
-            </TextField>
-            <TextField 
-              select 
-              label="Driver at Fault" 
-              name="driverAtFault" 
-              value={form.driverAtFault} 
-              onChange={handleFormChange} 
-              required 
-              fullWidth
-            >
-              <MenuItem value="">Select Fault Status</MenuItem>
-              <MenuItem value="At Fault">At Fault</MenuItem>
-              <MenuItem value="Not At Fault">Not At Fault</MenuItem>
-            </TextField>
-            <TextField 
-              label="Damage Description" 
-              name="damageDescription" 
-              value={form.damageDescription} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              fullWidth 
-            />
-            <TextField 
-              label="Direct or Root Cause" 
-              name="directOrRootCause" 
-              value={form.directOrRootCause} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              fullWidth 
-            />
-            <TextField 
-              label="Action Taken" 
-              name="actionTaken" 
-              value={form.actionTaken} 
-              onChange={handleFormChange} 
-              multiline 
-              rows={3}
-              fullWidth 
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="submit" variant="contained" color="primary">
-            {editingId ? 'Update' : 'Submit'}
-          </Button>
-        </DialogActions>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+              <TextField 
+                label="Serial Number" 
+                name="serialNumber" 
+                value={form.serialNumber} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth 
+              />
+              <TextField 
+                label="Date" 
+                name="date" 
+                type="date" 
+                value={form.date} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth 
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField 
+                label="Description" 
+                name="description" 
+                value={form.description} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                required 
+                fullWidth 
+              />
+              <TextField 
+                select 
+                label="Driver" 
+                name="driver" 
+                value={form.driver} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Driver</MenuItem>
+                {driversLoading ? (
+                  <MenuItem disabled>Loading drivers...</MenuItem>
+                ) : (
+                  Array.isArray(drivers) && drivers.map((driver) => (
+                    <MenuItem key={driver._id} value={driver._id}>
+                      {driver.name}
+                    </MenuItem>
+                  ))
+                )}
+              </TextField>
+              <TextField 
+                select 
+                label="Abbreviation" 
+                name="abbreviation" 
+                value={form.abbreviation} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Type</MenuItem>
+                <MenuItem value="Motor Vehicle Accident">Motor Vehicle Accident</MenuItem>
+                <MenuItem value="Property Damage">Property Damage</MenuItem>
+                <MenuItem value="Injury">Injury</MenuItem>
+              </TextField>
+              <TextField 
+                select 
+                label="Incident Severity" 
+                name="incidentSeverity" 
+                value={form.incidentSeverity} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Severity</MenuItem>
+                <MenuItem value="Normal">Normal</MenuItem>
+                <MenuItem value="Low">Low</MenuItem>
+                <MenuItem value="Medium">Medium</MenuItem>
+                <MenuItem value="High">High</MenuItem>
+              </TextField>
+              <TextField 
+                select 
+                label="Driver at Fault" 
+                name="driverAtFault" 
+                value={form.driverAtFault} 
+                onChange={handleFormChange} 
+                required 
+                fullWidth
+              >
+                <MenuItem value="">Select Fault Status</MenuItem>
+                <MenuItem value="At Fault">At Fault</MenuItem>
+                <MenuItem value="Not At Fault">Not At Fault</MenuItem>
+              </TextField>
+              <TextField 
+                label="Damage Description" 
+                name="damageDescription" 
+                value={form.damageDescription} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                fullWidth 
+              />
+              <TextField 
+                label="Direct or Root Cause" 
+                name="directOrRootCause" 
+                value={form.directOrRootCause} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                fullWidth 
+              />
+              <TextField 
+                label="Action Taken" 
+                name="actionTaken" 
+                value={form.actionTaken} 
+                onChange={handleFormChange} 
+                multiline 
+                rows={3}
+                fullWidth 
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button type="submit" variant="contained" color="primary">
+              {editingId ? 'Update' : 'Submit'}
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
 
       {/* View Near Miss Dialog */}
@@ -5466,151 +5980,153 @@ const HSEDocumentLibrary: React.FC = () => {
       {/* Add/Edit Document Modal */}
       <Dialog open={documentModalOpen} onClose={() => setDocumentModalOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>{editingDocument ? 'Edit Document' : 'Upload Document'}</DialogTitle>
-        <DialogContent>
-          <Box component="form" onSubmit={handleSubmitDocument} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-            <TextField
-              label="Document Title"
-              value={documentForm.title}
-              onChange={(e) => setDocumentForm({ ...documentForm, title: e.target.value })}
-              required
-              fullWidth
-            />
-            <TextField
-              label="Description"
-              value={documentForm.description}
-              onChange={(e) => setDocumentForm({ ...documentForm, description: e.target.value })}
-              multiline
-              rows={2}
-              fullWidth
-            />
-            <Box display="flex" gap={2}>
+        <Box component="form" onSubmit={handleSubmitDocument}>
+          <DialogContent>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
               <TextField
-                select
-                label="Folder"
-                value={documentForm.folder}
-                onChange={(e) => setDocumentForm({ ...documentForm, folder: e.target.value })}
+                label="Document Title"
+                value={documentForm.title}
+                onChange={(e) => setDocumentForm({ ...documentForm, title: e.target.value })}
                 required
-                fullWidth
-              >
-                <MenuItem value="">Select Folder</MenuItem>
-                {folders.map((folder) => (
-                  <MenuItem key={folder._id} value={folder._id}>
-                    {getFolderPath(folder)}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label="Document Type"
-                value={documentForm.documentType}
-                onChange={(e) => setDocumentForm({ ...documentForm, documentType: e.target.value })}
-                required
-                fullWidth
-              >
-                <MenuItem value="">Select Type</MenuItem>
-                <MenuItem value="policy">Policy</MenuItem>
-                <MenuItem value="standard">Standard</MenuItem>
-                <MenuItem value="procedure">Procedure</MenuItem>
-                <MenuItem value="guideline">Guideline</MenuItem>
-                <MenuItem value="manual">Manual</MenuItem>
-                <MenuItem value="form">Form</MenuItem>
-                <MenuItem value="checklist">Checklist</MenuItem>
-                <MenuItem value="other">Other</MenuItem>
-              </TextField>
-            </Box>
-            
-            {/* Required HSE Fields */}
-            <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>HSE Document Details</Typography>
-            <Box display="flex" gap={2}>
-              <TextField
-                label="Cost ($)"
-                type="number"
-                value={documentForm.cost}
-                onChange={(e) => setDocumentForm({ ...documentForm, cost: e.target.value })}
-                required
-                fullWidth
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-              <TextField
-                label="Amortization (months)"
-                type="number"
-                value={documentForm.amortization}
-                onChange={(e) => setDocumentForm({ ...documentForm, amortization: e.target.value })}
-                required
-                fullWidth
-                inputProps={{ min: 1, max: 120 }}
-              />
-            </Box>
-            <Box display="flex" gap={2}>
-              <TextField
-                label="Start Date"
-                type="date"
-                value={documentForm.startDate}
-                onChange={(e) => setDocumentForm({ ...documentForm, startDate: e.target.value })}
-                required
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="End Date"
-                type="date"
-                value={documentForm.endDate}
-                onChange={(e) => setDocumentForm({ ...documentForm, endDate: e.target.value })}
-                required
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-            </Box>
-            
-            <Box display="flex" gap={2}>
-              <TextField
-                label="Version"
-                value={documentForm.version}
-                onChange={(e) => setDocumentForm({ ...documentForm, version: e.target.value })}
                 fullWidth
               />
               <TextField
-                select
-                label="Status"
-                value={documentForm.status}
-                onChange={(e) => setDocumentForm({ ...documentForm, status: e.target.value })}
+                label="Description"
+                value={documentForm.description}
+                onChange={(e) => setDocumentForm({ ...documentForm, description: e.target.value })}
+                multiline
+                rows={2}
                 fullWidth
-              >
-                <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="archived">Archived</MenuItem>
-              </TextField>
-            </Box>
-            
-            <TextField
-              label="Tags (comma separated)"
-              value={documentForm.tags}
-              onChange={(e) => setDocumentForm({ ...documentForm, tags: e.target.value })}
-              fullWidth
-              helperText="Enter tags separated by commas"
-            />
-            
-            {!editingDocument && (
-              <Button variant="outlined" component="label" sx={{ mt: 1 }}>
-                {selectedFile ? selectedFile.name : 'Choose File'}
-                <input
-                  type="file"
-                  hidden
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+              />
+              <Box display="flex" gap={2}>
+                <TextField
+                  select
+                  label="Folder"
+                  value={documentForm.folder}
+                  onChange={(e) => setDocumentForm({ ...documentForm, folder: e.target.value })}
+                  required
+                  fullWidth
+                >
+                  <MenuItem value="">Select Folder</MenuItem>
+                  {folders.map((folder) => (
+                    <MenuItem key={folder._id} value={folder._id}>
+                      {getFolderPath(folder)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  label="Document Type"
+                  value={documentForm.documentType}
+                  onChange={(e) => setDocumentForm({ ...documentForm, documentType: e.target.value })}
+                  required
+                  fullWidth
+                >
+                  <MenuItem value="">Select Type</MenuItem>
+                  <MenuItem value="policy">Policy</MenuItem>
+                  <MenuItem value="standard">Standard</MenuItem>
+                  <MenuItem value="procedure">Procedure</MenuItem>
+                  <MenuItem value="guideline">Guideline</MenuItem>
+                  <MenuItem value="manual">Manual</MenuItem>
+                  <MenuItem value="form">Form</MenuItem>
+                  <MenuItem value="checklist">Checklist</MenuItem>
+                  <MenuItem value="other">Other</MenuItem>
+                </TextField>
+              </Box>
+              
+              {/* Required HSE Fields */}
+              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>HSE Document Details</Typography>
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="Cost ($)"
+                  type="number"
+                  value={documentForm.cost}
+                  onChange={(e) => setDocumentForm({ ...documentForm, cost: e.target.value })}
+                  required
+                  fullWidth
+                  inputProps={{ min: 0, step: 0.01 }}
                 />
-              </Button>
-            )}
-            
-            {error && <Alert severity="error">{error}</Alert>}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDocumentModalOpen(false)}>Cancel</Button>
-          <Button type="submit" variant="contained">
-            {editingDocument ? 'Update' : 'Upload'}
-          </Button>
-        </DialogActions>
+                <TextField
+                  label="Amortization (months)"
+                  type="number"
+                  value={documentForm.amortization}
+                  onChange={(e) => setDocumentForm({ ...documentForm, amortization: e.target.value })}
+                  required
+                  fullWidth
+                  inputProps={{ min: 1, max: 120 }}
+                />
+              </Box>
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="Start Date"
+                  type="date"
+                  value={documentForm.startDate}
+                  onChange={(e) => setDocumentForm({ ...documentForm, startDate: e.target.value })}
+                  required
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="End Date"
+                  type="date"
+                  value={documentForm.endDate}
+                  onChange={(e) => setDocumentForm({ ...documentForm, endDate: e.target.value })}
+                  required
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+              
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="Version"
+                  value={documentForm.version}
+                  onChange={(e) => setDocumentForm({ ...documentForm, version: e.target.value })}
+                  fullWidth
+                />
+                <TextField
+                  select
+                  label="Status"
+                  value={documentForm.status}
+                  onChange={(e) => setDocumentForm({ ...documentForm, status: e.target.value })}
+                  fullWidth
+                >
+                  <MenuItem value="draft">Draft</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="archived">Archived</MenuItem>
+                </TextField>
+              </Box>
+              
+              <TextField
+                label="Tags (comma separated)"
+                value={documentForm.tags}
+                onChange={(e) => setDocumentForm({ ...documentForm, tags: e.target.value })}
+                fullWidth
+                helperText="Enter tags separated by commas"
+              />
+              
+              {!editingDocument && (
+                <Button variant="outlined" component="label" sx={{ mt: 1 }}>
+                  {selectedFile ? selectedFile.name : 'Choose File'}
+                  <input
+                    type="file"
+                    hidden
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                  />
+                </Button>
+              )}
+              
+              {error && <Alert severity="error">{error}</Alert>}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDocumentModalOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              {editingDocument ? 'Update' : 'Upload'}
+            </Button>
+          </DialogActions>
+        </Box>
       </Dialog>
 
       {/* Delete Folder Confirmation */}

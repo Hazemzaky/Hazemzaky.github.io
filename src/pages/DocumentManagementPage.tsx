@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, Grid, Avatar, Chip,
   useTheme, alpha, Tabs, Tab, FormControl, InputLabel, Select, MenuItem,
-  TextField, InputAdornment, IconButton, Badge, Tooltip
+  TextField, InputAdornment, IconButton, Badge, Tooltip, LinearProgress, Alert
 } from '@mui/material';
 import {
   Folder as FolderIcon,
@@ -25,28 +25,54 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import DocumentManager from '../components/DocumentManager';
+import api from '../apiBase';
+
+// Interfaces for real data
+interface DocumentStats {
+  totalDocuments: number;
+  totalSize: string;
+  recentUploads: number;
+  pendingReview: number;
+  byModule: {
+    [key: string]: number;
+  };
+}
+
+interface DocumentActivity {
+  _id: string;
+  action: string;
+  fileName: string;
+  user: string;
+  timestamp: string;
+  module: string;
+}
+
+interface FileTypeStats {
+  type: string;
+  count: number;
+  icon: React.ReactElement;
+  color: string;
+}
 
 const DocumentManagementPage: React.FC = () => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedModule, setSelectedModule] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock statistics
-  const stats = {
-    totalDocuments: 1247,
-    totalSize: '2.3 GB',
-    recentUploads: 23,
-    pendingReview: 5,
-    byModule: {
-      hr: 456,
-      finance: 234,
-      procurement: 189,
-      assets: 156,
-      hse: 123,
-      general: 89
-    }
-  };
+  // Real data state
+  const [stats, setStats] = useState<DocumentStats>({
+    totalDocuments: 0,
+    totalSize: '0 MB',
+    recentUploads: 0,
+    pendingReview: 0,
+    byModule: {}
+  });
+
+  const [fileTypes, setFileTypes] = useState<FileTypeStats[]>([]);
+  const [recentActivities, setRecentActivities] = useState<DocumentActivity[]>([]);
 
   const modules = [
     { id: 'all', name: 'All Documents', icon: <FolderIcon />, color: theme.palette.primary.main },
@@ -58,24 +84,55 @@ const DocumentManagementPage: React.FC = () => {
     { id: 'general', name: 'General', icon: <DocumentIcon />, color: theme.palette.grey[600] }
   ];
 
-  const fileTypes = [
-    { type: 'pdf', count: 456, icon: <PdfIcon />, color: '#f44336' },
-    { type: 'documents', count: 234, icon: <WordIcon />, color: '#2196f3' },
-    { type: 'spreadsheets', count: 189, icon: <ExcelIcon />, color: '#4caf50' },
-    { type: 'images', count: 156, icon: <ImageIcon />, color: '#ff9800' },
-    { type: 'archives', count: 89, icon: <ArchiveIcon />, color: '#9c27b0' }
-  ];
+  // API functions to fetch real data
+  const fetchDocumentStats = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.get<DocumentStats>('/documents/stats');
+      setStats(response.data);
+    } catch (err: any) {
+      console.error('Error fetching document stats:', err);
+      setError(err.response?.data?.message || 'Failed to fetch document statistics');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const recentActivities = [
-    { id: 1, action: 'uploaded', file: 'Employee Handbook 2024.pdf', user: 'John Doe', time: '2 hours ago', module: 'hr' },
-    { id: 2, action: 'downloaded', file: 'Q3 Financial Report.xlsx', user: 'Jane Smith', time: '4 hours ago', module: 'finance' },
-    { id: 3, action: 'uploaded', file: 'Safety Training Certificate.pdf', user: 'Mike Johnson', time: '6 hours ago', module: 'hse' },
-    { id: 4, action: 'updated', file: 'Vendor Contract Template.docx', user: 'Sarah Wilson', time: '1 day ago', module: 'procurement' },
-    { id: 5, action: 'downloaded', file: 'Asset Inventory List.xlsx', user: 'David Brown', time: '2 days ago', module: 'assets' }
-  ];
+  const fetchFileTypeStats = useCallback(async () => {
+    try {
+      const response = await api.get<{ fileTypes: FileTypeStats[] }>('/documents/stats/file-types');
+      setFileTypes(response.data.fileTypes);
+    } catch (err: any) {
+      console.error('Error fetching file type stats:', err);
+    }
+  }, []);
+
+  const fetchRecentActivities = useCallback(async () => {
+    try {
+      const response = await api.get<{ activities: DocumentActivity[] }>('/documents/activities/recent');
+      setRecentActivities(response.data.activities);
+    } catch (err: any) {
+      console.error('Error fetching recent activities:', err);
+    }
+  }, []);
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchDocumentStats();
+    fetchFileTypeStats();
+    fetchRecentActivities();
+  }, [fetchDocumentStats, fetchFileTypeStats, fetchRecentActivities]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
+  };
+
+  const handleRefresh = () => {
+    fetchDocumentStats();
+    fetchFileTypeStats();
+    fetchRecentActivities();
   };
 
   const getModuleStats = (moduleId: string) => {
@@ -87,10 +144,24 @@ const DocumentManagementPage: React.FC = () => {
       };
     }
     return {
-      count: stats.byModule[moduleId as keyof typeof stats.byModule] || 0,
+      count: stats.byModule[moduleId] || 0,
       size: '0 MB',
       recent: 0
     };
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes} minutes ago`;
+    } else if (diffInMinutes < 1440) {
+      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+    } else {
+      return `${Math.floor(diffInMinutes / 1440)} days ago`;
+    }
   };
 
   return (
@@ -99,6 +170,24 @@ const DocumentManagementPage: React.FC = () => {
       minHeight: '100vh',
       background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
+      {/* Error Alert */}
+      {error && (
+        <Alert 
+          severity="error" 
+          onClose={() => setError(null)}
+          sx={{ mb: 3 }}
+        >
+          {error}
+        </Alert>
+      )}
+
+      {/* Loading Indicator */}
+      {loading && (
+        <Box sx={{ mb: 3 }}>
+          <LinearProgress />
+        </Box>
+      )}
+
       <AnimatePresence mode="wait">
         {/* Header Section */}
         <motion.div
@@ -135,25 +224,43 @@ const DocumentManagementPage: React.FC = () => {
                 <Typography variant="h6" sx={{ opacity: 0.8, mb: 2 }}>
                   Centralized document storage and management system
                 </Typography>
-                <Box display="flex" gap={2} alignItems="center">
-                  <Chip
-                    icon={<DocumentIcon />}
-                    label={`${stats.totalDocuments} Documents`}
-                    color="primary"
+                <Box display="flex" gap={2} alignItems="center" justifyContent="space-between">
+                  <Box display="flex" gap={2} alignItems="center">
+                    <Chip
+                      icon={<DocumentIcon />}
+                      label={`${stats.totalDocuments} Documents`}
+                      color="primary"
+                      variant="outlined"
+                    />
+                    <Chip
+                      icon={<StorageIcon />}
+                      label={`${stats.totalSize} Total Size`}
+                      color="secondary"
+                      variant="outlined"
+                    />
+                    <Chip
+                      icon={<UploadIcon />}
+                      label={`${stats.recentUploads} Recent Uploads`}
+                      color="success"
+                      variant="outlined"
+                    />
+                  </Box>
+                  <Button
                     variant="outlined"
-                  />
-                  <Chip
-                    icon={<StorageIcon />}
-                    label={`${stats.totalSize} Total Size`}
-                    color="secondary"
-                    variant="outlined"
-                  />
-                  <Chip
-                    icon={<UploadIcon />}
-                    label={`${stats.recentUploads} Recent Uploads`}
-                    color="success"
-                    variant="outlined"
-                  />
+                    startIcon={<SearchIcon />}
+                    onClick={handleRefresh}
+                    disabled={loading}
+                    sx={{ 
+                      borderColor: alpha(theme.palette.common.white, 0.3),
+                      color: 'white',
+                      '&:hover': {
+                        borderColor: alpha(theme.palette.common.white, 0.5),
+                        backgroundColor: alpha(theme.palette.common.white, 0.1)
+                      }
+                    }}
+                  >
+                    Refresh
+                  </Button>
                 </Box>
               </Box>
             </Box>
@@ -342,26 +449,35 @@ const DocumentManagementPage: React.FC = () => {
                     Document Types Overview
                   </Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
-                    {fileTypes.map((fileType, index) => (
-                      <motion.div
-                        key={fileType.type}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.3, delay: 0.1 * index }}
-                      >
-                        <Card sx={{ p: 2, textAlign: 'center' }}>
-                          <Avatar sx={{ bgcolor: alpha(fileType.color, 0.1), color: fileType.color, mx: 'auto', mb: 1 }}>
-                            {fileType.icon}
-                          </Avatar>
-                          <Typography variant="h6" fontWeight={600}>
-                            {fileType.count}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                            {fileType.type}
-                          </Typography>
-                        </Card>
-                      </motion.div>
-                    ))}
+                    {fileTypes.length === 0 ? (
+                      <Box sx={{ textAlign: 'center', py: 4, gridColumn: '1 / -1' }}>
+                        <DocumentIcon sx={{ fontSize: 48, color: theme.palette.grey[400], mb: 2 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          No file type statistics available
+                        </Typography>
+                      </Box>
+                    ) : (
+                      fileTypes.map((fileType, index) => (
+                        <motion.div
+                          key={fileType.type}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.3, delay: 0.1 * index }}
+                        >
+                          <Card sx={{ p: 2, textAlign: 'center' }}>
+                            <Avatar sx={{ bgcolor: alpha(fileType.color, 0.1), color: fileType.color, mx: 'auto', mb: 1 }}>
+                              {fileType.icon}
+                            </Avatar>
+                            <Typography variant="h6" fontWeight={600}>
+                              {fileType.count}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                              {fileType.type}
+                            </Typography>
+                          </Card>
+                        </motion.div>
+                      ))
+                    )}
                   </Box>
                 </motion.div>
               )}
@@ -376,38 +492,47 @@ const DocumentManagementPage: React.FC = () => {
                     Recent Activity
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {recentActivities.map((activity, index) => (
-                      <motion.div
-                        key={activity.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.1 * index }}
-                      >
-                        <Card sx={{ p: 2 }}>
-                          <Box display="flex" alignItems="center" gap={2}>
-                            <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
-                              {activity.action === 'uploaded' ? <UploadIcon /> : 
-                               activity.action === 'downloaded' ? <DownloadIcon /> : 
-                               <HistoryIcon />}
-                            </Avatar>
-                            <Box flex={1}>
-                              <Typography variant="body2" fontWeight={600}>
-                                {activity.user} {activity.action} {activity.file}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {activity.time} • {activity.module.toUpperCase()} Module
-                              </Typography>
+                    {recentActivities.length === 0 ? (
+                      <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <HistoryIcon sx={{ fontSize: 48, color: theme.palette.grey[400], mb: 2 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          No recent activities found
+                        </Typography>
+                      </Box>
+                    ) : (
+                      recentActivities.map((activity, index) => (
+                        <motion.div
+                          key={activity._id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: 0.1 * index }}
+                        >
+                          <Card sx={{ p: 2 }}>
+                            <Box display="flex" alignItems="center" gap={2}>
+                              <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1) }}>
+                                {activity.action === 'upload' ? <UploadIcon /> : 
+                                 activity.action === 'download' ? <DownloadIcon /> : 
+                                 <HistoryIcon />}
+                              </Avatar>
+                              <Box flex={1}>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {activity.user} {activity.action} {activity.fileName}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {formatTimeAgo(activity.timestamp)} • {activity.module.toUpperCase()} Module
+                                </Typography>
+                              </Box>
+                              <Chip
+                                label={activity.module.toUpperCase()}
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                              />
                             </Box>
-                            <Chip
-                              label={activity.module.toUpperCase()}
-                              size="small"
-                              variant="outlined"
-                              color="primary"
-                            />
-                          </Box>
-                        </Card>
-                      </motion.div>
-                    ))}
+                          </Card>
+                        </motion.div>
+                      ))
+                    )}
                   </Box>
                 </motion.div>
               )}
@@ -434,7 +559,8 @@ const DocumentManagementPage: React.FC = () => {
                               <Typography variant="body2">{module.name}</Typography>
                             </Box>
                             <Typography variant="body2" fontWeight={600}>
-                              {Math.round((stats.byModule[module.id as keyof typeof stats.byModule] / stats.totalDocuments) * 100)}%
+                              {stats.totalDocuments > 0 ? 
+                                Math.round((stats.byModule[module.id] / stats.totalDocuments) * 100) : 0}%
                             </Typography>
                           </Box>
                         ))}

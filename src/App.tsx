@@ -46,7 +46,6 @@ import WaterLogPage from './pages/WaterLogPage';
 import './custom.css';
 // Add imports for new context and components
 import { FiscalYearProvider } from './context/FiscalYearContext';
-import Sidebar from './components/Sidebar';
 import FiscalYearSelector from './components/FiscalYearSelector';
 import BudgetAssumptions from './pages/BudgetAssumptions';
 import BudgetRevenue from './pages/BudgetRevenue';
@@ -57,6 +56,13 @@ import BudgetCapex from './pages/BudgetCapex';
 import BudgetVariance from './pages/BudgetVariance';
 import BudgetContracts from './pages/BudgetContracts';
 import BudgetDashboard from './pages/BudgetDashboard';
+import BudgetOthers from './pages/BudgetOthers';
+import BudgetWater from './pages/BudgetWater';
+import BudgetRental from './pages/BudgetRental';
+import BudgetLogistics from './pages/BudgetLogistics';
+import BudgetManpower from './pages/BudgetManpower';
+import BudgetGA from './pages/BudgetGA';
+import BudgetITOpex from './pages/BudgetITOpex';
 import BusinessTripPage from './pages/BusinessTripPage';
 import ViewTripPage from './pages/ViewTripPage';
 import VacationDashboard from './pages/VacationDashboard';
@@ -67,6 +73,7 @@ import AccountingSidebar from './components/AccountingSidebar';
 import PnLPage from './pages/PnLPage';
 import ReconciliationPage from './pages/ReconciliationPage';
 import DocumentManagementPage from './pages/DocumentManagementPage';
+import PendingRequestsPage from './pages/PendingRequestsPage';
 
 const TaxesPage = () => <div style={{ padding: 32 }}><h2>Taxes Page (Coming Soon)</h2></div>;
 const AccountingSettingsPage = () => <div style={{ padding: 32 }}><h2>Accounting Settings Page (Coming Soon)</h2></div>;
@@ -74,8 +81,7 @@ const AccountingSettingsPage = () => <div style={{ padding: 32 }}><h2>Accounting
 const App: React.FC = () => {
   const location = useLocation();
   const isAuthenticated = !!localStorage.getItem('token');
-  const showSidebar = location.pathname.startsWith('/budget');
-  const showAccountingSidebar = location.pathname.startsWith('/accounting') || location.pathname.startsWith('/general-ledger') || location.pathname.startsWith('/journal-entries');
+  const showAccountingSidebar = (location.pathname.startsWith('/accounting') && !location.pathname.startsWith('/accounting/pnl')) || location.pathname.startsWith('/general-ledger') || location.pathname.startsWith('/journal-entries');
 
   if (!isAuthenticated && location.pathname !== '/login' && location.pathname !== '/register') {
     return <Navigate to="/login" replace />;
@@ -89,9 +95,8 @@ const App: React.FC = () => {
       {isAuthenticated && <NavBar />}
       {isAuthenticated && (
         <div style={{ display: 'flex', minHeight: '100vh' }}>
-          {showSidebar && <Sidebar />}
           {showAccountingSidebar && <AccountingSidebar />}
-          <main style={{ flex: 1, padding: '24px', marginLeft: (showSidebar || showAccountingSidebar) ? 220 : 0 }}>
+          <main style={{ flex: 1, padding: '24px', marginLeft: showAccountingSidebar ? 220 : 0 }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
               <FiscalYearSelector />
             </div>
@@ -104,12 +109,21 @@ const App: React.FC = () => {
               <Route path="/income" element={<IncomePage />} />
               <Route path="/budgets" element={<BudgetsPage />} />
               <Route path="/budget/assumptions" element={<BudgetAssumptions />} />
-              <Route path="/budget/revenue" element={<BudgetRevenue />} />
-              <Route path="/budget/opex" element={<BudgetOpex />} />
-              <Route path="/budget/staffing" element={<BudgetStaffing />} />
-              <Route path="/budget/loans" element={<BudgetLoans />} />
-              <Route path="/budget/capex" element={<BudgetCapex />} />
+              <Route path="/budget/summary" element={<BudgetDashboard />} />
               <Route path="/budget/variance" element={<BudgetVariance />} />
+              <Route path="/budget/sales" element={<BudgetRevenue />} />
+              <Route path="/budget/logistics" element={<BudgetLogistics />} />
+              <Route path="/budget/water" element={<BudgetWater />} />
+              <Route path="/budget/rental" element={<BudgetRental />} />
+              <Route path="/budget/ga" element={<BudgetGA />} />
+              <Route path="/budget/opex" element={<BudgetOpex />} />
+              <Route path="/budget/it-opex" element={<BudgetITOpex />} />
+              <Route path="/budget/staffing" element={<BudgetStaffing />} />
+              <Route path="/budget/manpower" element={<BudgetManpower />} />
+              <Route path="/budget/capex" element={<BudgetCapex />} />
+              <Route path="/budget/others" element={<BudgetOthers />} />
+              <Route path="/budget/revenue" element={<BudgetRevenue />} />
+              <Route path="/budget/loans" element={<BudgetLoans />} />
               <Route path="/budget/contracts" element={<BudgetContracts />} />
               <Route path="/budget/reports" element={<BudgetDashboard />} />
               <Route path="/accounts" element={<ChartOfAccountsPage />} />
@@ -156,6 +170,7 @@ const App: React.FC = () => {
               <Route path="/accounting/pnl" element={<PnLPage />} />
               <Route path="/accounting/reconciliation" element={<ReconciliationPage />} />
               <Route path="/documents" element={<DocumentManagementPage />} />
+              <Route path="/pending-requests" element={<PendingRequestsPage />} />
               <Route path="/accounting/taxes" element={<TaxesPage />} />
               <Route path="/accounting/settings" element={<AccountingSettingsPage />} />
               <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />

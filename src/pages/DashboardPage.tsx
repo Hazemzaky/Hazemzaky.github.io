@@ -24,6 +24,7 @@ import {
   Alert,
   Snackbar
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import {
   Refresh as RefreshIcon,
   GetApp as ExportIcon,
@@ -51,6 +52,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 import theme from '../theme';
+import { usePnLIntegration } from '../services/pnlIntegrationService';
 
 // Enhanced color palette using the custom theme
 const MODULE_COLORS = {
@@ -65,51 +67,25 @@ const MODULE_COLORS = {
   hse: theme.palette.neutral?.dark || '#607D8B'
 };
 
-// Enhanced mock data for charts
-const mockChartData = {
-  monthlyTrends: [
-    { month: 'Jan', revenue: 125000, expenses: 98000, profit: 27000, target: 25000 },
-    { month: 'Feb', revenue: 138000, expenses: 102000, profit: 36000, target: 28000 },
-    { month: 'Mar', revenue: 152000, expenses: 115000, profit: 37000, target: 30000 },
-    { month: 'Apr', revenue: 145000, expenses: 108000, profit: 37000, target: 32000 },
-    { month: 'May', revenue: 168000, expenses: 125000, profit: 43000, target: 35000 },
-    { month: 'Jun', revenue: 182000, expenses: 138000, profit: 44000, target: 38000 }
-  ],
-  moduleBreakdown: [
-    { name: 'HR', value: 28, color: MODULE_COLORS.hr },
-    { name: 'Assets', value: 22, color: MODULE_COLORS.assets },
-    { name: 'Operations', value: 18, color: MODULE_COLORS.operations },
-    { name: 'Maintenance', value: 15, color: MODULE_COLORS.maintenance },
-    { name: 'Procurement', value: 12, color: MODULE_COLORS.procurement },
-    { name: 'Admin', value: 5, color: MODULE_COLORS.admin }
-  ],
-  performanceMetrics: [
-    { metric: 'Efficiency', current: 87, target: 90, trend: 'up' },
-    { metric: 'Quality', current: 94, target: 92, trend: 'up' },
-    { metric: 'Safety', current: 98, target: 95, trend: 'up' },
-    { metric: 'Cost Control', current: 82, target: 85, trend: 'down' }
-  ]
-};
 
 interface DashboardData {
   financial: {
     revenue: number;
     expenses: number;
-    grossProfit: number;
-    netProfit: number;
+    ebitda: number;
+    subCompaniesRevenue: number;
     margin: number;
   };
   hr: {
     headcount: number;
     payroll: number;
-    attrition: number;
-    attritionRate: number;
+    activeEmployees: number;
+    onLeaveEmployees: number;
   };
   assets: {
     bookValue: number;
-    utilization: number;
-    depreciation: number;
-    renewals: number;
+    totalAssets: number;
+    renewalsRequired: number;
   };
   operations: {
     deliveries: number;
@@ -161,6 +137,7 @@ interface MetricItem {
 
 const DashboardPage: React.FC = () => {
   const muiTheme = useTheme();
+  const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -168,11 +145,34 @@ const DashboardPage: React.FC = () => {
   const [fullscreen, setFullscreen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as any });
 
+  // PnL Integration for enhanced financial data
+  const { 
+    pnlData: pnlIntegrationData, 
+    loading: pnlLoading, 
+    error: pnlError, 
+    refreshPnLData 
+  } = usePnLIntegration('dashboard');
+
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get<DashboardData>('/dashboard/dashboard-summary');
-      setData(response.data);
+      
+      // Update financial data with PnL integration data if available
+      const updatedData = { ...response.data };
+      if (pnlIntegrationData?.summary) {
+        updatedData.financial = {
+          ...updatedData.financial,
+          revenue: pnlIntegrationData.summary.revenue || updatedData.financial.revenue,
+          expenses: pnlIntegrationData.summary.operatingExpenses || updatedData.financial.expenses,
+          ebitda: pnlIntegrationData.summary.operatingProfit || updatedData.financial.ebitda,
+          // Keep other financial data from dashboard
+          subCompaniesRevenue: updatedData.financial.subCompaniesRevenue,
+          margin: updatedData.financial.margin
+        };
+      }
+      
+      setData(updatedData);
       setLastUpdated(new Date());
       setSnackbar({ open: true, message: 'Dashboard data refreshed successfully!', severity: 'success' });
     } catch (err: any) {
@@ -181,16 +181,78 @@ const DashboardPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pnlIntegrationData]);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Fetch PnL data for enhanced financial metrics
+  useEffect(() => {
+    console.log('Fetching PnL data for dashboard...');
+    refreshPnLData('yearly');
+  }, [refreshPnLData]);
+
+  // Refresh dashboard data when PnL data changes
+  useEffect(() => {
+    if (pnlIntegrationData?.summary) {
+      console.log('Updating dashboard data with PnL data:', pnlIntegrationData.summary);
+      // Update the existing data with PnL data without refetching
+      setData(prevData => {
+        if (!prevData) return prevData;
+        const updatedData = {
+          ...prevData,
+          financial: {
+            ...prevData.financial,
+            revenue: pnlIntegrationData.summary.revenue || prevData.financial.revenue,
+            expenses: pnlIntegrationData.summary.operatingExpenses || prevData.financial.expenses,
+            ebitda: pnlIntegrationData.summary.operatingProfit || prevData.financial.ebitda,
+            // Keep other financial data from dashboard
+            subCompaniesRevenue: prevData.financial.subCompaniesRevenue,
+            margin: prevData.financial.margin
+          }
+        };
+        console.log('Updated financial data:', updatedData.financial);
+        return updatedData;
+      });
+    }
+  }, [pnlIntegrationData]);
+
+  // Get enhanced revenue from PnL data (same as PnL table)
+  const getEnhancedRevenue = () => {
+    if (pnlIntegrationData?.summary?.revenue) {
+      return pnlIntegrationData.summary.revenue;
+    }
+    // Fallback to dashboard data
+    return data?.financial?.revenue || 0;
+  };
+
+  // Get enhanced expenses from PnL data (same as PnL table)
+  const getEnhancedExpenses = () => {
+    if (pnlIntegrationData?.summary?.operatingExpenses) {
+      return pnlIntegrationData.summary.operatingExpenses;
+    }
+    // Fallback to dashboard data
+    return data?.financial?.expenses || 0;
+  };
+
+  // Get enhanced EBITDA from PnL data (same as PnL table)
+  const getEnhancedEBITDA = () => {
+    console.log('getEnhancedEBITDA - PnL data:', pnlIntegrationData?.summary?.operatingProfit);
+    console.log('getEnhancedEBITDA - Dashboard data:', data?.financial?.ebitda);
+    if (pnlIntegrationData?.summary?.operatingProfit !== undefined) {
+      console.log('Using PnL EBITDA data:', pnlIntegrationData.summary.operatingProfit);
+      return pnlIntegrationData.summary.operatingProfit;
+    }
+    // Fallback to dashboard data
+    console.log('Using dashboard EBITDA data:', data?.financial?.ebitda || 0);
+    return data?.financial?.ebitda || 0;
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KWD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -225,6 +287,28 @@ const DashboardPage: React.FC = () => {
 
   const handleExport = () => {
     setSnackbar({ open: true, message: 'Export functionality coming soon!', severity: 'info' });
+  };
+
+  const handleActionCenterClick = (action: string) => {
+    switch (action) {
+      case 'overdueInvoices':
+        navigate('/invoices');
+        break;
+      case 'unapprovedPOs':
+        navigate('/procurement?tab=3'); // Purchase Orders tab
+        break;
+      case 'pendingReconciliations':
+        navigate('/accounting/reconciliation');
+        break;
+      case 'expiringContracts':
+        navigate('/clients?tab=contract'); // Contract tab
+        break;
+      case 'pendingRequests':
+        navigate('/pending-requests'); // Dedicated Pending Requests page
+        break;
+      default:
+        break;
+    }
   };
 
   if (loading && !data) {
@@ -380,38 +464,51 @@ const DashboardPage: React.FC = () => {
             </Box>
             
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
-              {Object.entries(data.alerts).map(([key, value], index) => (
-                <motion.div
-                  key={key}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: index * 0.1 }}
-                >
-                  <Card 
-                    elevation={0}
-                    sx={{ 
-                      background: alpha(theme.palette.background.paper, 0.8),
-                      backdropFilter: 'blur(10px)',
-                      border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
-                      borderRadius: theme.shape.borderRadius,
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: theme.shadows[8]
-                      }
-                    }}
+              {Object.entries(data.alerts).map(([key, value], index) => {
+                const alertLabels: { [key: string]: string } = {
+                  overdueInvoices: 'Overdue Invoices',
+                  unapprovedPOs: 'Unapproved POs',
+                  pendingReconciliations: 'Pending Reconciliations',
+                  expiringContracts: 'Expiring Contracts',
+                  pendingRequests: 'Pending Requests'
+                };
+                
+                return (
+                  <motion.div
+                    key={key}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
                   >
-                    <CardContent sx={{ textAlign: 'center', p: 2 }}>
-                      <Typography variant="h4" color={getAlertSeverity(value) as any} sx={{ fontWeight: 700, mb: 1 }}>
-                        {value}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                    <Card 
+                      elevation={0}
+                      onClick={() => handleActionCenterClick(key)}
+                      sx={{ 
+                        background: alpha(theme.palette.background.paper, 0.8),
+                        backdropFilter: 'blur(10px)',
+                        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+                        borderRadius: theme.shape.borderRadius,
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: theme.shadows[8],
+                          borderColor: theme.palette.primary.main
+                        }
+                      }}
+                    >
+                      <CardContent sx={{ textAlign: 'center', p: 2 }}>
+                        <Typography variant="h4" color={getAlertSeverity(value) as any} sx={{ fontWeight: 700, mb: 1 }}>
+                          {value}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {alertLabels[key] || key.replace(/([A-Z])/g, ' $1').trim()}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </Box>
           </Paper>
         </motion.div>
@@ -432,36 +529,56 @@ const DashboardPage: React.FC = () => {
               borderRadius: theme.shape.borderRadius
             }}
           >
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.primary.main, fontWeight: 600, mb: 3 }}>
-              💰 Financial Performance
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ color: theme.palette.primary.main, fontWeight: 600 }}>
+                💰 Financial Performance
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => {
+                  console.log('Manual PnL refresh triggered');
+                  refreshPnLData('yearly');
+                }}
+                sx={{ 
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    borderColor: theme.palette.primary.dark,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.1)
+                  }
+                }}
+              >
+                Refresh PnL Data
+              </Button>
+            </Box>
             
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
               {[
                 { 
                   title: 'Revenue', 
-                  value: data.financial.revenue, 
+                  value: getEnhancedRevenue(), 
                   color: theme.palette.primary.main,
                   bgColor: alpha(theme.palette.primary.main, 0.1),
                   icon: <TrendingUpIcon />
                 },
                 { 
                   title: 'Expenses', 
-                  value: data.financial.expenses, 
+                  value: getEnhancedExpenses(), 
                   color: theme.palette.error.main,
                   bgColor: alpha(theme.palette.error.main, 0.1),
                   icon: <TrendingDownIcon />
                 },
                 { 
-                  title: 'Gross Profit', 
-                  value: data.financial.grossProfit, 
+                  title: 'EBITDA', 
+                  value: getEnhancedEBITDA(), 
                   color: theme.palette.success.main,
                   bgColor: alpha(theme.palette.success.main, 0.1),
                   icon: <TrendingUpIcon />
                 },
                 { 
-                  title: 'Net Profit', 
-                  value: data.financial.netProfit, 
+                  title: 'Sub Companies Revenue', 
+                  value: data.financial.subCompaniesRevenue, 
                   color: theme.palette.secondary.main,
                   bgColor: alpha(theme.palette.secondary.main, 0.1),
                   icon: <TrendingUpIcon />
@@ -498,9 +615,19 @@ const DashboardPage: React.FC = () => {
                       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
                         {formatCurrency(item.value)}
                       </Typography>
-                      {item.title === 'Gross Profit' && (
-                        <Typography variant="body2" color="text.secondary">
-                          Margin: {formatPercentage(data.financial.margin)}
+                      {item.title === 'Revenue' && pnlIntegrationData?.summary?.revenue && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          ✨ Enhanced from PnL Vertical Table
+                        </Typography>
+                      )}
+                      {item.title === 'Expenses' && pnlIntegrationData?.summary?.operatingExpenses && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          ✨ Enhanced from PnL Vertical Table
+                        </Typography>
+                      )}
+                      {item.title === 'EBITDA' && pnlIntegrationData?.summary?.ebitda && (
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          ✨ Enhanced from PnL Vertical Table
                         </Typography>
                       )}
                     </CardContent>
@@ -529,9 +656,10 @@ const DashboardPage: React.FC = () => {
                 color: MODULE_COLORS.hr,
                 data: data.hr,
                 metrics: [
-                  { label: 'Active Employees', value: data.hr.headcount, format: formatNumber },
+                  { label: 'Total Headcount', value: data.hr.headcount, format: formatNumber },
+                  { label: 'Active Employees', value: data.hr.activeEmployees, format: formatNumber },
                   { label: 'Monthly Payroll', value: data.hr.payroll, format: formatCurrency },
-                  { label: 'Employees on Vacation', value: data.hr.attritionRate, format: formatNumber }
+                  { label: 'On Leave', value: data.hr.onLeaveEmployees, format: formatNumber }
                 ] as MetricItem[]
               },
               {
@@ -541,8 +669,8 @@ const DashboardPage: React.FC = () => {
                 data: data.assets,
                 metrics: [
                   { label: 'Total Book Value', value: data.assets.bookValue, format: formatCurrency },
-                  { label: 'Avg Utilization', value: data.assets.utilization, format: formatPercentage },
-                  { label: 'Renewals Required', value: data.assets.renewals, format: formatNumber }
+                  { label: 'Total Assets', value: data.assets.totalAssets, format: formatNumber },
+                  { label: 'Renewals Required', value: data.assets.renewalsRequired, format: formatNumber }
                 ] as MetricItem[]
               },
               {
@@ -552,8 +680,8 @@ const DashboardPage: React.FC = () => {
                 data: data.operations,
                 metrics: [
                   { label: 'Total Callouts', value: data.operations.deliveries, format: formatNumber },
-                  { label: 'On-Time Delivery', value: data.operations.onTimePercentage, format: formatPercentage },
-                  { label: 'Fleet Utilization', value: data.operations.fleetUtilization, format: formatPercentage }
+                  { label: 'Total Orders', value: data.operations.onTimePercentage, format: formatNumber },
+                  { label: 'Cancelled Orders', value: data.operations.fleetUtilization, format: formatNumber }
                 ] as MetricItem[]
               },
               {
@@ -638,26 +766,125 @@ const DashboardPage: React.FC = () => {
                       <Avatar sx={{ bgcolor: module.color, width: 48, height: 48 }}>
                         {module.icon}
                       </Avatar>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: module.color }}>
-                        {module.title}
-                      </Typography>
-                    </Box>
-                    
-                    {module.metrics.map((metric, idx) => (
-                      <Box key={idx} sx={{ mb: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">
-                            {metric.label}
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: module.color }}>
+                          {module.title}
+                        </Typography>
+                        {module.title === 'Human Resources' && (
+                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+                            ✨ Live Data from Employee & Payroll Modules
                           </Typography>
-                          <Typography variant="h6" sx={{ fontWeight: 600, color: module.color }}>
-                            {metric.format(metric.value)}
+                        )}
+                        {module.title === 'Assets' && (
+                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+                            ✨ Live Data from Asset Module
                           </Typography>
-                        </Box>
-                        {idx < module.metrics.length - 1 && (
-                          <Divider sx={{ opacity: 0.3 }} />
+                        )}
+                        {module.title === 'Operations' && (
+                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+                            ✨ Live Data from Projects Module
+                          </Typography>
                         )}
                       </Box>
-                    ))}
+                    </Box>
+                    
+                    {module.metrics.map((metric, idx) => {
+                      // Special styling for HR metrics
+                      const isHRPayroll = module.title === 'Human Resources' && metric.label === 'Monthly Payroll';
+                      const isHRActive = module.title === 'Human Resources' && metric.label === 'Active Employees';
+                      
+                      // Special styling for Assets metrics
+                      const isAssetBookValue = module.title === 'Assets' && metric.label === 'Total Book Value';
+                      const isAssetTotal = module.title === 'Assets' && metric.label === 'Total Assets';
+                      const isAssetRenewals = module.title === 'Assets' && metric.label === 'Renewals Required';
+                      
+                      // Special styling for Operations metrics
+                      const isOpsCallouts = module.title === 'Operations' && metric.label === 'Total Callouts';
+                      const isOpsOrders = module.title === 'Operations' && metric.label === 'Total Orders';
+                      const isOpsCancelled = module.title === 'Operations' && metric.label === 'Cancelled Orders';
+                      
+                      return (
+                        <Box key={idx} sx={{ mb: 2 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              {metric.label}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {isHRPayroll && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isHRActive && (
+                                <Chip 
+                                  size="small" 
+                                  label="Active"
+                                  color="success"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isAssetBookValue && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isAssetTotal && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isAssetRenewals && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isOpsCallouts && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isOpsOrders && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isOpsCancelled && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              <Typography variant="h6" sx={{ fontWeight: 600, color: module.color }}>
+                                {metric.format(metric.value)}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          {idx < module.metrics.length - 1 && (
+                            <Divider sx={{ opacity: 0.3 }} />
+                          )}
+                        </Box>
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </motion.div>
@@ -665,14 +892,14 @@ const DashboardPage: React.FC = () => {
           </Box>
         </motion.div>
 
-        {/* Charts Section */}
+        {/* Real Data Charts Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.0 }}
         >
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(800px, 1fr))', gap: 3, mb: 4 }}>
-            {/* Monthly Trends Chart */}
+            {/* Financial Summary Chart */}
             <Paper 
               elevation={0}
               sx={{ 
@@ -684,26 +911,17 @@ const DashboardPage: React.FC = () => {
               }}
             >
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                📈 Monthly Financial Trends
+                📊 Financial Overview
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={mockChartData.monthlyTrends}>
-                  <defs>
-                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="expensesGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={theme.palette.error.main} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={theme.palette.error.main} stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="profitGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={theme.palette.success.main} stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor={theme.palette.success.main} stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
+                <BarChart data={[
+                  { name: 'Revenue', value: getEnhancedRevenue(), color: theme.palette.primary.main },
+                  { name: 'Expenses', value: getEnhancedExpenses(), color: theme.palette.error.main },
+                  { name: 'EBITDA', value: getEnhancedEBITDA(), color: theme.palette.success.main },
+                  { name: 'Sub Companies Revenue', value: data.financial.subCompaniesRevenue, color: theme.palette.secondary.main }
+                ]}>
                   <CartesianGrid strokeDasharray="3 3" stroke={alpha(theme.palette.divider, 0.3)} />
-                  <XAxis dataKey="month" stroke={theme.palette.text.secondary} />
+                  <XAxis dataKey="name" stroke={theme.palette.text.secondary} />
                   <YAxis stroke={theme.palette.text.secondary} />
                   <RechartsTooltip 
                     contentStyle={{ 
@@ -711,16 +929,14 @@ const DashboardPage: React.FC = () => {
                       border: `1px solid ${theme.palette.divider}`,
                       borderRadius: 8
                     }}
+                    formatter={(value: number) => [formatCurrency(value), 'Amount']}
                   />
-                  <Legend />
-                  <Area type="monotone" dataKey="revenue" stroke={theme.palette.primary.main} fill="url(#revenueGradient)" strokeWidth={3} />
-                  <Area type="monotone" dataKey="expenses" stroke={theme.palette.error.main} fill="url(#expensesGradient)" strokeWidth={3} />
-                  <Area type="monotone" dataKey="profit" stroke={theme.palette.success.main} fill="url(#profitGradient)" strokeWidth={3} />
-                </AreaChart>
+                  <Bar dataKey="value" fill={theme.palette.primary.main} />
+                </BarChart>
               </ResponsiveContainer>
             </Paper>
 
-            {/* Module Breakdown Chart */}
+            {/* Module Performance Chart */}
             <Paper 
               elevation={0}
               sx={{ 
@@ -732,12 +948,20 @@ const DashboardPage: React.FC = () => {
               }}
             >
               <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 3 }}>
-                🥧 Cost Distribution by Module
+                🎯 Module Performance
               </Typography>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={mockChartData.moduleBreakdown}
+                    data={[
+                      { name: 'HR', value: data.hr.payroll, color: MODULE_COLORS.hr },
+                      { name: 'Assets', value: data.assets.bookValue, color: MODULE_COLORS.assets },
+                      { name: 'Operations', value: data.operations.deliveryCost, color: MODULE_COLORS.operations },
+                      { name: 'Maintenance', value: data.maintenance.cost, color: MODULE_COLORS.maintenance },
+                      { name: 'Procurement', value: data.procurement.totalSpend, color: MODULE_COLORS.procurement },
+                      { name: 'Admin', value: data.admin.costs, color: MODULE_COLORS.admin },
+                      { name: 'HSE', value: data.hse.incidents, color: MODULE_COLORS.hse }
+                    ]}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -745,7 +969,15 @@ const DashboardPage: React.FC = () => {
                     outerRadius={100}
                     label={({ name, percent }) => `${name} ${(percent || 0) * 100}%`}
                   >
-                    {mockChartData.moduleBreakdown.map((entry, index) => (
+                    {[
+                      { name: 'HR', value: data.hr.payroll, color: MODULE_COLORS.hr },
+                      { name: 'Assets', value: data.assets.bookValue, color: MODULE_COLORS.assets },
+                      { name: 'Operations', value: data.operations.deliveryCost, color: MODULE_COLORS.operations },
+                      { name: 'Maintenance', value: data.maintenance.cost, color: MODULE_COLORS.maintenance },
+                      { name: 'Procurement', value: data.procurement.totalSpend, color: MODULE_COLORS.procurement },
+                      { name: 'Admin', value: data.admin.costs, color: MODULE_COLORS.admin },
+                      { name: 'HSE', value: data.hse.incidents, color: MODULE_COLORS.hse }
+                    ].map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -755,6 +987,7 @@ const DashboardPage: React.FC = () => {
                       border: `1px solid ${theme.palette.divider}`,
                       borderRadius: 8
                     }}
+                    formatter={(value: number) => [formatCurrency(value), 'Amount']}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -762,7 +995,7 @@ const DashboardPage: React.FC = () => {
           </Box>
         </motion.div>
 
-        {/* Performance Metrics */}
+        {/* Real Performance Metrics */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -778,11 +1011,36 @@ const DashboardPage: React.FC = () => {
             }}
           >
             <Typography variant="h6" gutterBottom sx={{ color: theme.palette.info.main, fontWeight: 600, mb: 3 }}>
-              🎯 Performance Metrics vs Targets
+              📈 Key Performance Indicators
             </Typography>
             
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
-              {mockChartData.performanceMetrics.map((metric, index) => (
+              {[
+                {
+                  metric: 'Profit Margin',
+                  current: data.financial.margin,
+                  trend: data.financial.margin > 0 ? 'up' : 'down',
+                  icon: <TrendingUpIcon />
+                },
+                {
+                  metric: 'Total Assets',
+                  current: data.assets.totalAssets,
+                  trend: data.assets.totalAssets > 0 ? 'up' : 'down',
+                  icon: <TrendingUpIcon />
+                },
+                {
+                  metric: 'On-Time Delivery',
+                  current: data.operations.onTimePercentage,
+                  trend: data.operations.onTimePercentage > 0 ? 'up' : 'down',
+                  icon: <TrendingUpIcon />
+                },
+                {
+                  metric: 'Training Compliance',
+                  current: data.hse.trainingCompliance * 100,
+                  trend: data.hse.trainingCompliance > 0 ? 'up' : 'down',
+                  icon: <TrendingUpIcon />
+                }
+              ].map((metric, index) => (
                 <motion.div
                   key={metric.metric}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -808,31 +1066,27 @@ const DashboardPage: React.FC = () => {
                       
                       <Box sx={{ mb: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">Current</Typography>
+                          <Typography variant="body2" color="text.secondary">Current Value</Typography>
                           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                            {metric.current}%
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">Target</Typography>
-                          <Typography variant="body1" color="text.secondary">
-                            {metric.target}%
+                            {metric.current.toFixed(1)}%
                           </Typography>
                         </Box>
                       </Box>
                       
-                      <LinearProgress 
-                        variant="determinate" 
-                        value={(metric.current / metric.target) * 100} 
-                        sx={{ 
-                          height: 8, 
-                          borderRadius: 4,
-                          bgcolor: alpha(theme.palette.divider, 0.3),
-                          '& .MuiLinearProgress-bar': {
-                            bgcolor: metric.current >= metric.target ? theme.palette.success.main : theme.palette.warning.main
-                          }
-                        }} 
-                      />
+                      <Box sx={{ 
+                        height: 8, 
+                        borderRadius: 4,
+                        bgcolor: alpha(theme.palette.divider, 0.3),
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}>
+                        <Box sx={{ 
+                          height: '100%',
+                          width: '100%',
+                          bgcolor: metric.trend === 'up' ? theme.palette.success.main : theme.palette.warning.main,
+                          opacity: 0.3
+                        }} />
+                      </Box>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -876,4 +1130,4 @@ const DashboardPage: React.FC = () => {
   );
 };
 
-export default DashboardPage;     
+export default DashboardPage;

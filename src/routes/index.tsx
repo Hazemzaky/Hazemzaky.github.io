@@ -5,6 +5,7 @@ import BusinessTripPage from '../pages/BusinessTripPage';
 import ViewTripPage from '../pages/ViewTripPage';
 import GeneralLedgerPage from '../pages/GeneralLedgerPage';
 import ChartOfAccountsPage from '../pages/ChartOfAccountsPage';
+import PendingRequestsPage from '../pages/PendingRequestsPage';
 import { Route } from 'react-router-dom';
 
 const routes = [
@@ -15,6 +16,7 @@ const routes = [
   <Route path="/business-trips/:id" element={<ViewTripPage />} />,
   <Route path="/general-ledger" element={<GeneralLedgerPage />} />,
   <Route path="/chart-of-accounts" element={<ChartOfAccountsPage />} />,
+  <Route path="/pending-requests" element={<PendingRequestsPage />} />,
 ];
 
 export default routes; 

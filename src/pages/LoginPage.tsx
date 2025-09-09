@@ -31,7 +31,11 @@ import {
   Security as SecurityIcon,
   Dashboard as DashboardIcon,
   CheckCircle as CheckCircleIcon,
-  Business as BusinessIcon
+  Business as BusinessIcon,
+  VerifiedUser as VerifiedUserIcon,
+  TrendingUp as TrendingUpIcon,
+  GppGood as GppGoodIcon,
+  AllInclusive as AllInclusiveIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
@@ -193,18 +197,69 @@ const LoginPage: React.FC = () => {
                       animate={{ scale: 1 }}
                       transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
                     >
-                      <Avatar
+                      <Box
                         sx={{
-                          width: 80,
-                          height: 80,
+                          width: 120,
+                          height: 120,
                           mx: 'auto',
                           mb: 3,
-                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                          boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.3)}`
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.3)}`,
+                          border: `2px solid ${alpha(theme.palette.primary.main, 0.25)}`,
+                          position: 'relative',
+                          p: 1,
+                          background: '#fefcff',
+                          '&::before': {
+                            content: '""',
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'transparent',
+                            zIndex: 1,
+                            borderRadius: '50%'
+                          }
                         }}
                       >
-                        <BusinessIcon sx={{ fontSize: 40 }} />
-                      </Avatar>
+                        <img
+                          src={`${process.env.PUBLIC_URL}/company-logo.gif`}
+                          alt="Company Logo"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            objectPosition: 'center',
+                            position: 'relative',
+                            zIndex: 2
+                          }}
+                          onError={(e) => {
+                            // Fallback to the original BusinessIcon if GIF fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `
+                                <div style="
+                                  width: 100%;
+                                  height: 100%;
+                                  display: flex;
+                                  align-items: center;
+                                  justify-content: center;
+                                  background: linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main});
+                                  color: white;
+                                  font-size: 40px;
+                                ">
+                                  <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>
+                                  </svg>
+                                </div>
+                              `;
+                            }
+                          }}
+                        />
+                      </Box>
                     </motion.div>
 
                     <motion.div
@@ -219,28 +274,45 @@ const LoginPage: React.FC = () => {
                           background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
-                          mb: 1
+                          mb: 1,
+                          fontFamily: `'Poppins','Montserrat','Segoe UI','Helvetica Neue',Arial,sans-serif`
                         }}
                       >
-                        Welcome Back
-                      </Typography>
-                      <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                        Sign in to access your business dashboard
+                        Login To The Infinite Growth
                       </Typography>
 
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mb: 3 }}>
-                        <Chip
-                          icon={<SecurityIcon />}
-                          label="Secure"
-                          size="small"
-                          sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main }}
-                        />
-                        <Chip
-                          icon={<DashboardIcon />}
-                          label="Enterprise"
-                          size="small"
-                          sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}
-                        />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, mb: 3 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'nowrap' }}>
+                          <Chip
+                            label="(RISE)"
+                            size="small"
+                            sx={{ fontWeight: 800, letterSpacing: 2, bgcolor: alpha(theme.palette.secondary.main, 0.12), color: theme.palette.secondary.main }}
+                          />
+                          <Chip
+                            icon={<VerifiedUserIcon />}
+                            label="Reliable"
+                            size="small"
+                            sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}
+                          />
+                          <Chip
+                            icon={<AllInclusiveIcon />}
+                            label="Integral"
+                            size="small"
+                            sx={{ bgcolor: alpha(theme.palette.warning.main, 0.12), color: theme.palette.warning.main }}
+                          />
+                          <Chip
+                            icon={<SecurityIcon />}
+                            label="Safe"
+                            size="small"
+                            sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main }}
+                          />
+                          <Chip
+                            icon={<TrendingUpIcon />}
+                            label="Effective"
+                            size="small"
+                            sx={{ bgcolor: alpha(theme.palette.info.main, 0.12), color: theme.palette.info.main }}
+                          />
+                        </Box>
                       </Box>
                     </motion.div>
                   </Box>
@@ -387,7 +459,7 @@ const LoginPage: React.FC = () => {
                         }
                       }}
                     >
-                      {loading ? 'Signing you in...' : 'Sign In to Dashboard'}
+                      {''}
                     </Button>
                   </motion.form>
 
