@@ -178,6 +178,9 @@ const ManualEntriesPage: React.FC = () => {
     netImpact: 0,
     recentUpdates: 0
   });
+  
+  // File upload state
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
 
   // Fetch manual entries from database
   const fetchEntries = useCallback(async () => {
@@ -186,7 +189,7 @@ const ManualEntriesPage: React.FC = () => {
     
     try {
       console.log('Fetching manual entries from database...');
-      const response = await api.get('/pnl/manual-entries');
+      const response = await api.get('/manual-entries');
       
       if (response.data && Array.isArray(response.data)) {
         setEntries(response.data);
@@ -296,7 +299,7 @@ const ManualEntriesPage: React.FC = () => {
     try {
       if (editingEntry) {
         // Update existing entry
-        await api.put(`/pnl/manual-entries/${editingEntry.itemId}`, {
+        await api.put(`/manual-entries/${editingEntry.itemId}`, {
           amount: formData.amount,
           notes: formData.notes,
           description: formData.description,
@@ -306,7 +309,7 @@ const ManualEntriesPage: React.FC = () => {
         setSuccess('Manual entry updated successfully!');
       } else {
         // Create new entry
-        await api.post('/pnl/manual-entries', formData);
+        await api.post('/manual-entries', formData);
         setSuccess('Manual entry created successfully!');
       }
       
@@ -328,7 +331,7 @@ const ManualEntriesPage: React.FC = () => {
   // Handle entry deletion
   const handleDelete = async (entry: ManualEntry) => {
     try {
-      await api.delete(`/pnl/manual-entries/${entry.itemId}`);
+      await api.delete(`/manual-entries/${entry.itemId}`);
       setSuccess('Manual entry deleted successfully!');
       setDeleteModalOpen(false);
       fetchEntries();
@@ -350,7 +353,7 @@ const ManualEntriesPage: React.FC = () => {
         case 'delete':
           await Promise.all(
             selectedEntries.map(itemId => 
-              api.delete(`/pnl/manual-entries/${itemId}`)
+              api.delete(`/manual-entries/${itemId}`)
             )
           );
           setSuccess(`Deleted ${selectedEntries.length} entries successfully!`);
@@ -358,7 +361,7 @@ const ManualEntriesPage: React.FC = () => {
         case 'activate':
           await Promise.all(
             selectedEntries.map(itemId => 
-              api.put(`/pnl/manual-entries/${itemId}`, { isActive: true })
+              api.put(`/manual-entries/${itemId}`, { isActive: true })
             )
           );
           setSuccess(`Activated ${selectedEntries.length} entries successfully!`);
@@ -366,7 +369,7 @@ const ManualEntriesPage: React.FC = () => {
         case 'deactivate':
           await Promise.all(
             selectedEntries.map(itemId => 
-              api.put(`/pnl/manual-entries/${itemId}`, { isActive: false })
+              api.put(`/manual-entries/${itemId}`, { isActive: false })
             )
           );
           setSuccess(`Deactivated ${selectedEntries.length} entries successfully!`);
@@ -401,6 +404,66 @@ const ManualEntriesPage: React.FC = () => {
     });
     setFormErrors({});
     setEditingEntry(null);
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, entry: ManualEntry) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(entry.itemId);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('entryId', entry.itemId);
+      formData.append('description', entry.description);
+
+      const response = await api.post('/manual-entries/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setSuccess(`File uploaded successfully for ${entry.description}!`);
+      fetchEntries(); // Refresh to get updated file info
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload file');
+    } finally {
+      setUploadingFile(null);
+      // Reset the input
+      event.target.value = '';
+    }
+  };
+
+  // Handle file download
+  const handleDownloadFiles = async (entry: ManualEntry) => {
+    if (!entry.attachedFiles || entry.attachedFiles.length === 0) {
+      setError('No files available for download');
+      return;
+    }
+
+    try {
+      for (const file of entry.attachedFiles) {
+        const response = await api.get(`/manual-entries/download/${file.id}`, {
+          responseType: 'blob',
+        });
+
+        // Create download link
+        const url = window.URL.createObjectURL(response.data as any);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', file.originalName || file.filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      }
+      
+      setSuccess(`Downloaded ${entry.attachedFiles.length} file(s) for ${entry.description}`);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to download files');
+    }
   };
 
   // Handle edit entry
