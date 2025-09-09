@@ -94,6 +94,7 @@ import {
 } from 'recharts';
 import api from '../apiBase';
 import { pnlIntegrationService, usePnLIntegration, getPeriodBoundaries } from '../services/pnlIntegrationService';
+import ManualEntriesPage from './ManualEntriesPage';
 
 // Debounce utility function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -1267,13 +1268,30 @@ const ManualPnLEntries: React.FC = () => {
     setLoading(true);
     setError(''); // Clear any previous errors
     try {
-      console.log('Fetching manual entries...');
+      console.log('=== FETCHING MANUAL ENTRIES ===');
       console.log('API base URL:', api.defaults.baseURL);
       console.log('Full URL:', `${api.defaults.baseURL}/pnl/manual-entries`);
+      
       const res = await api.get('/pnl/manual-entries');
       console.log('Manual entries response status:', res.status);
       console.log('Manual entries response data:', res.data);
       console.log('Manual entries response data length:', Array.isArray(res.data) ? res.data.length : 'Not an array');
+      
+      // Validate response data
+      if (!res.data || !Array.isArray(res.data)) {
+        console.error('Invalid response data format:', res.data);
+        setError('Invalid response format from server');
+        setEntries([]);
+        return;
+      }
+      
+      if (res.data.length === 0) {
+        console.warn('No manual entries returned from server');
+        setError('No manual entries found. Please check server configuration.');
+        setEntries([]);
+        return;
+      }
+      
       console.log('Setting entries to:', res.data);
       setEntries(res.data as any[]);
       
@@ -1313,9 +1331,27 @@ const ManualPnLEntries: React.FC = () => {
       
       setManualValues(newManualValues);
     } catch (err: any) {
-      console.error('Error fetching manual entries:', err);
+      console.error('=== ERROR FETCHING MANUAL ENTRIES ===');
+      console.error('Error details:', err);
       console.error('Error response:', err.response);
-      setError(err.response?.data?.message || 'Failed to fetch manual entries');
+      console.error('Error message:', err.message);
+      console.error('Network error:', err.code);
+      
+      let errorMessage = 'Failed to fetch manual entries';
+      
+      if (err.response) {
+        // Server responded with error status
+        errorMessage = err.response.data?.message || `Server error: ${err.response.status}`;
+      } else if (err.request) {
+        // Request was made but no response received
+        errorMessage = 'No response from server. Please check if the server is running.';
+      } else {
+        // Something else happened
+        errorMessage = err.message || 'Unknown error occurred';
+      }
+      
+      setError(errorMessage);
+      setEntries([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -2656,7 +2692,7 @@ const PnLPage: React.FC = () => {
             )}
 
             {activeTab === 3 && (
-              <ManualPnLEntries />
+              <ManualEntriesPage />
             )}
           </Box>
         </motion.div>

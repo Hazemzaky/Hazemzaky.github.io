@@ -11,6 +11,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import WorkIcon from '@mui/icons-material/Work';
 import { motion, AnimatePresence } from 'framer-motion';
 import theme from '../theme';
+import api from '../apiBase';
 
 const months = [
   'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'January', 'February', 'March'
@@ -208,10 +209,51 @@ const OvertimePage: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch('/api/payroll/employees?position=driver,operator');
-      const json = await res.json();
-      setEmployees(Array.isArray(json) ? json : []);
-    } catch {
+      console.log('Fetching employees for overtime...');
+      
+      // Use regular employees endpoint (same as EmployeesPage)
+      const res = await api.get('/employees');
+      console.log('Employees response:', res.data);
+      
+      let employeesData = [];
+      
+      // Handle new response structure with employees array and stats (same as EmployeesPage)
+      if (res.data && typeof res.data === 'object' && 'employees' in res.data) {
+        employeesData = Array.isArray(res.data.employees) ? res.data.employees : [];
+        console.log('Using nested employees structure:', employeesData.length, 'employees');
+      } else if (Array.isArray(res.data)) {
+        // Fallback for old response structure
+        employeesData = res.data;
+        console.log('Using direct array structure:', employeesData.length, 'employees');
+      } else {
+        console.error('Unexpected response structure:', res.data);
+        setEmployees([]);
+        return;
+      }
+      
+      if (employeesData.length > 0) {
+        console.log('First employee structure:', employeesData[0]);
+        
+        // Filter for drivers and operators
+        let filteredEmployees = employeesData.filter((emp: any) => 
+          emp.position && (emp.position.toLowerCase().includes('driver') || emp.position.toLowerCase().includes('operator'))
+        );
+        console.log('Filtered employees (drivers/operators):', filteredEmployees.length);
+        
+        // If no drivers/operators found, show all employees for debugging
+        if (filteredEmployees.length === 0) {
+          console.log('No drivers/operators found, showing all employees for debugging');
+          filteredEmployees = employeesData.slice(0, 10); // Show first 10 for debugging
+        }
+        
+        console.log('Final employees to set:', filteredEmployees);
+        setEmployees(filteredEmployees);
+      } else {
+        console.log('No employees found');
+        setEmployees([]);
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
       setEmployees([]);
     }
   };
@@ -222,10 +264,13 @@ const OvertimePage: React.FC = () => {
     try {
       const monthIdx = tab;
       const year = getYearForTab(tab);
-      const res = await fetch(`/api/overtime?month=${monthIdx}&year=${year}`);
-      const json = await res.json();
-      setMonthData(json);
+      console.log('Fetching overtime data for month:', monthIdx, 'year:', year);
+      const res = await api.get(`/overtime?month=${monthIdx}&year=${year}`);
+      const data = res.data as any;
+      console.log('Received overtime data:', data);
+      setMonthData(Array.isArray(data) ? data : []);
     } catch (err: any) {
+      console.error('Error fetching overtime data:', err);
       setError('Failed to load overtime data');
       setMonthData([]);
     } finally {
@@ -271,12 +316,9 @@ const OvertimePage: React.FC = () => {
         totalOvertimeHours: Number(form.totalOvertimeHours),
         totalCost: Number(form.totalCost),
       };
-      const res = await fetch('/api/overtime', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error('Failed to save');
+      console.log('Submitting overtime data:', payload);
+      const res = await api.post('/overtime', payload);
+      console.log('Overtime data saved successfully:', res.data);
       setForm(defaultRow);
       setOpenForm(false);
       fetchMonthData();
@@ -291,8 +333,9 @@ const OvertimePage: React.FC = () => {
     setSaving(true);
     setError('');
     try {
-      const res = await fetch(`/api/overtime/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete');
+      console.log('Deleting overtime data with ID:', id);
+      const res = await api.delete(`/overtime/${id}`);
+      console.log('Overtime data deleted successfully');
       fetchMonthData();
     } catch {
       setError('Failed to delete overtime record');
@@ -545,7 +588,7 @@ const OvertimePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <Box mb={3}>
+            <Box mb={3} sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <Button 
                 variant="contained" 
                 startIcon={<AddIcon />} 
@@ -562,6 +605,26 @@ const OvertimePage: React.FC = () => {
               >
                 Add Data
               </Button>
+              <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => {
+                  console.log('Current employees state:', employees);
+                  console.log('Employees length:', employees.length);
+                  fetchEmployees();
+                }}
+                sx={{ minWidth: 120 }}
+              >
+                Debug Employees
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                Employees loaded: {employees.length}
+              </Typography>
+              {employees.length > 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                  First: {employees[0]?.name || 'No Name'} (ID: {employees[0]?.employeeId || employees[0]?._id || 'No ID'})
+                </Typography>
+              )}
             </Box>
             {loading ? (
               <Box display="flex" justifyContent="center" alignItems="center" minHeight={120}>
@@ -728,9 +791,20 @@ const OvertimePage: React.FC = () => {
                       label="Employee"
                       onChange={handleFormChange}
                     >
-                      {Array.isArray(employees) && employees.map(e => (
-                        <MenuItem key={e._id} value={e._id}>{e.name}</MenuItem>
-                      ))}
+                      {Array.isArray(employees) && employees.length > 0 ? (
+                        employees.map(e => {
+                          console.log('Rendering employee in overtime dropdown:', e);
+                          const displayName = e.name || 'No Name';
+                          const displayId = e.employeeId || e._id;
+                          return (
+                            <MenuItem key={e._id} value={e._id}>
+                              {displayName} ({displayId})
+                            </MenuItem>
+                          );
+                        })
+                      ) : (
+                        <MenuItem disabled>No employees available (drivers/operators only)</MenuItem>
+                      )}
                     </Select>
                   </FormControl>
                   <TextField label="Salary" name="salary" value={form.salary} onChange={handleFormChange} required fullWidth />
@@ -809,7 +883,7 @@ const OvertimePage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <Box mb={3}>
+            <Box mb={3} sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
               <Button 
                 variant="contained" 
                 startIcon={<AddIcon />} 
@@ -826,6 +900,26 @@ const OvertimePage: React.FC = () => {
               >
                 Add Overtime Attendance
               </Button>
+              <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => {
+                  console.log('Current employees for attendance:', employees);
+                  console.log('Employees length:', employees.length);
+                  fetchEmployees();
+                }}
+                sx={{ minWidth: 120 }}
+              >
+                Debug Employees
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                Employees loaded: {employees.length}
+              </Typography>
+              {employees.length > 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                  First: {employees[0]?.name || 'No Name'} (ID: {employees[0]?.employeeId || employees[0]?._id || 'No ID'})
+                </Typography>
+              )}
             </Box>
             {/* Search/Filter Controls */}
             <Paper sx={{ 
@@ -995,11 +1089,15 @@ const OvertimePage: React.FC = () => {
                           label="Co. ID"
                           onChange={e => {
                             const selectedId = e.target.value;
-                            const emp = employees.find((emp: any) => emp.employeeId === selectedId);
+                            console.log('Selected employee ID:', selectedId);
+                            console.log('Available employees:', employees);
+                            const emp = employees.find((emp: any) => (emp.employeeId || emp._id) === selectedId);
+                            console.log('Found employee:', emp);
                             setAttendanceForm((prev: any) => ({
                               ...prev,
                               coId: selectedId,
                               employeeName: emp ? emp.name : '',
+                              position: emp ? emp.position : '',
                             }));
                           }}
                           size="medium"
@@ -1014,9 +1112,20 @@ const OvertimePage: React.FC = () => {
                             },
                           }}
                         >
-                          {employees.map(emp => (
-                            <MenuItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeId}</MenuItem>
-                          ))}
+                          {Array.isArray(employees) && employees.length > 0 ? (
+                            employees.map(emp => {
+                              console.log('Rendering employee in attendance dropdown:', emp);
+                              const empId = emp.employeeId || emp._id;
+                              const empName = emp.name || 'No Name';
+                              return (
+                                <MenuItem key={emp._id} value={empId}>
+                                  {empId} - {empName}
+                                </MenuItem>
+                              );
+                            })
+                          ) : (
+                            <MenuItem disabled>No employees available (drivers/operators only)</MenuItem>
+                          )}
                         </Select>
                       </FormControl>
                       <TextField 

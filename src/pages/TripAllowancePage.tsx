@@ -23,7 +23,8 @@ import {
   DialogContent, 
   CircularProgress, 
   IconButton,
-  Avatar
+  Avatar,
+  Alert
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -114,13 +115,25 @@ const TripAllowancePage: React.FC = () => {
     try {
       const monthIdx = tab;
       const year = getYearForTab(tab);
-      console.log('Fetching eligible trips for month:', monthIdx, 'year:', year);
+      const monthName = months[monthIdx]; // Convert index to month name
+      console.log('Fetching eligible trips for month:', monthName, 'year:', year);
+      console.log('API URL:', `/tracker/trip-allowance-eligible?month=${monthIdx}&year=${year}`);
+      
       const res = await api.get(`/tracker/trip-allowance-eligible?month=${monthIdx}&year=${year}`);
       const data = res.data as any;
       console.log('Received eligible trips:', data);
-      setEligibleTrips(Array.isArray(data) ? data : []);
-    } catch (err) {
+      console.log('Eligible trips count:', Array.isArray(data) ? data.length : 'Not an array');
+      
+      if (Array.isArray(data)) {
+        setEligibleTrips(data);
+        console.log('Eligible trips set successfully:', data.length);
+      } else {
+        console.log('No eligible trips found or invalid data format');
+        setEligibleTrips([]);
+      }
+    } catch (err: any) {
       console.error('Error fetching eligible trips:', err);
+      console.error('Error details:', err.response?.data || err.message);
       setEligibleTrips([]);
     }
   };
@@ -135,6 +148,15 @@ const TripAllowancePage: React.FC = () => {
     fetchEligibleTrips(); // Also fetch eligible trips when tab changes
     // eslint-disable-next-line
   }, [tab]);
+
+  // Debug useEffect for eligible trips
+  useEffect(() => {
+    console.log('Eligible trips state changed:', eligibleTrips);
+    console.log('Eligible trips length:', eligibleTrips.length);
+    if (eligibleTrips.length > 0) {
+      console.log('First eligible trip:', eligibleTrips[0]);
+    }
+  }, [eligibleTrips]);
 
   // Helper functions for period calculations
   const addMonths = (date: Date, months: number) => {
@@ -383,24 +405,85 @@ const TripAllowancePage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
-          <Box mb={2}>
-            <Button 
-              variant="contained" 
-              startIcon={<AddIcon />} 
-              onClick={() => setOpenForm(true)}
-              sx={{
-                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
-                '&:hover': {
-                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                  boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.6)}`,
-                  transform: 'translateY(-1px)'
-                }
-              }}
-            >
-              Add Data
-            </Button>
-          </Box>
+            <Box mb={2} sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Button 
+                variant="contained" 
+                startIcon={<AddIcon />} 
+                onClick={() => setOpenForm(true)}
+                sx={{
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                  boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                    boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.6)}`,
+                    transform: 'translateY(-1px)'
+                  }
+                }}
+              >
+                Add Data
+              </Button>
+              <Button 
+                variant="outlined" 
+                size="small"
+                onClick={() => {
+                  console.log('Manual fetch of eligible trips...');
+                  fetchEligibleTrips();
+                }}
+                sx={{ minWidth: 120 }}
+              >
+                Debug Eligible Trips
+              </Button>
+              <Button 
+                variant="contained" 
+                color="secondary"
+                size="small"
+                disabled={eligibleTrips.length === 0}
+                onClick={async () => {
+                  console.log('Converting eligible trips to trip allowance entries...');
+                  try {
+                    const monthIdx = tab;
+                    const year = getYearForTab(tab);
+                    let successCount = 0;
+                    let errorCount = 0;
+                    
+                    for (const trip of eligibleTrips) {
+                      try {
+                        const payload = {
+                          month: monthIdx,
+                          year: year,
+                          srJobTitle: trip.SR || 'N/A',
+                          name: trip.name || 'N/A',
+                          nationality: trip.nationality || 'N/A',
+                          residencyNo: trip.residencyNumber || 'N/A',
+                          allowance: 3, // Default allowance
+                          remark: `Auto-generated from trip ${trip.SR} (${trip.totalKmPerTrip}km)`,
+                        };
+                        
+                        await api.post('/trip-allowance', payload);
+                        successCount++;
+                        console.log(`Created trip allowance for ${trip.name}`);
+                      } catch (err) {
+                        errorCount++;
+                        console.error(`Failed to create trip allowance for ${trip.name}:`, err);
+                      }
+                    }
+                    
+                    console.log(`Conversion complete: ${successCount} success, ${errorCount} errors`);
+                    if (successCount > 0) {
+                      fetchMonthData(); // Refresh the main data
+                    }
+                  } catch (err) {
+                    console.error('Error converting eligible trips:', err);
+                  }
+                }}
+                sx={{ minWidth: 180 }}
+              >
+                Convert to Trip Allowance ({eligibleTrips.length})
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                Eligible trips: {eligibleTrips.length}
+              </Typography>
+            </Box>
         </motion.div>
               {/* Eligible Tracker Trips for Trip Allowance */}
         <motion.div
@@ -420,8 +503,14 @@ const TripAllowancePage: React.FC = () => {
             }}
           >
             <Typography variant="h6" mb={2} sx={{ color: theme.palette.text.primary, fontWeight: 600 }}>
-              🚛 Eligible Trips (from Tracker)
+              🚛 Eligible Trips (from Tracker) - {eligibleTrips.length} found
             </Typography>
+            {eligibleTrips.length === 0 && (
+              <Alert severity="info" sx={{ mb: 2 }}>
+                No eligible trips found for {months[tab]} {getYearForTab(tab)}. 
+                Eligible trips must have totalKmPerTrip ≥ 40km.
+              </Alert>
+            )}
         <Table>
           <TableHead>
             <TableRow>

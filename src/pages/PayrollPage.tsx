@@ -173,6 +173,14 @@ const PayrollPage: React.FC = () => {
     fetchPeriods();
   }, []);
 
+  // Auto-populate employees if none are found after initial load
+  useEffect(() => {
+    if (!loading && employees.length === 0) {
+      console.log('No employees found, attempting auto-population...');
+      handlePopulateEmployees();
+    }
+  }, [loading, employees.length]);
+
   // Helper functions for period calculations
   const addMonths = (date: Date, months: number) => {
     const d = new Date(date);
@@ -283,7 +291,7 @@ const PayrollPage: React.FC = () => {
     setError('');
     try {
       console.log('Fetching payrolls from /payrolls endpoint...');
-      const res = await api.get('/payrolls');
+      const res = await api.get('/payroll');
       console.log('Payrolls response:', res.data);
       if (Array.isArray(res.data)) {
         setPayrolls(res.data);
@@ -306,31 +314,46 @@ const PayrollPage: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       console.log('Fetching payroll employees...');
-      const res = await api.get<{ _id: string; fullName: string }[]>('/payrolls/employees');
+      const res = await api.get<{ _id: string; fullName: string }[]>('/payroll/employees');
       console.log('Payroll employees response:', res.data);
-      if (Array.isArray(res.data)) {
+      if (Array.isArray(res.data) && res.data.length > 0) {
         const mappedEmployees = res.data.map(emp => ({ _id: emp._id, name: emp.fullName }));
         console.log('Mapped employees:', mappedEmployees);
         setEmployees(mappedEmployees);
       } else {
-        setEmployees([]);
-        console.error('Expected array, got:', res.data);
+        console.log('No payroll employees found, trying to populate...');
+        await handlePopulateEmployees();
       }
     } catch (error) {
       console.error('Error fetching payroll employees:', error);
       // If payroll employees don't exist, try to populate them automatically
       console.log('Attempting to populate payroll employees...');
       try {
-        await api.post('/payrolls/populate-employees');
+        await api.post('/payroll/populate-employees');
         console.log('Successfully populated payroll employees, fetching again...');
-        const res = await api.get<{ _id: string; fullName: string }[]>('/payrolls/employees');
+        const res = await api.get<{ _id: string; fullName: string }[]>('/payroll/employees');
         if (Array.isArray(res.data)) {
           const mappedEmployees = res.data.map(emp => ({ _id: emp._id, name: emp.fullName }));
           setEmployees(mappedEmployees);
         }
       } catch (populateError) {
         console.error('Error populating payroll employees:', populateError);
-        setEmployees([]);
+        // Fallback: try to get regular employees
+        try {
+          console.log('Falling back to regular employees...');
+          const regularRes = await api.get('/employees');
+          if (Array.isArray(regularRes.data)) {
+            const mappedEmployees = regularRes.data.map((emp: any) => ({ 
+              _id: emp._id, 
+              name: emp.name 
+            }));
+            setEmployees(mappedEmployees);
+            console.log('Using regular employees as fallback:', mappedEmployees.length);
+          }
+        } catch (fallbackError) {
+          console.error('Error fetching regular employees:', fallbackError);
+          setEmployees([]);
+        }
       }
     }
   };
@@ -370,7 +393,7 @@ const PayrollPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
-      await api.post('/payrolls', {
+      console.log('Submitting payroll with data:', {
         ...form,
         baseSalary: Number(form.baseSalary),
         benefits: Number(form.benefits),
@@ -379,10 +402,28 @@ const PayrollPage: React.FC = () => {
         deductions: Number(form.deductions),
         netPay: Number(form.netPay),
       });
+      console.log('API base URL:', api.defaults.baseURL);
+      console.log('Full URL will be:', `${api.defaults.baseURL}/payroll`);
+      
+      const response = await api.post('/payroll', {
+        ...form,
+        baseSalary: Number(form.baseSalary),
+        benefits: Number(form.benefits),
+        leaveCost: Number(form.leaveCost),
+        reimbursements: Number(form.reimbursements),
+        deductions: Number(form.deductions),
+        netPay: Number(form.netPay),
+      });
+      
+      console.log('Payroll creation response:', response);
       setSuccess('Payroll created successfully!');
       fetchPayrolls();
       handleClose();
     } catch (err: any) {
+      console.error('Payroll creation error:', err);
+      console.error('Error response:', err.response);
+      console.error('Error status:', err.response?.status);
+      console.error('Error data:', err.response?.data);
       setError(err.response?.data?.message || 'Failed to create payroll');
     } finally {
       setSubmitting(false);
@@ -393,7 +434,7 @@ const PayrollPage: React.FC = () => {
     setDeletingAll(true);
     setError('');
     try {
-      await api.delete('/payrolls/all');
+      await api.delete('/payroll/all');
       setSuccess('All payroll data deleted successfully!');
       fetchPayrolls();
       setDeleteAllOpen(false);
@@ -408,11 +449,30 @@ const PayrollPage: React.FC = () => {
     setPopulatingEmployees(true);
     setError('');
     try {
-      await api.post('/payrolls/populate-employees');
+      console.log('Populating payroll employees...');
+      const res = await api.post('/payroll/populate-employees');
+      console.log('Populate response:', res.data);
       setSuccess('Payroll employees populated successfully!');
-      fetchEmployees();
+      // Immediately fetch the populated employees
+      await fetchEmployees();
     } catch (err: any) {
+      console.error('Error populating payroll employees:', err);
       setError(err.response?.data?.message || 'Failed to populate payroll employees');
+      // Try fallback to regular employees
+      try {
+        console.log('Trying fallback to regular employees...');
+        const regularRes = await api.get('/employees');
+        if (Array.isArray(regularRes.data)) {
+          const mappedEmployees = regularRes.data.map((emp: any) => ({ 
+            _id: emp._id, 
+            name: emp.name 
+          }));
+          setEmployees(mappedEmployees);
+          setSuccess('Using regular employees as fallback');
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+      }
     } finally {
       setPopulatingEmployees(false);
     }
@@ -693,17 +753,73 @@ const PayrollPage: React.FC = () => {
                   severity="info" 
                   sx={{ ml: 2 }}
                   action={
-                    <Button 
-                      color="inherit" 
-                      size="small" 
-                      onClick={handlePopulateEmployees}
-                      disabled={populatingEmployees}
-                    >
-                      {populatingEmployees ? 'Populating...' : 'Populate Now'}
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button 
+                        color="inherit" 
+                        size="small" 
+                        onClick={handlePopulateEmployees}
+                        disabled={populatingEmployees}
+                        startIcon={populatingEmployees ? <CircularProgress size={16} /> : <AddIcon />}
+                      >
+                        {populatingEmployees ? 'Populating...' : 'Populate Now'}
+                      </Button>
+                      <Button 
+                        color="inherit" 
+                        size="small" 
+                        onClick={async () => {
+                          console.log('Debug: Current employees state:', employees);
+                          try {
+                            const res = await api.get('/payroll/employees');
+                            console.log('Debug: Payroll employees API response:', res.data);
+                          } catch (e: any) {
+                            console.log('Debug: Payroll employees API error:', e);
+                          }
+                          try {
+                            const res = await api.get('/employees');
+                            console.log('Debug: Regular employees API response:', res.data);
+                          } catch (e: any) {
+                            console.log('Debug: Regular employees API error:', e);
+                          }
+                        }}
+                      >
+                        Debug Employees
+                      </Button>
+                      <Button 
+                        color="inherit" 
+                        size="small" 
+                        onClick={async () => {
+                          console.log('Testing payroll endpoint...');
+                          try {
+                            const testData = {
+                              employee: employees[0]?._id || 'test',
+                              period: '2024-01',
+                              baseSalary: 1000,
+                              benefits: 100,
+                              leaveCost: 0,
+                              reimbursements: 0,
+                              deductions: 0,
+                              netPay: 1100,
+                              status: 'pending'
+                            };
+                            console.log('Test data:', testData);
+                            const res = await api.post('/payroll', testData);
+                            console.log('Debug: Payroll POST response:', res);
+                          } catch (e: any) {
+                            console.log('Debug: Payroll POST error:', e);
+                            console.log('Error status:', e.response?.status);
+                            console.log('Error data:', e.response?.data);
+                          }
+                        }}
+                      >
+                        Test Payroll POST
+                      </Button>
+                    </Box>
                   }
                 >
-                  No payroll employees found. Click to populate from employee data.
+                  {populatingEmployees 
+                    ? 'Populating payroll employees from employee data...' 
+                    : 'No payroll employees found. Click to populate from employee data.'
+                  }
                 </Alert>
               )}
             </Box>
