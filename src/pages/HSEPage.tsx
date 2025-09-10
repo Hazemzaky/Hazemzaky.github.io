@@ -1380,6 +1380,10 @@ const TrainingCertifications: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [open, setOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [editingTraining, setEditingTraining] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedTraining, setSelectedTraining] = useState<any>(null);
   const [form, setForm] = useState({
     employee: '',
     trainingType: '',
@@ -1444,32 +1448,81 @@ const TrainingCertifications: React.FC = () => {
         startDate: new Date(form.startDate),
         endDate: new Date(form.endDate),
       };
-      await api.post('/hse/training', trainingData);
-      setSuccess('Training created successfully!');
+      
+      if (editingTraining) {
+        await api.put(`/hse/training/${editingTraining._id}`, trainingData);
+        setSuccess('Training updated successfully!');
+      } else {
+        await api.post('/hse/training', trainingData);
+        setSuccess('Training created successfully!');
+      }
+      
       fetchTrainings();
-      setOpen(false);
-      setForm({
-        employee: '',
-        trainingType: '',
-        title: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        duration: '',
-        provider: '',
-        location: '',
-        status: 'scheduled',
-        cost: '',
-        amortization: '',
-        notes: '',
-      });
+      handleClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create training');
+      setError(err.response?.data?.message || `Failed to ${editingTraining ? 'update' : 'create'} training`);
     }
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleView = (training: any) => {
+    setSelectedTraining(training);
+    setViewOpen(true);
+  };
+
+  const handleEdit = (training: any) => {
+    setEditingTraining(training);
+    setForm({
+      employee: training.employee?._id || training.employee || '',
+      trainingType: training.trainingType || '',
+      title: training.title || '',
+      description: training.description || '',
+      startDate: training.startDate ? training.startDate.slice(0, 10) : '',
+      endDate: training.endDate ? training.endDate.slice(0, 10) : '',
+      duration: training.duration?.toString() || '',
+      provider: training.provider || '',
+      location: training.location || '',
+      status: training.status || 'scheduled',
+      cost: training.cost?.toString() || '',
+      amortization: training.amortization?.toString() || '',
+      notes: training.notes || '',
+    });
+    setOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/hse/training/${deleteId}`);
+      setSuccess('Training deleted successfully!');
+      fetchTrainings();
+      setDeleteId(null);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete training');
+    }
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setEditingTraining(null);
+    setForm({
+      employee: '',
+      trainingType: '',
+      title: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      duration: '',
+      provider: '',
+      location: '',
+      status: 'scheduled',
+      cost: '',
+      amortization: '',
+      notes: '',
+    });
   };
 
   // Cost calculation functions
@@ -1911,6 +1964,7 @@ const TrainingCertifications: React.FC = () => {
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <IconButton 
                           size="small"
+                          onClick={() => handleView(training)}
                           sx={{ 
                             color: theme.palette.info.main,
                             '&:hover': { bgcolor: alpha(theme.palette.info.main, 0.1) }
@@ -1920,6 +1974,7 @@ const TrainingCertifications: React.FC = () => {
                         </IconButton>
                         <IconButton 
                           size="small"
+                          onClick={() => handleEdit(training)}
                           sx={{ 
                             color: theme.palette.primary.main,
                             '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.1) }
@@ -1929,6 +1984,7 @@ const TrainingCertifications: React.FC = () => {
                         </IconButton>
                         <IconButton 
                           size="small"
+                          onClick={() => setDeleteId(training._id)}
                           sx={{ 
                             color: theme.palette.error.main,
                             '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
@@ -1946,8 +2002,8 @@ const TrainingCertifications: React.FC = () => {
         )}
       </Paper>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Create Training</DialogTitle>
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+        <DialogTitle>{editingTraining ? 'Edit Training' : 'Create Training'}</DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
             <TextField 
@@ -2294,6 +2350,119 @@ const TrainingCertifications: React.FC = () => {
           </Card>
         </Box>
       </Box>
+
+      {/* View Training Modal */}
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Training Details</DialogTitle>
+        <DialogContent>
+          {selectedTraining && (
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Employee</Typography>
+              <Typography gutterBottom sx={{ mb: 2 }}>
+                {selectedTraining.employee?.name || selectedTraining.employee || '-'}
+              </Typography>
+              
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Training Title</Typography>
+              <Typography gutterBottom sx={{ mb: 2 }}>{selectedTraining.title}</Typography>
+              
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Training Type</Typography>
+              <Typography gutterBottom sx={{ mb: 2 }}>{selectedTraining.trainingType}</Typography>
+              
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Description</Typography>
+              <Typography gutterBottom sx={{ mb: 2 }}>{selectedTraining.description}</Typography>
+              
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Start Date</Typography>
+                  <Typography>{selectedTraining.startDate ? new Date(selectedTraining.startDate).toLocaleDateString() : '-'}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>End Date</Typography>
+                  <Typography>{selectedTraining.endDate ? new Date(selectedTraining.endDate).toLocaleDateString() : '-'}</Typography>
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Duration (Hours)</Typography>
+                  <Typography>{selectedTraining.duration}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Cost</Typography>
+                  <Typography>${selectedTraining.cost?.toFixed(2) || '0.00'}</Typography>
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Provider</Typography>
+                  <Typography>{selectedTraining.provider || '-'}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Location</Typography>
+                  <Typography>{selectedTraining.location || '-'}</Typography>
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Status</Typography>
+                  <Chip 
+                    label={selectedTraining.status} 
+                    color={selectedTraining.status === 'completed' ? 'success' : selectedTraining.status === 'in_progress' ? 'warning' : 'info'} 
+                    size="small" 
+                    sx={{ fontWeight: 600 }}
+                  />
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Amortization</Typography>
+                  <Typography>
+                    {selectedTraining.amortization ? `${selectedTraining.amortization} ${selectedTraining.amortization === 1 ? 'Month' : 'Months'}` : '-'}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {selectedTraining.notes && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Notes</Typography>
+                  <Typography>{selectedTraining.notes}</Typography>
+                </>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <DialogTitle>Delete Training</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this training record? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={3000}
+        onClose={() => setSuccess('')}
+        message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{success}</span>}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      />
+      <Snackbar
+        open={!!error}
+        autoHideDuration={5000}
+        onClose={() => setError('')}
+        message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="error" style={{ marginRight: 8 }}>❌</span>{error}</span>}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      />
     </Box>
   );
 };

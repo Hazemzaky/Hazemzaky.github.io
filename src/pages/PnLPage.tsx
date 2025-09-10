@@ -48,13 +48,13 @@ import {
   Info as InfoIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  Download as DownloadIcon,
   TrendingUp as TrendingUpIcon,
   TrendingDown as TrendingDownIcon,
   TrendingFlat as TrendingFlatIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
-  Download as DownloadIcon,
   Share as ShareIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
@@ -145,6 +145,7 @@ const getSectionColor = (category: string) => {
     case 'income_tax_expense': return '#ff5722';
     case 'profit_for_period': return '#3f51b5';
     case 'ebitda': return '#ff6b35';
+    case 'net profit': return '#9b59b6';
     default: return '#757575';
   }
 };
@@ -584,7 +585,7 @@ const PnLSummaryCards: React.FC<{ data: any; loading: boolean }> = ({ data, load
 };
 
 // Enhanced P&L Table Component with Vertical Structure and Module Links
-const PnLTable: React.FC<{ data: any[]; loading: boolean }> = ({ data, loading }) => {
+const PnLTable: React.FC<{ data: any[]; loading: boolean; onExport?: (format: 'pdf' | 'excel') => void }> = ({ data, loading, onExport }) => {
   const theme = useTheme();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -802,9 +803,48 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean }> = ({ data, loading }
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom sx={{ mb: 2, color: theme.palette.primary.main }}>
-        📊 Vertical Profit & Loss Statement
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h6" sx={{ color: theme.palette.primary.main }}>
+          📊 Vertical Profit & Loss Statement
+        </Typography>
+        
+        {onExport && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<DownloadIcon />}
+              onClick={() => onExport('excel')}
+              sx={{ 
+                borderColor: theme.palette.success.main,
+                color: theme.palette.success.main,
+                '&:hover': {
+                  borderColor: theme.palette.success.dark,
+                  color: theme.palette.success.dark,
+                }
+              }}
+            >
+              Export Excel
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<DownloadIcon />}
+              onClick={() => onExport('pdf')}
+              sx={{ 
+                borderColor: theme.palette.info.main,
+                color: theme.palette.info.main,
+                '&:hover': {
+                  borderColor: theme.palette.info.dark,
+                  color: theme.palette.info.dark,
+                }
+              }}
+            >
+              Export PDF
+            </Button>
+          </Box>
+        )}
+      </Box>
       
       <Alert severity="info" sx={{ mb: 3 }}>
         <Typography variant="body2">
@@ -843,10 +883,12 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean }> = ({ data, loading }
                 <TableRow sx={{ 
                   backgroundColor: section.type === 'revenue' ? alpha(theme.palette.success.main, 0.1) :
                                  section.type === 'expenses' ? alpha(theme.palette.error.main, 0.1) :
+                                 section.type === 'net_profit' ? alpha(theme.palette.secondary.main, 0.1) :
                                  alpha(theme.palette.info.main, 0.1),
                   '&:hover': {
                     backgroundColor: section.type === 'revenue' ? alpha(theme.palette.success.main, 0.15) :
                                    section.type === 'expenses' ? alpha(theme.palette.error.main, 0.15) :
+                                   section.type === 'net_profit' ? alpha(theme.palette.secondary.main, 0.15) :
                                    alpha(theme.palette.info.main, 0.15)
                   }
                 }}>
@@ -858,10 +900,12 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean }> = ({ data, loading }
                           height: 32, 
                           bgcolor: section.type === 'revenue' ? theme.palette.success.main :
                                   section.type === 'expenses' ? theme.palette.error.main :
+                                  section.type === 'net_profit' ? theme.palette.secondary.main :
                                   theme.palette.info.main
                         }}>
                           {section.type === 'revenue' ? '💰' : 
-                           section.type === 'expenses' ? '💸' : '📊'}
+                           section.type === 'expenses' ? '💸' : 
+                           section.type === 'net_profit' ? '💎' : '📊'}
                         </Avatar>
                         <Typography variant="h6" fontWeight="bold" color="text.primary">
                           {section.category}
@@ -897,7 +941,8 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean }> = ({ data, loading }
                     <Chip 
                       label={`${section.items?.length || 0} Sources`}
                       color={section.type === 'revenue' ? 'success' : 
-                             section.type === 'expenses' ? 'error' : 'info'}
+                             section.type === 'expenses' ? 'error' : 
+                             section.type === 'net_profit' ? 'secondary' : 'info'}
                       size="medium"
                       sx={{ fontWeight: 'bold' }}
                     />
@@ -1086,6 +1131,7 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean }> = ({ data, loading }
               borderLeft: `4px solid ${
                 section.type === 'revenue' ? theme.palette.success.main :
                 section.type === 'expenses' ? theme.palette.error.main :
+                section.type === 'net_profit' ? theme.palette.secondary.main :
                 theme.palette.info.main
               }`,
               '&:hover': {
@@ -1102,6 +1148,7 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean }> = ({ data, loading }
               <Typography variant="h4" fontWeight="bold" color={
                 section.type === 'revenue' ? 'success.main' :
                 section.type === 'expenses' ? 'error.main' :
+                section.type === 'net_profit' ? 'secondary.main' :
                 section.subtotal >= 0 ? 'success.main' : 'error.main'
               }>
                 KD {section.subtotal?.toLocaleString() || '0'}
@@ -2306,7 +2353,7 @@ const ManualEntrySummaryCard: React.FC<{ onNavigateToManualEntries: () => void; 
 const PnLPage: React.FC = () => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
-  const [period, setPeriod] = useState('yearly');
+  const [period, setPeriod] = useState('fiscal_year');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
@@ -2349,24 +2396,75 @@ const PnLPage: React.FC = () => {
     }
   };
 
+  // Calculate period dates based on fiscal year logic
+  const calculatePeriodDates = (selectedPeriod: string) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    
+    switch (selectedPeriod) {
+      case 'q1':
+        // Q1 (Apr-Jun) - Current year
+        return {
+          start: `${currentYear}-04-01`,
+          end: `${currentYear}-06-30`
+        };
+      
+      case 'q2':
+        // Q2 (Jul-Sep) - Current year
+        return {
+          start: `${currentYear}-07-01`,
+          end: `${currentYear}-09-30`
+        };
+      
+      case 'q3':
+        // Q3 (Oct-Dec) - Current year
+        return {
+          start: `${currentYear}-10-01`,
+          end: `${currentYear}-12-31`
+        };
+      
+      case 'q4':
+        // Q4 (Jan-Mar) - Next year
+        return {
+          start: `${currentYear + 1}-01-01`,
+          end: `${currentYear + 1}-03-31`
+        };
+      
+      case 'h1':
+        // H1 (Apr-Sep) - Current year
+        return {
+          start: `${currentYear}-04-01`,
+          end: `${currentYear}-09-30`
+        };
+      
+      case 'h2':
+        // H2 (Oct-Mar) - Current year to next year
+        return {
+          start: `${currentYear}-10-01`,
+          end: `${currentYear + 1}-03-31`
+        };
+      
+      case 'fiscal_year':
+      default:
+        // Fiscal Year (Apr-Mar) - Current year to next year
+        return {
+          start: `${currentYear}-04-01`,
+          end: `${currentYear + 1}-03-31`
+        };
+    }
+  };
+
   // Handle period-specific filtering (Q1, Q2, etc.)
   const handlePeriodChange = async (newPeriod: string) => {
     setPeriod(newPeriod);
     
-    // Calculate period boundaries for specific quarters
-    const boundaries = getPeriodBoundaries(newPeriod, startDate, endDate);
-    
-    // Update date fields if it's a specific quarter
-    if (newPeriod.startsWith('q')) {
-      setStartDate(boundaries.start.toISOString().split('T')[0]);
-      setEndDate(boundaries.end.toISOString().split('T')[0]);
-    }
+    // Calculate dates based on the selected period
+    const { start, end } = calculatePeriodDates(newPeriod);
+    setStartDate(start);
+    setEndDate(end);
     
     // Fetch data for the new period
-    await refreshPnLData(newPeriod, 
-      boundaries.start.toISOString().split('T')[0], 
-      boundaries.end.toISOString().split('T')[0]
-    );
+    await refreshPnLData(newPeriod, start, end);
   };
 
   // Handle tab change
@@ -2386,9 +2484,64 @@ const PnLPage: React.FC = () => {
     console.log('Active tab set to:', 3);
   };
 
-  const handleExport = (format: 'pdf' | 'excel') => {
-    // Export logic here
-    console.log(`Exporting as ${format}`);
+  const handleExport = async (format: 'pdf' | 'excel') => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        period,
+        ...(startDate && { startDate }),
+        ...(endDate && { endDate })
+      });
+      
+      if (format === 'excel') {
+        // Excel export - download as blob
+        const response = await api.get(`/pnl/export/${format}?${params}`, {
+          responseType: 'blob'
+        });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]));
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `PnL_Report_${period}_${timestamp}.xlsx`;
+        link.setAttribute('download', filename);
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        
+        setSuccess('P&L report exported successfully as Excel');
+      } else {
+        // PDF export - get HTML content and open in new tab
+        const response = await api.get(`/pnl/export/${format}?${params}`, {
+          responseType: 'text'
+        });
+        
+        // Create a new window and write the HTML content
+        const newWindow = window.open('', '_blank');
+        if (newWindow) {
+          const htmlContent: string = response.data as string;
+          newWindow.document.write(htmlContent);
+          newWindow.document.close();
+          setSuccess('P&L report opened in new tab. Use Ctrl+P to print as PDF.');
+        } else {
+          setError('Failed to open PDF in new tab. Please check your popup blocker settings.');
+        }
+      }
+    } catch (err: any) {
+      console.error(`Error exporting ${format}:`, err);
+      setError(err.response?.data?.message || `Failed to export P&L report as ${format.toUpperCase()}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Load initial data and set up real-time updates
@@ -2528,6 +2681,12 @@ const PnLPage: React.FC = () => {
               📊 Report Configuration
             </Typography>
             
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                <strong>Fiscal Year:</strong> April 1st to March 31st (e.g., FY 2025/2026 runs from April 1, 2025 to March 31, 2026)
+              </Typography>
+            </Alert>
+            
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', mb: 3 }}>
               <Box sx={{ flex: '1 1 200px', minWidth: 200 }}>
                 <FormControl fullWidth>
@@ -2538,16 +2697,14 @@ const PnLPage: React.FC = () => {
                     label="Period"
                     size="small"
                   >
-                    <MenuItem value="daily">Daily</MenuItem>
-                    <MenuItem value="weekly">Weekly</MenuItem>
-                    <MenuItem value="monthly">Monthly</MenuItem>
-                    <MenuItem value="q1">Q1 (Jan-Mar)</MenuItem>
-                    <MenuItem value="q2">Q2 (Apr-Jun)</MenuItem>
-                    <MenuItem value="q3">Q3 (Jul-Sep)</MenuItem>
-                    <MenuItem value="q4">Q4 (Oct-Dec)</MenuItem>
-                    <MenuItem value="quarterly">Current Quarter</MenuItem>
-                    <MenuItem value="half_yearly">Half Yearly</MenuItem>
-                    <MenuItem value="yearly">Financial Year</MenuItem>
+                    <MenuItem value="q1">Q1 (Apr-Jun)</MenuItem>
+                    <MenuItem value="q2">Q2 (Jul-Sep)</MenuItem>
+                    <MenuItem value="q3">Q3 (Oct-Dec)</MenuItem>
+                    <MenuItem value="q4">Q4 (Jan-Mar)</MenuItem>
+                    <MenuItem value="h1">H1 (Apr-Sep)</MenuItem>
+                    <MenuItem value="h2">H2 (Oct-Mar)</MenuItem>
+                    <MenuItem value="fiscal_year">Fiscal Year (Apr-Mar)</MenuItem>
+                    <MenuItem value="custom">Custom Range</MenuItem>
                   </Select>
                 </FormControl>
               </Box>
@@ -2684,7 +2841,7 @@ const PnLPage: React.FC = () => {
             )}
             
             {activeTab === 1 && (
-              <PnLTable data={tableData} loading={loading} />
+              <PnLTable data={tableData} loading={loading} onExport={handleExport} />
             )}
             
             {activeTab === 2 && (

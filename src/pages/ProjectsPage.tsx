@@ -728,7 +728,7 @@ const ProjectsPage: React.FC = () => {
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add Project
+                  Add Order
                 </Button>
               </Box>
             </Box>

@@ -496,7 +496,7 @@ export class VerticalPnLMappingService {
     try {
       const params = this.buildDateParams(period, startDate, endDate);
       
-      const procurementRes = await api.get(`/procurement-requests?${params}`).catch(() => ({ data: [] })); // Handle 404 gracefully
+      const procurementRes = await api.get(`/purchase-requests?${params}`).catch(() => ({ data: [] })); // Handle 404 gracefully
 
       const costs = {
         procurementCosts: 0
@@ -520,7 +520,7 @@ export class VerticalPnLMappingService {
       const params = this.buildDateParams(period, startDate, endDate);
       
       const [hseRes, trainingRes] = await Promise.allSettled([
-        api.get(`/hse-incidents?${params}`).catch(() => ({ data: [] })), // Handle 404 gracefully
+        api.get(`/hse/accidents?${params}`).catch(() => ({ data: [] })), // Handle 404 gracefully
         api.get(`/hse/training?${params}`)
       ]);
 
@@ -726,7 +726,7 @@ export class VerticalPnLMappingService {
     try {
       const params = this.buildDateParams(period, startDate, endDate);
       
-      const inventoryRes = await api.get(`/inventory?${params}`).catch(() => ({ data: [] })); // Handle 404 gracefully
+      const inventoryRes = await api.get(`/inventory/items?${params}`).catch(() => ({ data: [] })); // Handle 404 gracefully
 
       const costs = {
         inventoryMaterialCosts: 0
@@ -751,7 +751,7 @@ export class VerticalPnLMappingService {
     try {
       const params = this.buildDateParams(period, startDate, endDate);
       
-      const salesRes = await api.get(`/sales?${params}`).catch(() => ({ data: [] })); // Handle 404 gracefully
+      const salesRes = await api.get(`/quotations?${params}`).catch(() => ({ data: [] })); // Handle 404 gracefully
 
       const costs = {
         salesRevenue: 0,
@@ -1060,9 +1060,11 @@ export class VerticalPnLMappingService {
       items: [] as any[]
     };
 
-    // Calculate EBITDA: Total Revenue + Income, Expenses and Other Items - Total Expenses
+    // Calculate EBITDA: Total Revenue + Income, Expenses and Other Items - Total Expenses - Finance Costs (excluding depreciation)
     const incomeExpensesOther = 0; // Will be calculated from manual entries
-    const ebitda = revenueSection.subtotal + incomeExpensesOther - expensesSection.subtotal;
+    const financeCosts = 0; // Manual entry
+    const depreciation = moduleResults.assets?.costs?.depreciation || 0;
+    const ebitda = revenueSection.subtotal + incomeExpensesOther - expensesSection.subtotal - financeCosts;
 
     // EBITDA items
     const ebitdaItems = [
@@ -1095,13 +1097,43 @@ export class VerticalPnLMappingService {
     // EBITDA subtotal is the calculated formula result, not the sum of items underneath
     ebitdaSection.subtotal = ebitda;
 
+    // Net Profit Section - NEW MAIN SECTION
+    const netProfitSection = {
+      id: 'net_profit',
+      category: 'Net Profit',
+      type: 'net_profit',
+      subtotal: 0,
+      items: [] as any[]
+    };
+
+    // Calculate Net Profit: EBITDA - Depreciation
+    const netProfit = ebitda - depreciation;
+
+    // Net Profit items
+    const netProfitItems = [
+      {
+        id: 'net_profit',
+        description: 'Net Profit (EBITDA - Depreciation)',
+        amount: netProfit,
+        module: 'finance',
+        type: 'summary'
+      }
+    ];
+
+    // Add all Net Profit items
+    netProfitItems.forEach(item => {
+      netProfitSection.items.push(item);
+    });
+    // Net Profit subtotal is the calculated formula result
+    netProfitSection.subtotal = netProfit;
+
     // Build final structure
-    pnlStructure.table = [revenueSection, expensesSection, otherItemsSection, ebitdaSection];
+    pnlStructure.table = [revenueSection, expensesSection, otherItemsSection, ebitdaSection, netProfitSection];
     
     // Calculate summary values
     const grossProfit = revenueSection.subtotal - expensesSection.subtotal;
     const ebitdaValue = ebitda;
-    const finalNetProfitValue = otherItemsSection.subtotal + ebitdaSection.subtotal;
+    const finalNetProfitValue = netProfit;
     
     pnlStructure.summary = {
       revenue: revenueSection.subtotal,
