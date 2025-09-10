@@ -57,7 +57,7 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
-  "homepage": "https://hazemzaky.github.io",
+  "homepage": ".",
   "eslintConfig": {
     "extends": [
       "react-app",

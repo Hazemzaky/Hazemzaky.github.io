@@ -101,6 +101,7 @@ const App: React.FC = () => {
               <FiscalYearSelector />
             </div>
             <Routes>
+              <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />

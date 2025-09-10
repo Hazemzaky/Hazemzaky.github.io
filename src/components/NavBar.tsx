@@ -43,10 +43,28 @@ const navigationItems = [
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   { 
-    label: 'Budgets', 
+    label: 'Budget', 
     path: '/budgets', 
     icon: AttachMoneyIcon,
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+  },
+  { 
+    label: 'Sales', 
+    path: '/sales', 
+    icon: SellIcon,
+    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+  },
+  { 
+    label: 'Admin', 
+    path: '/admin', 
+    icon: AdminPanelSettingsIcon,
+    gradient: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)'
+  },
+  { 
+    label: 'HSE', 
+    path: '/hse', 
+    icon: SecurityIcon,
+    gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
   },
   { 
     label: 'Maintenance', 
@@ -59,30 +77,6 @@ const navigationItems = [
     path: '/procurement', 
     icon: ShoppingCartIcon,
     gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
-  },
-  { 
-    label: 'Sales', 
-    path: '/sales', 
-    icon: SellIcon,
-    gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-  },
-  { 
-    label: 'HSE', 
-    path: '/hse', 
-    icon: SecurityIcon,
-    gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
-  },
-  { 
-    label: 'Admin', 
-    path: '/admin', 
-    icon: AdminPanelSettingsIcon,
-    gradient: 'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)'
-  },
-  { 
-    label: 'IT', 
-    path: '/debug-auth', 
-    icon: ComputerIcon,
-    gradient: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)'
   }
 ];
 
@@ -246,6 +240,7 @@ const NavBar: React.FC = () => {
               </Button>
             );
           })}
+
           {/* Accounting Dropdown */}
           <Box sx={{ position: 'relative' }}>
             <Button
@@ -314,135 +309,6 @@ const NavBar: React.FC = () => {
               <MenuItem component={RouterLink} to="/accounting/reconciliation" onClick={handleAccountingMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Reconciliation</MenuItem>
               <MenuItem component={RouterLink} to="/periods" onClick={handleAccountingMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Period Closing</MenuItem>
               <MenuItem component={RouterLink} to="/invoices" onClick={handleAccountingMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Invoices</MenuItem>
-            </Menu>
-          </Box>
-          {/* HR Dropdown */}
-          <Box sx={{ position: 'relative' }}>
-            <Button
-              onClick={handleHrMenuOpen}
-              startIcon={<PeopleIcon sx={{ fontSize: '1rem' }} />}
-              endIcon={<KeyboardArrowDownIcon sx={{ 
-                transform: hrAnchorEl ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease'
-              }} />}
-              sx={{
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                px: 2,
-                py: 1,
-                borderRadius: '8px',
-                textTransform: 'none',
-                minWidth: 'auto',
-                background: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
-                  ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                  : 'transparent',
-                color: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
-                  ? 'white' 
-                  : (colorMode.mode === 'dark' ? 'white' : '#1e293b'),
-                boxShadow: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
-                  ? '0 4px 20px rgba(240, 147, 251, 0.3)' 
-                  : 'none',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                  background: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
-                    ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                    : colorMode.mode === 'dark' 
-                      ? 'rgba(148, 163, 184, 0.1)' 
-                      : 'rgba(148, 163, 184, 0.05)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                },
-              }}
-            >
-              HR
-            </Button>
-            <Menu
-              anchorEl={hrAnchorEl}
-              open={Boolean(hrAnchorEl)}
-              onClose={handleHrMenuClose}
-              TransitionComponent={Fade}
-              sx={{
-                '& .MuiPaper-root': {
-                  borderRadius: '16px',
-                  mt: 1,
-                  background: colorMode.mode === 'dark' 
-                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)'
-                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  border: `1px solid ${colorMode.mode === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)'}`,
-                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
-                  minWidth: 240,
-                }
-              }}
-            >
-              <MenuItem component={RouterLink} to="/employees" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Employees</MenuItem>
-              <MenuItem component={RouterLink} to="/attendance" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Attendance System</MenuItem>
-              <MenuItem component={RouterLink} to="/payroll" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Payroll</MenuItem>
-              <MenuItem component={RouterLink} to="/business-trips" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Business Trip Management</MenuItem>
-            </Menu>
-          </Box>
-
-          {/* Assets Dropdown */}
-          <Box sx={{ position: 'relative' }}>
-            <Button
-              onClick={handleAssetsMenuOpen}
-              startIcon={<BusinessCenterIcon sx={{ fontSize: '1rem' }} />}
-              endIcon={<KeyboardArrowDownIcon sx={{ 
-                transform: assetsAnchorEl ? 'rotate(180deg)' : 'rotate(0deg)',
-                transition: 'transform 0.3s ease'
-              }} />}
-              sx={{
-                fontWeight: 600,
-                fontSize: '0.75rem',
-                px: 2,
-                py: 1,
-                borderRadius: '8px',
-                textTransform: 'none',
-                minWidth: 'auto',
-                background: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
-                  ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                  : 'transparent',
-                color: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
-                  ? 'white' 
-                  : (colorMode.mode === 'dark' ? 'white' : '#1e293b'),
-                boxShadow: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
-                  ? '0 4px 20px rgba(79, 172, 254, 0.3)' 
-                  : 'none',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:hover': {
-                  background: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
-                    ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-                    : colorMode.mode === 'dark' 
-                      ? 'rgba(148, 163, 184, 0.1)' 
-                      : 'rgba(148, 163, 184, 0.05)',
-                  transform: 'translateY(-1px)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                },
-              }}
-            >
-              Assets
-            </Button>
-            <Menu
-              anchorEl={assetsAnchorEl}
-              open={Boolean(assetsAnchorEl)}
-              onClose={handleAssetsMenuClose}
-              TransitionComponent={Fade}
-              sx={{
-                '& .MuiPaper-root': {
-                  borderRadius: '16px',
-                  mt: 1,
-                  background: colorMode.mode === 'dark' 
-                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)'
-                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  border: `1px solid ${colorMode.mode === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)'}`,
-                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
-                  minWidth: 240,
-                }
-              }}
-            >
-              <MenuItem component={RouterLink} to="/assets" onClick={handleAssetsMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Asset Register</MenuItem>
-              <MenuItem component={RouterLink} to="/depreciation" onClick={handleAssetsMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Depreciation</MenuItem>
             </Menu>
           </Box>
 
@@ -518,6 +384,70 @@ const NavBar: React.FC = () => {
             </Menu>
           </Box>
 
+          {/* Assets Dropdown */}
+          <Box sx={{ position: 'relative' }}>
+            <Button
+              onClick={handleAssetsMenuOpen}
+              startIcon={<BusinessCenterIcon sx={{ fontSize: '1rem' }} />}
+              endIcon={<KeyboardArrowDownIcon sx={{ 
+                transform: assetsAnchorEl ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }} />}
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                px: 2,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                minWidth: 'auto',
+                background: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
+                  ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                  : 'transparent',
+                color: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
+                  ? 'white' 
+                  : (colorMode.mode === 'dark' ? 'white' : '#1e293b'),
+                boxShadow: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
+                  ? '0 4px 20px rgba(79, 172, 254, 0.3)' 
+                  : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  background: assetsAnchorEl || isDropdownActive(['/assets', '/depreciation'])
+                    ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+                    : colorMode.mode === 'dark' 
+                      ? 'rgba(148, 163, 184, 0.1)' 
+                      : 'rgba(148, 163, 184, 0.05)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                },
+              }}
+            >
+              Assets
+            </Button>
+            <Menu
+              anchorEl={assetsAnchorEl}
+              open={Boolean(assetsAnchorEl)}
+              onClose={handleAssetsMenuClose}
+              TransitionComponent={Fade}
+              sx={{
+                '& .MuiPaper-root': {
+                  borderRadius: '16px',
+                  mt: 1,
+                  background: colorMode.mode === 'dark' 
+                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)'
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${colorMode.mode === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)'}`,
+                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+                  minWidth: 240,
+                }
+              }}
+            >
+              <MenuItem component={RouterLink} to="/assets" onClick={handleAssetsMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Asset Register</MenuItem>
+              <MenuItem component={RouterLink} to="/depreciation" onClick={handleAssetsMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Depreciation</MenuItem>
+            </Menu>
+          </Box>
+
           {/* Inventory Dropdown */}
           <Box sx={{ position: 'relative' }}>
             <Button
@@ -579,6 +509,72 @@ const NavBar: React.FC = () => {
             >
               <MenuItem component={RouterLink} to="/inventory" onClick={handleInventoryMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Inventory Register</MenuItem>
               <MenuItem component={RouterLink} to="/inventory/transactions" onClick={handleInventoryMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Transactions Log</MenuItem>
+            </Menu>
+          </Box>
+
+          {/* HR Dropdown */}
+          <Box sx={{ position: 'relative' }}>
+            <Button
+              onClick={handleHrMenuOpen}
+              startIcon={<PeopleIcon sx={{ fontSize: '1rem' }} />}
+              endIcon={<KeyboardArrowDownIcon sx={{ 
+                transform: hrAnchorEl ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }} />}
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                px: 2,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                minWidth: 'auto',
+                background: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
+                  ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                  : 'transparent',
+                color: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
+                  ? 'white' 
+                  : (colorMode.mode === 'dark' ? 'white' : '#1e293b'),
+                boxShadow: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
+                  ? '0 4px 20px rgba(240, 147, 251, 0.3)' 
+                  : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  background: hrAnchorEl || isDropdownActive(['/employees', '/attendance', '/payroll', '/business-trips'])
+                    ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                    : colorMode.mode === 'dark' 
+                      ? 'rgba(148, 163, 184, 0.1)' 
+                      : 'rgba(148, 163, 184, 0.05)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                },
+              }}
+            >
+              HR
+            </Button>
+            <Menu
+              anchorEl={hrAnchorEl}
+              open={Boolean(hrAnchorEl)}
+              onClose={handleHrMenuClose}
+              TransitionComponent={Fade}
+              sx={{
+                '& .MuiPaper-root': {
+                  borderRadius: '16px',
+                  mt: 1,
+                  background: colorMode.mode === 'dark' 
+                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)'
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${colorMode.mode === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)'}`,
+                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+                  minWidth: 240,
+                }
+              }}
+            >
+              <MenuItem component={RouterLink} to="/employees" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Employees</MenuItem>
+              <MenuItem component={RouterLink} to="/attendance" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Attendance System</MenuItem>
+              <MenuItem component={RouterLink} to="/payroll" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Payroll</MenuItem>
+              <MenuItem component={RouterLink} to="/business-trips" onClick={handleHrMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>Business Trip Management</MenuItem>
             </Menu>
           </Box>
         </Box>

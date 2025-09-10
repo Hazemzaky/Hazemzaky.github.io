@@ -73,6 +73,8 @@ interface DashboardData {
     revenue: number;
     expenses: number;
     ebitda: number;
+    netProfit: number;
+    depreciation: number;
     subCompaniesRevenue: number;
     margin: number;
   };
@@ -96,29 +98,27 @@ interface DashboardData {
   maintenance: {
     cost: number;
     preventiveVsCorrective: any[];
-    downtime: number;
+    totalMaintenanceHours: number;
   };
   procurement: {
-    totalSpend: number;
-    topVendors: any[];
-    openPOs: number;
-    cycleTime: number;
+    totalPurchaseRequests: number;
+    totalPurchaseOrders: number;
+    totalVendors: number;
   };
   sales: {
-    totalSales: number;
-    pipeline: number;
-    topCustomers: any[];
-    salesMargin: number;
+    totalQuotations: number;
+    pendingQuotations: number;
+    totalClients: number;
   };
   admin: {
-    costs: number;
-    overheadPercentage: number;
-    pendingApprovals: number;
+    activeDocuments: number;
+    openLegalCases: number;
+    expiryDocuments: number;
   };
   hse: {
-    incidents: number;
-    trainingCompliance: number;
-    openActions: number;
+    totalIncidents: number;
+    overdueInspections: number;
+    nearMissLog: number;
   };
   alerts: {
     overdueInvoices: number;
@@ -166,6 +166,7 @@ const DashboardPage: React.FC = () => {
           revenue: pnlIntegrationData.summary.revenue || updatedData.financial.revenue,
           expenses: pnlIntegrationData.summary.operatingExpenses || updatedData.financial.expenses,
           ebitda: pnlIntegrationData.summary.operatingProfit || updatedData.financial.ebitda,
+          netProfit: pnlIntegrationData.summary.netProfit || updatedData.financial.netProfit,
           // Keep other financial data from dashboard
           subCompaniesRevenue: updatedData.financial.subCompaniesRevenue,
           margin: updatedData.financial.margin
@@ -207,6 +208,7 @@ const DashboardPage: React.FC = () => {
             revenue: pnlIntegrationData.summary.revenue || prevData.financial.revenue,
             expenses: pnlIntegrationData.summary.operatingExpenses || prevData.financial.expenses,
             ebitda: pnlIntegrationData.summary.operatingProfit || prevData.financial.ebitda,
+            netProfit: pnlIntegrationData.summary.netProfit || prevData.financial.netProfit,
             // Keep other financial data from dashboard
             subCompaniesRevenue: prevData.financial.subCompaniesRevenue,
             margin: prevData.financial.margin
@@ -247,6 +249,19 @@ const DashboardPage: React.FC = () => {
     // Fallback to dashboard data
     console.log('Using dashboard EBITDA data:', data?.financial?.ebitda || 0);
     return data?.financial?.ebitda || 0;
+  };
+
+  // Get enhanced Net Profit from PnL data (EBITDA - depreciation)
+  const getEnhancedNetProfit = () => {
+    console.log('getEnhancedNetProfit - PnL data:', pnlIntegrationData?.summary?.netProfit);
+    console.log('getEnhancedNetProfit - Dashboard data:', data?.financial?.netProfit);
+    if (pnlIntegrationData?.summary?.netProfit !== undefined) {
+      console.log('Using PnL Net Profit data:', pnlIntegrationData.summary.netProfit);
+      return pnlIntegrationData.summary.netProfit;
+    }
+    // Fallback to dashboard data
+    console.log('Using dashboard Net Profit data:', data?.financial?.netProfit || 0);
+    return data?.financial?.netProfit || 0;
   };
 
   const formatCurrency = (amount: number) => {
@@ -577,8 +592,8 @@ const DashboardPage: React.FC = () => {
                   icon: <TrendingUpIcon />
                 },
                 { 
-                  title: 'Sub Companies Revenue', 
-                  value: data.financial.subCompaniesRevenue, 
+                  title: 'Net Profit', 
+                  value: getEnhancedNetProfit(), 
                   color: theme.palette.secondary.main,
                   bgColor: alpha(theme.palette.secondary.main, 0.1),
                   icon: <TrendingUpIcon />
@@ -691,7 +706,7 @@ const DashboardPage: React.FC = () => {
                 data: data.maintenance,
                 metrics: [
                   { label: 'Total Cost', value: data.maintenance.cost, format: formatCurrency },
-                  { label: 'Total Maintenance Hours', value: data.maintenance.downtime, format: formatNumber },
+                  { label: 'Total Maintenance Hours', value: data.maintenance.totalMaintenanceHours || 0, format: formatNumber },
                   { label: 'Focus', value: 'Preventive', format: (v: string) => v }
                 ] as MetricItem[]
               },
@@ -701,9 +716,9 @@ const DashboardPage: React.FC = () => {
                 color: MODULE_COLORS.procurement,
                 data: data.procurement,
                 metrics: [
-                  { label: 'Total Spend', value: data.procurement.totalSpend, format: formatCurrency },
-                  { label: 'Open POs', value: data.procurement.openPOs, format: formatNumber },
-                  { label: 'Cycle Time', value: Math.round(data.procurement.cycleTime / (1000 * 60 * 60 * 24)), format: (v: number) => `${v} days` }
+                  { label: 'Total Purchase Requests', value: data.procurement.totalPurchaseRequests || 0, format: formatNumber },
+                  { label: 'Total Purchase Orders', value: data.procurement.totalPurchaseOrders || 0, format: formatNumber },
+                  { label: 'Total Vendors', value: data.procurement.totalVendors || 0, format: formatNumber }
                 ] as MetricItem[]
               },
               {
@@ -712,9 +727,9 @@ const DashboardPage: React.FC = () => {
                 color: MODULE_COLORS.sales,
                 data: data.sales,
                 metrics: [
-                  { label: 'Total Sales', value: data.sales.totalSales, format: formatCurrency },
-                  { label: 'Pipeline', value: data.sales.pipeline, format: formatNumber },
-                  { label: 'Sales Margin', value: data.sales.salesMargin, format: formatPercentage }
+                  { label: 'Total Quotations', value: data.sales.totalQuotations || 0, format: formatNumber },
+                  { label: 'Pending Quotations', value: data.sales.pendingQuotations || 0, format: formatNumber },
+                  { label: 'Total Clients', value: data.sales.totalClients || 0, format: formatNumber }
                 ] as MetricItem[]
               },
               {
@@ -723,9 +738,9 @@ const DashboardPage: React.FC = () => {
                 color: MODULE_COLORS.admin,
                 data: data.admin,
                 metrics: [
-                  { label: 'Total Cost', value: data.admin.costs, format: formatCurrency },
-                  { label: 'Overhead %', value: data.admin.overheadPercentage, format: formatPercentage },
-                  { label: 'Pending Approvals', value: data.admin.pendingApprovals, format: formatNumber }
+                  { label: 'Active Documents', value: data.admin.activeDocuments, format: formatNumber },
+                  { label: 'Open Legal Cases', value: data.admin.openLegalCases, format: formatNumber },
+                  { label: 'Expiry Documents (Next 30 Days)', value: data.admin.expiryDocuments, format: formatNumber }
                 ] as MetricItem[]
               },
               {
@@ -734,9 +749,9 @@ const DashboardPage: React.FC = () => {
                 color: MODULE_COLORS.hse,
                 data: data.hse,
                 metrics: [
-                  { label: 'Total Incidents', value: data.hse.incidents, format: formatNumber },
-                  { label: 'Training Compliance', value: data.hse.trainingCompliance, format: formatPercentage },
-                  { label: 'Open Actions', value: data.hse.openActions, format: formatNumber }
+                  { label: 'Total Incidents', value: data.hse.totalIncidents || 0, format: formatNumber },
+                  { label: 'Overdue Inspections', value: data.hse.overdueInspections || 0, format: formatNumber },
+                  { label: 'Near Miss Log', value: data.hse.nearMissLog || 0, format: formatNumber }
                 ] as MetricItem[]
               }
             ].map((module, index) => (
@@ -785,6 +800,26 @@ const DashboardPage: React.FC = () => {
                             ✨ Live Data from Projects Module
                           </Typography>
                         )}
+                        {module.title === 'Administration' && (
+                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+                            ✨ Live Data from Admin Dashboard
+                          </Typography>
+                        )}
+                        {module.title === 'HSE' && (
+                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+                            ✨ Live Data from HSE Modules
+                          </Typography>
+                        )}
+                        {module.title === 'Procurement' && (
+                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+                            ✨ Live Data from Procurement Header
+                          </Typography>
+                        )}
+                        {module.title === 'Sales' && (
+                          <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 500 }}>
+                            ✨ Live Data from Sales Page Header
+                          </Typography>
+                        )}
                       </Box>
                     </Box>
                     
@@ -802,6 +837,26 @@ const DashboardPage: React.FC = () => {
                       const isOpsCallouts = module.title === 'Operations' && metric.label === 'Total Callouts';
                       const isOpsOrders = module.title === 'Operations' && metric.label === 'Total Orders';
                       const isOpsCancelled = module.title === 'Operations' && metric.label === 'Cancelled Orders';
+                      
+                      // Special styling for Administration metrics
+                      const isAdminActiveDocs = module.title === 'Administration' && metric.label === 'Active Documents';
+                      const isAdminLegalCases = module.title === 'Administration' && metric.label === 'Open Legal Cases';
+                      const isAdminExpiryDocs = module.title === 'Administration' && metric.label === 'Expiry Documents (Next 30 Days)';
+                      
+                      // Special styling for HSE metrics
+                      const isHSETotalIncidents = module.title === 'HSE' && metric.label === 'Total Incidents';
+                      const isHSEOverdueInspections = module.title === 'HSE' && metric.label === 'Overdue Inspections';
+                      const isHSENearMiss = module.title === 'HSE' && metric.label === 'Near Miss Log';
+                      
+                      // Special styling for Procurement metrics
+                      const isProcTotalRequests = module.title === 'Procurement' && metric.label === 'Total Purchase Requests';
+                      const isProcTotalOrders = module.title === 'Procurement' && metric.label === 'Total Purchase Orders';
+                      const isProcTotalVendors = module.title === 'Procurement' && metric.label === 'Total Vendors';
+                      
+                      // Special styling for Sales metrics
+                      const isSalesTotalQuotations = module.title === 'Sales' && metric.label === 'Total Quotations';
+                      const isSalesPendingQuotations = module.title === 'Sales' && metric.label === 'Pending Quotations';
+                      const isSalesTotalClients = module.title === 'Sales' && metric.label === 'Total Clients';
                       
                       return (
                         <Box key={idx} sx={{ mb: 2 }}>
@@ -874,6 +929,102 @@ const DashboardPage: React.FC = () => {
                                   sx={{ fontSize: '0.7rem', height: 20 }}
                                 />
                               )}
+                              {isAdminActiveDocs && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isAdminLegalCases && (
+                                <Chip 
+                                  size="small" 
+                                  label="Open"
+                                  color="warning"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isAdminExpiryDocs && (
+                                <Chip 
+                                  size="small" 
+                                  label="Alert"
+                                  color="error"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isHSETotalIncidents && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isHSEOverdueInspections && (
+                                <Chip 
+                                  size="small" 
+                                  label="Overdue"
+                                  color="error"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isHSENearMiss && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isProcTotalRequests && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isProcTotalOrders && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isProcTotalVendors && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isSalesTotalQuotations && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isSalesPendingQuotations && (
+                                <Chip 
+                                  size="small" 
+                                  label="Pending"
+                                  color="warning"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
+                              {isSalesTotalClients && (
+                                <Chip 
+                                  size="small" 
+                                  label="Live"
+                                  color="primary"
+                                  sx={{ fontSize: '0.7rem', height: 20 }}
+                                />
+                              )}
                               <Typography variant="h6" sx={{ fontWeight: 600, color: module.color }}>
                                 {metric.format(metric.value)}
                               </Typography>
@@ -918,7 +1069,7 @@ const DashboardPage: React.FC = () => {
                   { name: 'Revenue', value: getEnhancedRevenue(), color: theme.palette.primary.main },
                   { name: 'Expenses', value: getEnhancedExpenses(), color: theme.palette.error.main },
                   { name: 'EBITDA', value: getEnhancedEBITDA(), color: theme.palette.success.main },
-                  { name: 'Sub Companies Revenue', value: data.financial.subCompaniesRevenue, color: theme.palette.secondary.main }
+                  { name: 'Net Profit', value: getEnhancedNetProfit(), color: theme.palette.secondary.main }
                 ]}>
                   <CartesianGrid strokeDasharray="3 3" stroke={alpha(theme.palette.divider, 0.3)} />
                   <XAxis dataKey="name" stroke={theme.palette.text.secondary} />
@@ -958,9 +1109,9 @@ const DashboardPage: React.FC = () => {
                       { name: 'Assets', value: data.assets.bookValue, color: MODULE_COLORS.assets },
                       { name: 'Operations', value: data.operations.deliveryCost, color: MODULE_COLORS.operations },
                       { name: 'Maintenance', value: data.maintenance.cost, color: MODULE_COLORS.maintenance },
-                      { name: 'Procurement', value: data.procurement.totalSpend, color: MODULE_COLORS.procurement },
-                      { name: 'Admin', value: data.admin.costs, color: MODULE_COLORS.admin },
-                      { name: 'HSE', value: data.hse.incidents, color: MODULE_COLORS.hse }
+                      { name: 'Procurement', value: data.procurement.totalPurchaseRequests, color: MODULE_COLORS.procurement },
+                      { name: 'Admin', value: data.admin.activeDocuments, color: MODULE_COLORS.admin },
+                      { name: 'HSE', value: data.hse.totalIncidents, color: MODULE_COLORS.hse }
                     ]}
                     dataKey="value"
                     nameKey="name"
@@ -974,9 +1125,9 @@ const DashboardPage: React.FC = () => {
                       { name: 'Assets', value: data.assets.bookValue, color: MODULE_COLORS.assets },
                       { name: 'Operations', value: data.operations.deliveryCost, color: MODULE_COLORS.operations },
                       { name: 'Maintenance', value: data.maintenance.cost, color: MODULE_COLORS.maintenance },
-                      { name: 'Procurement', value: data.procurement.totalSpend, color: MODULE_COLORS.procurement },
-                      { name: 'Admin', value: data.admin.costs, color: MODULE_COLORS.admin },
-                      { name: 'HSE', value: data.hse.incidents, color: MODULE_COLORS.hse }
+                      { name: 'Procurement', value: data.procurement.totalPurchaseRequests, color: MODULE_COLORS.procurement },
+                      { name: 'Admin', value: data.admin.activeDocuments, color: MODULE_COLORS.admin },
+                      { name: 'HSE', value: data.hse.totalIncidents, color: MODULE_COLORS.hse }
                     ].map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -995,7 +1146,7 @@ const DashboardPage: React.FC = () => {
           </Box>
         </motion.div>
 
-        {/* Real Performance Metrics */}
+        {/* Surprising You Soon Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1004,93 +1155,143 @@ const DashboardPage: React.FC = () => {
           <Paper 
             elevation={0}
             sx={{ 
-              p: 3, 
-              background: `linear-gradient(135deg, ${alpha(theme.palette.info.main, 0.05)} 0%, ${alpha(theme.palette.success.main, 0.05)} 100%)`,
-              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-              borderRadius: theme.shape.borderRadius
+              p: 6, 
+              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 50%, ${alpha(theme.palette.success.main, 0.1)} 100%)`,
+              border: `2px solid ${alpha(theme.palette.primary.main, 0.3)}`,
+              borderRadius: theme.shape.borderRadius,
+              position: 'relative',
+              overflow: 'hidden',
+              textAlign: 'center'
             }}
           >
-            <Typography variant="h6" gutterBottom sx={{ color: theme.palette.info.main, fontWeight: 600, mb: 3 }}>
-              📈 Key Performance Indicators
-            </Typography>
+            {/* Animated background elements */}
+            <motion.div
+              animate={{ 
+                rotate: [0, 360],
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                duration: 8,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              style={{
+                position: 'absolute',
+                top: -50,
+                right: -50,
+                width: 200,
+                height: 200,
+                borderRadius: '50%',
+                background: `linear-gradient(45deg, ${alpha(theme.palette.primary.main, 0.1)}, ${alpha(theme.palette.secondary.main, 0.1)})`,
+                zIndex: 0
+              }}
+            />
+            <motion.div
+              animate={{ 
+                rotate: [360, 0],
+                scale: [1, 1.2, 1]
+              }}
+              transition={{ 
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              style={{
+                position: 'absolute',
+                bottom: -30,
+                left: -30,
+                width: 150,
+                height: 150,
+                borderRadius: '50%',
+                background: `linear-gradient(45deg, ${alpha(theme.palette.success.main, 0.1)}, ${alpha(theme.palette.warning.main, 0.1)})`,
+                zIndex: 0
+              }}
+            />
             
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 3 }}>
-              {[
-                {
-                  metric: 'Profit Margin',
-                  current: data.financial.margin,
-                  trend: data.financial.margin > 0 ? 'up' : 'down',
-                  icon: <TrendingUpIcon />
-                },
-                {
-                  metric: 'Total Assets',
-                  current: data.assets.totalAssets,
-                  trend: data.assets.totalAssets > 0 ? 'up' : 'down',
-                  icon: <TrendingUpIcon />
-                },
-                {
-                  metric: 'On-Time Delivery',
-                  current: data.operations.onTimePercentage,
-                  trend: data.operations.onTimePercentage > 0 ? 'up' : 'down',
-                  icon: <TrendingUpIcon />
-                },
-                {
-                  metric: 'Training Compliance',
-                  current: data.hse.trainingCompliance * 100,
-                  trend: data.hse.trainingCompliance > 0 ? 'up' : 'down',
-                  icon: <TrendingUpIcon />
-                }
-              ].map((metric, index) => (
-                <motion.div
-                  key={metric.metric}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4, delay: 1.4 + index * 0.1 }}
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 1.4 }}
+              >
+                <Typography 
+                  variant="h3" 
+                  sx={{ 
+                    fontWeight: 800,
+                    background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main}, ${theme.palette.success.main})`,
+                    backgroundSize: '200% 200%',
+                    backgroundClip: 'text',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    animation: 'gradientShift 3s ease-in-out infinite',
+                    mb: 2,
+                    '@keyframes gradientShift': {
+                      '0%': { backgroundPosition: '0% 50%' },
+                      '50%': { backgroundPosition: '100% 50%' },
+                      '100%': { backgroundPosition: '0% 50%' }
+                    }
+                  }}
                 >
-                  <Card elevation={0} sx={{ background: alpha(theme.palette.background.paper, 0.8) }}>
-                    <CardContent sx={{ p: 3 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                          {metric.metric}
-                        </Typography>
-                        <Avatar 
-                          sx={{ 
-                            bgcolor: metric.trend === 'up' ? theme.palette.success.main : theme.palette.error.main,
-                            width: 32, 
-                            height: 32 
-                          }}
-                        >
-                          {metric.trend === 'up' ? <TrendingUpIcon /> : <TrendingDownIcon />}
-                        </Avatar>
-                      </Box>
-                      
-                      <Box sx={{ mb: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="body2" color="text.secondary">Current Value</Typography>
-                          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                            {metric.current.toFixed(1)}%
-                          </Typography>
-                        </Box>
-                      </Box>
-                      
-                      <Box sx={{ 
-                        height: 8, 
-                        borderRadius: 4,
-                        bgcolor: alpha(theme.palette.divider, 0.3),
-                        position: 'relative',
-                        overflow: 'hidden'
-                      }}>
-                        <Box sx={{ 
-                          height: '100%',
-                          width: '100%',
-                          bgcolor: metric.trend === 'up' ? theme.palette.success.main : theme.palette.warning.main,
-                          opacity: 0.3
-                        }} />
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                  🚀 Surprising You Soon ....
+                </Typography>
+              </motion.div>
+              
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.8, delay: 1.6 }}
+              >
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: theme.palette.text.secondary,
+                    fontWeight: 500,
+                    mb: 3,
+                    fontStyle: 'italic'
+                  }}
+                >
+                  Exciting new features and insights are coming your way!
+                </Typography>
+              </motion.div>
+              
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.6, delay: 1.8 }}
+              >
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  gap: 2,
+                  flexWrap: 'wrap'
+                }}>
+                  {['✨', '🎯', '📊', '⚡', '🎉'].map((emoji, index) => (
+                    <motion.div
+                      key={emoji}
+                      animate={{ 
+                        y: [0, -10, 0],
+                        rotate: [0, 5, -5, 0]
+                      }}
+                      transition={{ 
+                        duration: 2,
+                        delay: index * 0.2,
+                        repeat: Infinity,
+                        repeatDelay: 3
+                      }}
+                    >
+                      <Typography 
+                        variant="h4" 
+                        sx={{ 
+                          fontSize: '2.5rem',
+                          filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                        }}
+                      >
+                        {emoji}
+                      </Typography>
+                    </motion.div>
+                  ))}
+                </Box>
+              </motion.div>
             </Box>
           </Paper>
         </motion.div>

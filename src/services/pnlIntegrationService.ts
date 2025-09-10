@@ -256,8 +256,12 @@ export class PnLIntegrationService {
       verticalPnLData.summary.grossProfit = revenueSection.subtotal - expensesSection.subtotal;
       verticalPnLData.summary.operatingProfit = verticalPnLData.summary.grossProfit;
       
-      // Update net profit calculation
-      const netProfit = otherSection.subtotal + ebitdaSection.subtotal;
+      // Calculate depreciation from EBITDA section
+      const depreciationItem = ebitdaSection.items.find((item: any) => item.id === 'depreciation');
+      const depreciation = depreciationItem?.amount || 0;
+      
+      // Update net profit calculation (EBITDA - depreciation)
+      const netProfit = ebitdaSection.subtotal - depreciation;
       verticalPnLData.summary.netProfit = netProfit;
     }
   }
