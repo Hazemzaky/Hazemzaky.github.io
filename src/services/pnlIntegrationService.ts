@@ -129,16 +129,18 @@ export class PnLIntegrationService {
     try {
       console.log('Fetching enhanced PnL data for period:', { period, startDate, endDate });
 
-      // Use the vertical P&L mapping service to aggregate costs from all modules
-      const verticalPnLData = await verticalPnLMappingService.aggregateAllModuleCosts(period, startDate, endDate);
-      
-      console.log('Vertical P&L data aggregated:', verticalPnLData);
 
-      // Also fetch manual entries and other P&L specific data
+            // Also fetch manual entries and other P&L specific data
       const params = new URLSearchParams();
       if (startDate) params.append('start', startDate);
       if (endDate) params.append('end', endDate);
       params.append('period', period);
+
+
+      // Use the vertical P&L mapping service to aggregate costs from all modules
+      const verticalPnLData = await verticalPnLMappingService.aggregateAllModuleCosts(period, startDate, endDate);
+      
+      console.log('Vertical PnL Data:', verticalPnLData);
 
       const [manualEntriesRes, chartsRes, analysisRes] = await Promise.allSettled([
         api.get(`/pnl/manual-entries?${params.toString()}`),

@@ -804,9 +804,14 @@ export class VerticalPnLMappingService {
         revenue: 0,
         costOfSales: 0,
         grossProfit: 0,
+        grossMargin: '0%',
         operatingExpenses: 0,
         operatingProfit: 0,
-        netProfit: 0
+        operatingMargin: '0%',
+        netProfit: 0,
+        profitForPeriod: 0,
+        netMargin: '0%',
+        ebitda: 0
       },
       table: [] as any[],
       breakdown: {
@@ -1135,14 +1140,35 @@ export class VerticalPnLMappingService {
     const ebitdaValue = ebitda;
     const finalNetProfitValue = netProfit;
     
+    // Calculate margins
+    const grossMargin = revenueSection.subtotal > 0 ? ((grossProfit / revenueSection.subtotal) * 100).toFixed(1) : '0.0';
+    const operatingMargin = revenueSection.subtotal > 0 ? ((ebitdaValue / revenueSection.subtotal) * 100).toFixed(1) : '0.0';
+    const netMargin = revenueSection.subtotal > 0 ? ((finalNetProfitValue / revenueSection.subtotal) * 100).toFixed(1) : '0.0';
+
     pnlStructure.summary = {
       revenue: revenueSection.subtotal,
       costOfSales: expensesSection.subtotal,
       grossProfit: grossProfit,
+      grossMargin: `${grossMargin}%`,
       operatingExpenses: expensesSection.subtotal,
       operatingProfit: ebitdaValue,
-      netProfit: finalNetProfitValue
+      operatingMargin: `${operatingMargin}%`,
+      netProfit: finalNetProfitValue,
+      profitForPeriod: finalNetProfitValue, // Alias for compatibility
+      netMargin: `${netMargin}%`,
+      ebitda: ebitdaValue // Alias for compatibility
     };
+
+    console.log('Summary values calculated:', {
+      revenue: revenueSection.subtotal,
+      costOfSales: expensesSection.subtotal,
+      grossProfit,
+      operatingProfit: ebitdaValue,
+      netProfit: finalNetProfitValue,
+      grossMargin: `${grossMargin}%`,
+      operatingMargin: `${operatingMargin}%`,
+      netMargin: `${netMargin}%`
+    });
 
     // Set breakdown details
     pnlStructure.breakdown.moduleContributions = moduleResults;
