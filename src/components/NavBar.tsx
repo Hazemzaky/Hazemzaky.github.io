@@ -43,12 +43,6 @@ const navigationItems = [
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   { 
-    label: 'Budget Databases', 
-    path: '/budget-databases', 
-    icon: AttachMoneyIcon,
-    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-  },
-  { 
     label: 'Sales', 
     path: '/sales', 
     icon: SellIcon,
@@ -87,6 +81,7 @@ const NavBar: React.FC = () => {
   const isAuthenticated = !!localStorage.getItem('token');
 
   // Dropdown anchor states
+  const [budgetAnchorEl, setBudgetAnchorEl] = useState<null | HTMLElement>(null);
   const [accountingAnchorEl, setAccountingAnchorEl] = useState<null | HTMLElement>(null);
   const [hrAnchorEl, setHrAnchorEl] = useState<null | HTMLElement>(null);
   const [assetsAnchorEl, setAssetsAnchorEl] = useState<null | HTMLElement>(null);
@@ -95,6 +90,8 @@ const NavBar: React.FC = () => {
   const [profileAnchorEl, setProfileAnchorEl] = useState<null | HTMLElement>(null);
 
   // Menu handlers
+  const handleBudgetMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => setBudgetAnchorEl(event.currentTarget);
+  const handleBudgetMenuClose = () => setBudgetAnchorEl(null);
   const handleAccountingMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => setAccountingAnchorEl(event.currentTarget);
   const handleAccountingMenuClose = () => setAccountingAnchorEl(null);
   const handleHrMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => setHrAnchorEl(event.currentTarget);
@@ -240,6 +237,75 @@ const NavBar: React.FC = () => {
               </Button>
             );
           })}
+
+          {/* Budget Dropdown */}
+          <Box sx={{ position: 'relative' }}>
+            <Button
+              onClick={handleBudgetMenuOpen}
+              startIcon={<AttachMoneyIcon sx={{ fontSize: '1rem' }} />}
+              endIcon={<KeyboardArrowDownIcon sx={{ 
+                transform: budgetAnchorEl ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s ease'
+              }} />}
+              sx={{
+                fontWeight: 600,
+                fontSize: '0.75rem',
+                px: 2,
+                py: 1,
+                borderRadius: '8px',
+                textTransform: 'none',
+                position: 'relative',
+                minWidth: 'auto',
+                background: budgetAnchorEl || isDropdownActive(['/budgets', '/budget-databases'])
+                  ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                  : 'transparent',
+                color: budgetAnchorEl || isDropdownActive(['/budgets', '/budget-databases'])
+                  ? 'white' 
+                  : (colorMode.mode === 'dark' ? 'white' : '#1e293b'),
+                boxShadow: budgetAnchorEl || isDropdownActive(['/budgets', '/budget-databases'])
+                  ? '0 2px 8px rgba(240, 147, 251, 0.3)' 
+                  : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                  background: budgetAnchorEl || isDropdownActive(['/budgets', '/budget-databases'])
+                    ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+                    : colorMode.mode === 'dark' 
+                      ? 'rgba(148, 163, 184, 0.1)' 
+                      : 'rgba(148, 163, 184, 0.05)',
+                  transform: 'translateY(-1px)',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                },
+              }}
+            >
+              Budget
+            </Button>
+            <Menu
+              anchorEl={budgetAnchorEl}
+              open={Boolean(budgetAnchorEl)}
+              onClose={handleBudgetMenuClose}
+              TransitionComponent={Fade}
+              sx={{
+                '& .MuiPaper-root': {
+                  borderRadius: '16px',
+                  mt: 1,
+                  background: colorMode.mode === 'dark' 
+                    ? 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%)'
+                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
+                  backdropFilter: 'blur(20px)',
+                  border: `1px solid ${colorMode.mode === 'dark' ? 'rgba(148, 163, 184, 0.1)' : 'rgba(148, 163, 184, 0.2)'}`,
+                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+                  minWidth: 240,
+                }
+              }}
+            >
+              <MenuItem component={RouterLink} to="/budgets" onClick={handleBudgetMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>
+                📊 Budget Overview
+              </MenuItem>
+              <MenuItem component={RouterLink} to="/budget-databases" onClick={handleBudgetMenuClose} sx={{ py: 1.5, borderRadius: '8px', mx: 1, my: 0.5 }}>
+                🗄️ Budget Databases
+              </MenuItem>
+            </Menu>
+          </Box>
 
           {/* Accounting Dropdown */}
           <Box sx={{ position: 'relative' }}>
