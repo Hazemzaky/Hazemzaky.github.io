@@ -282,7 +282,7 @@ const JournalEntriesPage: React.FC = () => {
                 },
                 {
                   title: 'Total Debit',
-                  value: `$${totalDebitAmount.toLocaleString()}`,
+                  value: totalDebitAmount.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
                   icon: <TrendingUpIcon />,
                   color: theme.palette.info.main,
                   bgColor: alpha(theme.palette.info.main, 0.1)
@@ -516,12 +516,12 @@ const JournalEntriesPage: React.FC = () => {
                           <TableCell>{row.reference}</TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
-                              ${row.lines.reduce((sum: number, l: any) => sum + Number(l.debit), 0).toLocaleString()}
+                              {row.lines.reduce((sum: number, l: any) => sum + Number(l.debit), 0).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                              ${row.lines.reduce((sum: number, l: any) => sum + Number(l.credit), 0).toLocaleString()}
+                              {row.lines.reduce((sum: number, l: any) => sum + Number(l.credit), 0).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -818,7 +818,7 @@ const JournalEntriesPage: React.FC = () => {
                     fontWeight: 600,
                     textAlign: 'center'
                   }}>
-                    Total Debit: ${totalDebit.toLocaleString()} | Total Credit: ${totalCredit.toLocaleString()} 
+                    Total Debit: {totalDebit.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} | Total Credit: {totalCredit.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })} 
                     {isBalanced ? ' ✓ (Balanced)' : ' ✗ (Not Balanced)'}
                   </Typography>
                 </Box>
@@ -1001,12 +1001,12 @@ const JournalEntriesPage: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ color: theme.palette.error.main, fontWeight: 600 }}>
-                              ${Number(line.debit).toLocaleString()}
+                              {Number(line.debit).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ color: theme.palette.success.main, fontWeight: 600 }}>
-                              ${Number(line.credit).toLocaleString()}
+                              {Number(line.credit).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                             </Typography>
                           </TableCell>
                           <TableCell>

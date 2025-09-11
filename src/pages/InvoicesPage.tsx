@@ -8,8 +8,15 @@ import CloseIcon from '@mui/icons-material/Close';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import AddIcon from '@mui/icons-material/Add';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import PeopleIcon from '@mui/icons-material/People';
+import PaymentIcon from '@mui/icons-material/Payment';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
+import PaymentDialog from '../components/PaymentDialog';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import CustomersPage from './CustomersPage';
 
 interface Invoice {
   _id: string;
@@ -59,7 +66,11 @@ const InvoicesPage: React.FC = () => {
   const [sortKey, setSortKey] = useState<SortKey>('');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+  const [generatingPDF, setGeneratingPDF] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
   const [form, setForm] = useState({
     recipientName: '',
     recipientEmail: '',
@@ -231,6 +242,88 @@ const InvoicesPage: React.FC = () => {
     } finally {
       setMarkingPaid(null);
     }
+  };
+
+  // Generate PDF
+  const handleGeneratePDF = async (id: string, template: string = 'standard') => {
+    setGeneratingPDF(id);
+    try {
+      console.log(`Generating PDF for invoice ${id} with template ${template}`);
+      
+      const response = await api.get(`/invoices/${id}/pdf?template=${template}`, {
+        responseType: 'blob'
+      });
+      
+      console.log('PDF response received:', response);
+      
+      if (response.data instanceof Blob) {
+        const blob = response.data;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `invoice-${id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        setSuccess('PDF generated successfully!');
+      } else {
+        // Handle error response - response.data is not a Blob
+        throw new Error('Invalid response format - expected PDF blob');
+      }
+    } catch (err: any) {
+      console.error('PDF generation error:', err);
+      console.error('Error response:', err.response);
+      
+      let errorMessage = 'Failed to generate PDF';
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          try {
+            const errorData = JSON.parse(err.response.data);
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          } catch {
+            errorMessage = err.response.data;
+          }
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        }
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setGeneratingPDF(null);
+    }
+  };
+
+  // Email invoice
+  const handleEmailInvoice = async (id: string, recipientEmail: string) => {
+    setSendingEmail(id);
+    try {
+      await api.post(`/invoices/${id}/email`, { 
+        recipientEmail,
+        template: 'standard'
+      });
+      setSuccess('Invoice sent successfully!');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send invoice');
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
+  // Payment handling
+  const handleRecordPayment = (invoice: Invoice) => {
+    setSelectedInvoiceForPayment(invoice);
+    setPaymentDialogOpen(true);
+  };
+
+  const handlePaymentRecorded = () => {
+    fetchInvoices();
+    setPaymentDialogOpen(false);
+    setSelectedInvoiceForPayment(null);
   };
 
   // Add Invoice handlers
@@ -539,11 +632,14 @@ const InvoicesPage: React.FC = () => {
             <Tabs 
               value={tabValue} 
               onChange={(_, newValue) => setTabValue(newValue)}
+              variant="scrollable"
+              scrollButtons="auto"
               sx={{ 
                 '& .MuiTab-root': {
                   minHeight: 64,
                   fontWeight: 500,
                   borderRadius: '12px 12px 0 0',
+                  minWidth: 120,
                   '&.Mui-selected': {
                     background: alpha(theme.palette.primary.main, 0.1),
                     color: theme.palette.primary.main,
@@ -551,11 +647,30 @@ const InvoicesPage: React.FC = () => {
                 }
               }}
             >
-              <Tab label="Invoices" />
-              <Tab label="Orders Ready To Be Invoiced" />
+              <Tab 
+                icon={<DescriptionIcon />} 
+                label="Invoices" 
+                iconPosition="start"
+              />
+              <Tab 
+                icon={<ReceiptIcon />} 
+                label="Ready to Invoice" 
+                iconPosition="start"
+              />
+              <Tab 
+                icon={<PeopleIcon />} 
+                label="Customers" 
+                iconPosition="start"
+              />
+              <Tab 
+                icon={<PaymentIcon />} 
+                label="Payments" 
+                iconPosition="start"
+              />
             </Tabs>
           </Paper>
         </motion.div>
+
 
         {/* Tab Content */}
         <motion.div
@@ -565,13 +680,21 @@ const InvoicesPage: React.FC = () => {
         >
           {tabValue === 0 && (
             <Paper sx={{ mt: 2, p: 2, overflowX: 'auto' }}>
-              <Typography variant="h5" gutterBottom>Invoices</Typography>
+              <Typography variant="h5" gutterBottom>
+                Invoices ({invoices.length})
+              </Typography>
               {loading ? (
                 <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
                   <CircularProgress />
                 </Box>
+              ) : invoices.length === 0 ? (
+                <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+                  <Typography variant="h6" color="text.secondary">
+                    No invoices found. Create your first invoice!
+                  </Typography>
+                </Box>
               ) : (
-                <TableContainer sx={{ maxHeight: 500 }}>
+                <TableContainer sx={{ maxHeight: 500, overflowX: 'auto' }}>
                   <Table stickyHeader>
                     <TableHead>
                       <TableRow sx={{ background: '#f5f5f5' }}>
@@ -589,7 +712,7 @@ const InvoicesPage: React.FC = () => {
                           </span>
                         </TableCell>
                         <TableCell>Status</TableCell>
-                        <TableCell>Actions</TableCell>
+                        <TableCell sx={{ minWidth: 400 }}>Actions</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -606,17 +729,52 @@ const InvoicesPage: React.FC = () => {
                           <TableCell>
                             <Chip label={inv.status} color={statusColors[inv.status]} size="small" sx={{ textTransform: 'capitalize' }} />
                           </TableCell>
-                          <TableCell>
+                          <TableCell sx={{ minWidth: 400 }}>
+                            <Box display="flex" gap={1} flexWrap="wrap" alignItems="center">
+                              <Button
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                disabled={generatingPDF === inv._id}
+                                onClick={() => handleGeneratePDF(inv._id)}
+                                sx={{ minWidth: 80, fontSize: '0.75rem' }}
+                              >
+                                {generatingPDF === inv._id ? 'Generating...' : 'PDF'}
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="info"
+                                size="small"
+                                disabled={sendingEmail === inv._id}
+                                onClick={() => {
+                                  const email = prompt('Enter recipient email:', inv.recipient?.email || '');
+                                  if (email) handleEmailInvoice(inv._id, email);
+                                }}
+                                sx={{ minWidth: 80, fontSize: '0.75rem' }}
+                              >
+                                {sendingEmail === inv._id ? 'Sending...' : 'Email'}
+                              </Button>
+                              <Button
+                                variant="outlined"
+                                color="warning"
+                                size="small"
+                                disabled={inv.status === 'paid'}
+                                onClick={() => handleRecordPayment(inv)}
+                                sx={{ minWidth: 80, fontSize: '0.75rem' }}
+                              >
+                                Payment
+                              </Button>
                             <Button
                               variant="outlined"
                               color="success"
                               size="small"
                               disabled={inv.status === 'paid' || markingPaid === inv._id}
                               onClick={() => handleMarkPaid(inv._id)}
-                              sx={{ mr: 1 }}
+                                sx={{ minWidth: 80, fontSize: '0.75rem' }}
                             >
-                              {markingPaid === inv._id ? 'Marking...' : 'Mark as Paid'}
+                                {markingPaid === inv._id ? 'Marking...' : 'Mark Paid'}
                             </Button>
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -807,6 +965,61 @@ const InvoicesPage: React.FC = () => {
               </Paper>
             </Box>
           )}
+
+          {tabValue === 2 && (
+            <Box sx={{ mt: 2 }}>
+              <CustomersPage />
+            </Box>
+          )}
+
+          {tabValue === 3 && (
+            <Box sx={{ mt: 2 }}>
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h5" gutterBottom>
+                  <PaymentIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Payment Management
+                </Typography>
+                <Typography variant="body1" color="text.secondary" paragraph>
+                  Track and manage all payment transactions, view payment history, and monitor payment status.
+                </Typography>
+                <Alert severity="info" sx={{ mb: 3 }}>
+                  Payment management features are integrated within the invoice management system. 
+                  Use the "Record Payment" button on individual invoices to track payments.
+                </Alert>
+                <Box display="flex" gap={2} flexWrap="wrap">
+                  <Card sx={{ p: 2, minWidth: 200 }}>
+                    <Typography variant="h6" color="primary">Total Payments</Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {invoices.filter(inv => inv.status === 'paid').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Paid invoices</Typography>
+                  </Card>
+                  <Card sx={{ p: 2, minWidth: 200 }}>
+                    <Typography variant="h6" color="success">Total Amount</Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {formatCurrency(invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.totalAmount, 0))}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Paid amount</Typography>
+                  </Card>
+                  <Card sx={{ p: 2, minWidth: 200 }}>
+                    <Typography variant="h6" color="warning">Pending Payments</Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {invoices.filter(inv => inv.status === 'sent' || inv.status === 'draft').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Awaiting payment</Typography>
+                  </Card>
+                  <Card sx={{ p: 2, minWidth: 200 }}>
+                    <Typography variant="h6" color="error">Overdue</Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {invoices.filter(inv => inv.status === 'overdue').length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">Overdue invoices</Typography>
+                  </Card>
+                </Box>
+              </Paper>
+            </Box>
+          )}
+
 
           {/* Add Invoice Dialog */}
           <Dialog 
@@ -1218,6 +1431,21 @@ const InvoicesPage: React.FC = () => {
             message={<span style={{ display: 'flex', alignItems: 'center' }}><span role="img" aria-label="success" style={{ marginRight: 8 }}>✅</span>{success}</span>}
             anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
           />
+
+          {/* Payment Dialog */}
+          {selectedInvoiceForPayment && (
+            <PaymentDialog
+              open={paymentDialogOpen}
+              onClose={() => {
+                setPaymentDialogOpen(false);
+                setSelectedInvoiceForPayment(null);
+              }}
+              invoiceId={selectedInvoiceForPayment._id}
+              invoiceNumber={selectedInvoiceForPayment.serial || selectedInvoiceForPayment._id.slice(-6)}
+              remainingAmount={Number(selectedInvoiceForPayment.totalAmount)}
+              onPaymentRecorded={handlePaymentRecorded}
+            />
+          )}
         </motion.div>
       </AnimatePresence>
     </Box>

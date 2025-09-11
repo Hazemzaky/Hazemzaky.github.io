@@ -94,7 +94,7 @@ const tabLabels = [
   'Legal Case Management',
   'Company Facility Documents',
   'Dashboard & Reports',
-  // 'Employee Travel Management', // HIDDEN
+  // 'Employee Travel Management', // COMMENTED OUT - can be uncommented in future
 ];
 
 const statusColors: Record<string, any> = {
@@ -902,45 +902,49 @@ const AdminPage: React.FC = () => {
       fetchLegalCases();
     } else if (tab === 5) {
       fetchFacilities();
-    } else if (tab === tabLabels.length - 1) {
-      setTravelLoading(true);
-      setTravelError('');
-      api.get('/travel')
-        .then((res: any) => setTravelRecords(res.data || []))
-        .catch((err: any) => setTravelError(err.response?.data?.message || 'Failed to fetch travel records'))
-        .then(() => setTravelLoading(false))
-        .catch(() => setTravelLoading(false));
-      
-      // Fetch travel requests and authorizations
-      fetchTravelRequests();
-      // Fetch employees for travel forms
-      fetchEmployees();
-      fetchTravelAuthorizations();
     }
+    // COMMENTED OUT - Travel Management Tab
+    // } else if (tab === tabLabels.length - 1) {
+    //   setTravelLoading(true);
+    //   setTravelError('');
+    //   api.get('/travel')
+    //     .then((res: any) => setTravelRecords(res.data || []))
+    //     .catch((err: any) => setTravelError(err.response?.data?.message || 'Failed to fetch travel records'))
+    //     .then(() => setTravelLoading(false))
+    //     .catch(() => setTravelLoading(false));
+    //   
+    //   // Fetch travel requests and authorizations
+    //   fetchTravelRequests();
+    //   // Fetch employees for travel forms
+    //   fetchEmployees();
+    //   fetchTravelAuthorizations();
+    // }
   }, [tab]);
 
+  // COMMENTED OUT - Travel Notifications
   // 2. Fetch notifications when Notifications tab is selected
-  useEffect(() => {
-    if (tab === tabLabels.length - 1) {
-      setNotificationsLoading(true);
-      setNotificationsError('');
-      api.get('/travel/notifications')
-        .then((res: { data: any }) => setTravelNotifications(Array.isArray(res.data.upcomingTrips) ? res.data.upcomingTrips : []))
-        .catch((err: any) => setNotificationsError(err.response?.data?.message || 'Failed to fetch notifications'))
-        .then(() => setNotificationsLoading(false))
-        .catch(() => setNotificationsLoading(false));
-      // If .finally is not supported, use then/catch above and setLoading in both
-    }
-  }, [tab]);
+  // useEffect(() => {
+  //   if (tab === tabLabels.length - 1) {
+  //     setNotificationsLoading(true);
+  //     setNotificationsError('');
+  //     api.get('/travel/notifications')
+  //       .then((res: { data: any }) => setTravelNotifications(Array.isArray(res.data.upcomingTrips) ? res.data.upcomingTrips : []))
+  //       .catch((err: any) => setNotificationsError(err.response?.data?.message || 'Failed to fetch notifications'))
+  //       .then(() => setNotificationsLoading(false))
+  //       .catch(() => setNotificationsLoading(false));
+  //     // If .finally is not supported, use then/catch above and setLoading in both
+  //   }
+  // }, [tab]);
 
+  // COMMENTED OUT - Travel Country Guidelines
   // Fetch country guidelines when sub-tab is selected
-  useEffect(() => {
-    if (tab === tabLabels.length - 1 && travelTab === 8) {
-      api.get('/travel/country-guidelines')
-        .then((res: any) => setCountryGuidelines(res.data || []))
-        .catch(() => setCountryGuidelines([]));
-    }
-  }, [tab, travelTab]);
+  // useEffect(() => {
+  //   if (tab === tabLabels.length - 1 && travelTab === 8) {
+  //     api.get('/travel/country-guidelines')
+  //       .then((res: any) => setCountryGuidelines(res.data || []))
+  //       .catch(() => setCountryGuidelines([]));
+  //   }
+  // }, [tab, travelTab]);
 
   // Fetch emergency contacts for selected travel record
   const handleFetchEmergencyContacts = (travelRecordId: string) => {
@@ -11427,7 +11431,8 @@ const AdminPage: React.FC = () => {
             </motion.div>
           </motion.div>
         )}
-        {tab === tabLabels.length - 1 && (
+        {/* COMMENTED OUT - Travel Management UI Section */}
+        {false && tab === tabLabels.length - 1 && (
           <Box>
             <Tabs
               value={travelTab}

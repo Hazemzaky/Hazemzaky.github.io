@@ -53,7 +53,7 @@ import theme from '../theme';
 
 const currencyOptions = [
   { code: 'KWD', sign: 'د.ك' },
-  { code: 'USD', sign: '$' },
+  { code: 'KWD', sign: 'KD' },
   { code: 'EUR', sign: '€' },
   { code: 'GBP', sign: '£' },
   { code: 'SAR', sign: 'ر.س' },
@@ -275,7 +275,7 @@ const SalesPage: React.FC = () => {
             },
             { 
               title: 'Total Value', 
-              value: `$${salesMetrics.totalValue.toLocaleString()}`, 
+              value: salesMetrics.totalValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 
               color: theme.palette.success.main,
               bgColor: alpha(theme.palette.success.main, 0.1),
               icon: <TrendingUpIcon />

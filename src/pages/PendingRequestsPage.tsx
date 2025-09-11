@@ -165,7 +165,7 @@ const PendingRequestsPage: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KWD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);

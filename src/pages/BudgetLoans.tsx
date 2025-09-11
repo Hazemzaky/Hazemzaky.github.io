@@ -228,21 +228,21 @@ const BudgetLoans: React.FC = () => {
             {[
               {
                 title: 'Total Principal',
-                value: `$${getTotalPrincipal().toLocaleString()}`,
+                value: getTotalPrincipal().toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
                 icon: <MoneyIcon />,
                 color: theme.palette.primary.main,
                 bgColor: alpha(theme.palette.primary.main, 0.1)
               },
               {
                 title: 'Total Payments',
-                value: `$${getTotalPayments().toLocaleString()}`,
+                value: getTotalPayments().toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
                 icon: <TrendingUpIcon />,
                 color: theme.palette.error.main,
                 bgColor: alpha(theme.palette.error.main, 0.1)
               },
               {
                 title: 'Total Interest',
-                value: `$${getTotalInterest().toLocaleString()}`,
+                value: getTotalInterest().toLocaleString(undefined, { style: 'currency', currency: 'KWD' }),
                 icon: <AccountBalanceIcon />,
                 color: theme.palette.warning.main,
                 bgColor: alpha(theme.palette.warning.main, 0.1)
@@ -474,7 +474,7 @@ const BudgetLoans: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.error.main }}>
-                              ${getLoanMonthlyOutflow(loan).toLocaleString()}
+                              {getLoanMonthlyOutflow(loan).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -539,10 +539,10 @@ const BudgetLoans: React.FC = () => {
                                       return (
                                         <TableRow key={monthIdx}>
                                           <TableCell>{months[monthIdx]}</TableCell>
-                                          <TableCell align="right">${payment.toLocaleString()}</TableCell>
-                                          <TableCell align="right">${principalPayment.toLocaleString()}</TableCell>
-                                          <TableCell align="right">${interest.toLocaleString()}</TableCell>
-                                          <TableCell align="right">${(remainingBalance - principalPayment).toLocaleString()}</TableCell>
+                                          <TableCell align="right">{payment.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
+                                          <TableCell align="right">{principalPayment.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
+                                          <TableCell align="right">{interest.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
+                                          <TableCell align="right">{(remainingBalance - principalPayment).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</TableCell>
                                         </TableRow>
                                       );
                                     })}
@@ -563,7 +563,7 @@ const BudgetLoans: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
                         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          ${getTotalPrincipal().toLocaleString()}
+                          {getTotalPrincipal().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                         </Typography>
                       </TableCell>
                       <TableCell />
@@ -571,7 +571,7 @@ const BudgetLoans: React.FC = () => {
                       <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
                         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          ${getTotalPayments().toLocaleString()}
+                          {getTotalPayments().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                         </Typography>
                       </TableCell>
                       <TableCell />

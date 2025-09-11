@@ -381,7 +381,7 @@ const InventoryRegisterPage: React.FC = () => {
             },
             { 
               title: 'Total Value', 
-              value: `$${inventoryMetrics.totalValue.toLocaleString()}`, 
+              value: inventoryMetrics.totalValue.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 
               color: theme.palette.success.main,
               bgColor: alpha(theme.palette.success.main, 0.1),
               icon: <TrendingUpIcon />
@@ -1089,7 +1089,7 @@ const InventoryRegisterPage: React.FC = () => {
                       <TableCell>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                            {item.purchaseCost ? `$${item.purchaseCost.toLocaleString()}` : '-'}
+                            {item.purchaseCost ? item.purchaseCost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '-'}
                           </Typography>
                           {item.supplier && (
                             <Typography variant="caption" color="text.secondary">
@@ -1179,13 +1179,13 @@ const InventoryRegisterPage: React.FC = () => {
               <Box>
                 <Typography variant="caption" color="text.secondary">Total Value</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                  ${filteredItems.reduce((sum, item) => sum + ((item.purchaseCost || 0) * (item.quantity || 0)), 0).toLocaleString()}
+                  {filteredItems.reduce((sum, item) => sum + ((item.purchaseCost || 0) * (item.quantity || 0)), 0).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                 </Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">Average Value</Typography>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  ${(filteredItems.reduce((sum, item) => sum + ((item.purchaseCost || 0) * (item.quantity || 0)), 0) / filteredItems.length).toLocaleString()}
+                  {(filteredItems.reduce((sum, item) => sum + ((item.purchaseCost || 0) * (item.quantity || 0)), 0) / filteredItems.length).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                 </Typography>
               </Box>
               <Box>
@@ -1252,7 +1252,7 @@ const InventoryRegisterPage: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.info.main }}>
-                      ${periodCosts.daily.toLocaleString()}
+                      {periodCosts.daily.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {todayStart.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -1290,7 +1290,7 @@ const InventoryRegisterPage: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.success.main }}>
-                      ${periodCosts.weekly.toLocaleString()}
+                      {periodCosts.weekly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       Week of {weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(nextWeekStart.getTime() - 1).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -1328,7 +1328,7 @@ const InventoryRegisterPage: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.warning.main }}>
-                      ${periodCosts.monthly.toLocaleString()}
+                      {periodCosts.monthly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {getMonthName(monthStart)}
@@ -1366,7 +1366,7 @@ const InventoryRegisterPage: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.secondary.main }}>
-                      ${periodCosts.quarterly.toLocaleString()}
+                      {periodCosts.quarterly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {getQuarterName(quarterStart)}
@@ -1404,7 +1404,7 @@ const InventoryRegisterPage: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.error.main }}>
-                      ${periodCosts.halfYearly.toLocaleString()}
+                      {periodCosts.halfYearly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {getHalfYearName(halfStart)}
@@ -1442,7 +1442,7 @@ const InventoryRegisterPage: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: theme.palette.primary.main }}>
-                      ${periodCosts.yearly.toLocaleString()}
+                      {periodCosts.yearly.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       FY {currentFY} (Apr 1 - Mar 31)

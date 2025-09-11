@@ -39,7 +39,7 @@ const typeOptions = [
 
 const currencyOptions = [
   { value: 'KWD', label: 'Kuwaiti Dinar' },
-  { value: 'USD', label: 'USD' },
+  { value: 'KWD', label: 'KWD' },
 ];
 
 const getFinancialYears = () => {

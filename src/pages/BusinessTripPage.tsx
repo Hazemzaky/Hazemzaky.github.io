@@ -817,7 +817,7 @@ const BusinessTripPage: React.FC = () => {
                   { label: 'Total Trips', value: dashboardStats.totalTrips, icon: <GroupIcon /> },
                   { label: 'Pending', value: dashboardStats.pendingApprovals, icon: <HourglassEmptyIcon /> },
                   { label: 'Completed', value: completedCount, icon: <DoneAllIcon /> },
-                  { label: 'Cost YTD', value: `KD ${dashboardStats.costPaidYTD.toLocaleString()}`, icon: <MonetizationOnIcon /> }
+                  { label: 'Cost YTD', value: dashboardStats.costPaidYTD.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), icon: <MonetizationOnIcon /> }
                 ].map((stat, index) => (
                   <motion.div
                     key={stat.label}
@@ -1291,7 +1291,7 @@ const BusinessTripPage: React.FC = () => {
                               borderRadius: 2,
                               display: 'inline-block'
                             }}>
-                              KD {trip.cost?.toLocaleString() || '0'}
+                              {trip.cost ? trip.cost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '0'}
                             </Typography>
                           </TableCell>
                           <TableCell sx={{ py: 2 }}>
@@ -1434,7 +1434,7 @@ const BusinessTripPage: React.FC = () => {
                     <Typography variant="body2" color="text.secondary">Airport/City: <b>{trip.airportOrCity || '-'}</b></Typography>
                     <Typography variant="body2" color="text.secondary">Departure: <b>{trip.departureDate}</b></Typography>
                     <Typography variant="body2" color="text.secondary">Return: <b>{trip.returnDate}</b></Typography>
-                    <Typography variant="body2" color="text.secondary">Cost: <b>KD {trip.cost}</b></Typography>
+                    <Typography variant="body2" color="text.secondary">Cost: <b>{trip.cost ? trip.cost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '0'}</b></Typography>
                   </CardContent>
                   <Box display="flex" justifyContent="flex-end" gap={1} p={2}>
                     <Button

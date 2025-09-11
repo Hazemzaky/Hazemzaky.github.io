@@ -1695,7 +1695,7 @@ const ProcurementPage: React.FC = () => {
                             {pr.itemStatus || 'available'}
                           </Box>
                         </TableCell>
-                        <TableCell>{pr.estimatedCost ? `$${pr.estimatedCost}` : '-'}</TableCell>
+                        <TableCell>{pr.estimatedCost ? `${pr.estimatedCost.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}` : '-'}</TableCell>
                         <TableCell>
                           <Chip
                             label={pr.status}
@@ -2218,7 +2218,7 @@ const ProcurementPage: React.FC = () => {
                       quoteDialog.quotation.responses.map((response: any, idx: number) => (
                         <Box key={idx} sx={{ border: '1px solid #ddd', p: 2, mb: 2, borderRadius: 1 }}>
                           <Typography variant="subtitle2">Vendor: {response.vendor?.name}</Typography>
-                          <Typography>Price: ${response.price}</Typography>
+                          <Typography>Price: {response.price ? Number(response.price).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '-'}</Typography>
                           <Typography>Delivery Time: {response.deliveryTime}</Typography>
                           <Typography>Terms: {response.terms}</Typography>
                         </Box>
@@ -3081,7 +3081,7 @@ const ProcurementPage: React.FC = () => {
                           </Box>
                         ) : '-'}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>{v.creditLimit ? `$${v.creditLimit.toLocaleString()}` : '-'}</TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>{v.creditLimit ? v.creditLimit.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '-'}</TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>{v.paymentTerms || '-'}</TableCell>
                       <TableCell>
                         <Chip

@@ -336,14 +336,14 @@ const EmployeeProfilePage: React.FC = () => {
               {showSalary ? (
                 <Box>
                   <Typography variant="h5">
-                    ${employee.salary?.toLocaleString() || 'N/A'}
+                    {employee.salary ? employee.salary.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : 'N/A'}
                   </Typography>
                   <Typography variant="caption" color="textSecondary">
                     Annual Salary
                   </Typography>
                   {employee.hourlyRate && (
                     <Typography variant="body2" sx={{ mt: 1 }}>
-                      ${employee.hourlyRate}/hr
+                      {employee.hourlyRate ? employee.hourlyRate.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : 'N/A'}/hr
                     </Typography>
                   )}
                 </Box>
@@ -611,13 +611,13 @@ const EmployeeProfilePage: React.FC = () => {
                       <ListItem>
                         <ListItemText 
                           primary="Annual Salary"
-                          secondary={employee.salary ? `$${employee.salary.toLocaleString()}` : 'Not set'}
+                          secondary={employee.salary ? employee.salary.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : 'Not set'}
                         />
                       </ListItem>
                       <ListItem>
                         <ListItemText 
                           primary="Hourly Rate"
-                          secondary={employee.hourlyRate ? `$${employee.hourlyRate}/hr` : 'Not set'}
+                          secondary={employee.hourlyRate ? `${employee.hourlyRate.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}/hr` : 'Not set'}
                         />
                       </ListItem>
                     </List>

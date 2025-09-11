@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -95,6 +95,7 @@ import {
 import api from '../apiBase';
 import { pnlIntegrationService, usePnLIntegration, getPeriodBoundaries } from '../services/pnlIntegrationService';
 import ManualEntriesPage from './ManualEntriesPage';
+import { PnLErrorBoundary, ChartErrorBoundary } from '../components/ErrorBoundary';
 
 // Debounce utility function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -247,7 +248,7 @@ const FinancialMetricsContainers: React.FC<{ data: any }> = ({ data }) => {
 };
 
 // P&L Summary Cards Component
-const PnLSummaryCards: React.FC<{ data: any; loading: boolean }> = ({ data, loading }) => {
+const PnLSummaryCards: React.FC<{ data: any; loading: boolean }> = React.memo(({ data, loading }) => {
   const theme = useTheme();
 
   // Get module icon and color (shared with PnLTable)
@@ -691,15 +692,15 @@ const PnLSummaryCards: React.FC<{ data: any; loading: boolean }> = ({ data, load
       <FinancialMetricsContainers data={data} />
     </Box>
   );
-};
+});
 
 // Enhanced P&L Table Component with Vertical Structure and Module Links
-const PnLTable: React.FC<{ data: any[]; loading: boolean; onExport?: (format: 'pdf' | 'excel') => void }> = ({ data, loading, onExport }) => {
+const PnLTable: React.FC<{ data: any[]; loading: boolean; onExport?: (format: 'pdf' | 'excel') => void }> = React.memo(({ data, loading, onExport }) => {
   const theme = useTheme();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const toggleSection = (sectionId: string) => {
+  const toggleSection = useCallback((sectionId: string) => {
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(sectionId)) {
       newExpanded.delete(sectionId);
@@ -707,9 +708,9 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean; onExport?: (format: 'p
       newExpanded.add(sectionId);
     }
     setExpandedSections(newExpanded);
-  };
+  }, [expandedSections]);
 
-  const toggleItem = (itemId: string) => {
+  const toggleItem = useCallback((itemId: string) => {
     const newExpanded = new Set(expandedItems);
     if (newExpanded.has(itemId)) {
       newExpanded.delete(itemId);
@@ -717,7 +718,7 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean; onExport?: (format: 'p
       newExpanded.add(itemId);
     }
     setExpandedItems(newExpanded);
-  };
+  }, [expandedItems]);
 
   // Get module icon and color
   const getModuleIcon = (module: string) => {
@@ -1271,11 +1272,86 @@ const PnLTable: React.FC<{ data: any[]; loading: boolean; onExport?: (format: 'p
       </Box>
     </Box>
   );
-};
+});
 
 // Enhanced P&L Charts Component with 15+ Live Analytics
-const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading }) => {
+const PnLCharts: React.FC<{ data: any; loading: boolean }> = React.memo(({ data, loading }) => {
   const theme = useTheme();
+
+  // Move all hooks before early returns to comply with Rules of Hooks
+  const { summary, table, breakdown } = data || {};
+  
+  // Calculate key metrics from live data with useMemo for performance
+  const financialMetrics = useMemo(() => {
+    if (!summary) return {
+      totalRevenue: 0,
+      totalExpenses: 0,
+      grossProfit: 0,
+      operatingProfit: 0,
+      netProfit: 0,
+      grossMargin: 0,
+      operatingMargin: 0,
+      netMargin: 0
+    };
+
+    const totalRevenue = summary.revenue || 0;
+    const totalExpenses = summary.costOfSales || 0;
+    const grossProfit = summary.grossProfit || 0;
+    const operatingProfit = summary.operatingProfit || 0;
+    const netProfit = summary.netProfit || 0;
+
+    const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const operatingMargin = totalRevenue > 0 ? (operatingProfit / totalRevenue) * 100 : 0;
+    const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+    return {
+      totalRevenue,
+      totalExpenses,
+      grossProfit,
+      operatingProfit,
+      netProfit,
+      grossMargin,
+      operatingMargin,
+      netMargin
+    };
+  }, [summary]);
+
+  const { totalRevenue, totalExpenses, grossProfit, operatingProfit, netProfit, grossMargin, operatingMargin, netMargin } = financialMetrics;
+
+  // Calculate revenue and expense breakdowns
+  const revenueBreakdown = useMemo(() => {
+    if (!table) return [];
+    const revenueSection = table.find((section: any) => section.type === 'revenue');
+    return revenueSection?.items?.map((item: any) => ({
+      name: item.description,
+      value: item.amount || 0
+    })) || [];
+  }, [table]);
+
+  const expenseBreakdown = useMemo(() => {
+    if (!table) return [];
+    const expenseSection = table.find((section: any) => section.type === 'expenses');
+    return expenseSection?.items?.map((item: any) => ({
+      name: item.description,
+      value: item.amount || 0
+    })) || [];
+  }, [table]);
+
+  // Top Revenue Sources - Memoized for performance
+  const topRevenueSources = useMemo(() => 
+    revenueBreakdown
+      .sort((a: any, b: any) => b.value - a.value)
+      .slice(0, 8),
+    [revenueBreakdown]
+  );
+
+  // Top Expense Categories - Memoized for performance
+  const topExpenseCategories = useMemo(() => 
+    expenseBreakdown
+      .sort((a: any, b: any) => b.value - a.value)
+      .slice(0, 8),
+    [expenseBreakdown]
+  );
 
   if (loading) {
     return (
@@ -1286,6 +1362,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
   }
 
   if (!data) {
+    console.log('PnLCharts: No data provided', { data, loading });
     return (
       <Alert severity="info">
         No chart data available. Please select a period and generate the report.
@@ -1293,33 +1370,57 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
     );
   }
 
-  // Extract data from PnL structure
-  const summary = data.summary || {};
-  const table = data.table || [];
-  const breakdown = data.breakdown || {};
+  // Debug logging for chart data
+  console.log('PnLCharts: Data received', { 
+    data, 
+    summary: data.summary, 
+    table: data.table, 
+    breakdown: data.breakdown 
+  });
+
+  // Data already extracted at the top of the component
   
-  // Calculate analytics data from real PnL data
-  const revenueSection = table.find((section: any) => section.type === 'revenue');
-  const expenseSection = table.find((section: any) => section.type === 'expenses');
-  const otherSection = table.find((section: any) => section.type === 'other');
-  const ebitdaSection = table.find((section: any) => section.type === 'ebitda');
-  const netProfitSection = table.find((section: any) => section.type === 'net_profit');
+  // Calculate analytics data from real PnL data with error handling
+  let revenueSection, expenseSection, otherSection, ebitdaSection, netProfitSection;
+  
+  try {
+    revenueSection = table.find((section: any) => section.type === 'revenue');
+    expenseSection = table.find((section: any) => section.type === 'expenses');
+    otherSection = table.find((section: any) => section.type === 'other');
+    ebitdaSection = table.find((section: any) => section.type === 'ebitda');
+    netProfitSection = table.find((section: any) => section.type === 'net_profit');
+
+    console.log('Chart sections found:', { 
+      revenueSection: !!revenueSection, 
+      expenseSection: !!expenseSection, 
+      otherSection: !!otherSection,
+      ebitdaSection: !!ebitdaSection,
+      netProfitSection: !!netProfitSection
+    });
+  } catch (error) {
+    console.error('Error processing chart data:', error);
+    return (
+      <Alert severity="error">
+        Error processing chart data: {error instanceof Error ? error.message : 'Unknown error'}
+      </Alert>
+    );
+  }
 
   // Revenue Analytics
   const revenueItems = revenueSection?.items || [];
-  const revenueBreakdown = revenueItems.map((item: any) => ({
-    name: item.name || 'Revenue Item',
-    value: item.amount || 0,
-    module: item.module || 'Unknown'
-  }));
 
   // Expense Analytics
   const expenseItems = expenseSection?.items || [];
-  const expenseBreakdown = expenseItems.map((item: any) => ({
-    name: item.name || 'Expense Item',
-    value: item.amount || 0,
-    module: item.module || 'Unknown'
-  }));
+
+  // Check if we have valid data for charts
+  if (!revenueItems.length && !expenseItems.length) {
+    console.log('No revenue or expense items found for charts');
+    return (
+      <Alert severity="warning">
+        No financial data available for charts. Please ensure P&L data is loaded correctly.
+      </Alert>
+    );
+  }
 
   // Module Performance
   const modulePerformance = Object.entries(breakdown?.moduleContributions || {}).map(([module, moduleData]: [string, any]) => {
@@ -1330,27 +1431,6 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
       items: Object.keys(moduleData?.costs || {}).length
     };
   }).filter(item => item.cost > 0);
-
-  // Financial Ratios
-  const totalRevenue = summary.revenue || 0;
-  const totalExpenses = summary.costOfSales || 0;
-  const grossProfit = summary.grossProfit || 0;
-  const operatingProfit = summary.operatingProfit || 0;
-  const netProfit = summary.netProfit || 0;
-
-  const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
-  const operatingMargin = totalRevenue > 0 ? (operatingProfit / totalRevenue) * 100 : 0;
-  const netMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-
-  // Top Revenue Sources
-  const topRevenueSources = revenueBreakdown
-    .sort((a: any, b: any) => b.value - a.value)
-    .slice(0, 8);
-
-  // Top Expense Categories
-  const topExpenseCategories = expenseBreakdown
-    .sort((a: any, b: any) => b.value - a.value)
-    .slice(0, 8);
 
   // Generate real trend data from actual PnL data
   const generateRealTrendData = (baseValue: number) => {
@@ -1497,7 +1577,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Legend />
                   <Line type="monotone" dataKey="value" stroke={theme.palette.success.main} strokeWidth={3} name="Revenue" />
                 </LineChart>
@@ -1515,7 +1595,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Legend />
                   <Line type="monotone" dataKey="value" stroke={theme.palette.error.main} strokeWidth={3} name="Expenses" />
                 </LineChart>
@@ -1533,7 +1613,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="period" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Legend />
                   <Line type="monotone" dataKey="value" stroke={theme.palette.primary.main} strokeWidth={3} name="Net Profit" />
                 </LineChart>
@@ -1565,7 +1645,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                       <Cell key={`cell-${index}`} fill={theme.palette.success.main} />
                     ))}
                   </Pie>
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Revenue']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Revenue']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -1581,7 +1661,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
                   <YAxis dataKey="name" type="category" width={100} />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Bar dataKey="value" fill={theme.palette.error.main} />
                 </RechartsBarChart>
               </ResponsiveContainer>
@@ -1601,7 +1681,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Bar dataKey="value" fill={theme.palette.primary.main} />
                 </RechartsBarChart>
               </ResponsiveContainer>
@@ -1646,7 +1726,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Cost']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Cost']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -1665,7 +1745,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Cost']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Cost']} />
                   <Bar dataKey="value" fill={theme.palette.secondary.main} />
                 </RechartsBarChart>
               </ResponsiveContainer>
@@ -1682,7 +1762,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Bar dataKey="value" fill={theme.palette.primary.main} />
                 </RechartsBarChart>
               </ResponsiveContainer>
@@ -1730,7 +1810,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                       <Cell key={`cell-${index}`} fill={theme.palette.info.main} />
                     ))}
                   </Pie>
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Cost']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Cost']} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -1778,7 +1858,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Bar dataKey="value" fill={theme.palette.primary.main} />
                 </RechartsBarChart>
               </ResponsiveContainer>
@@ -1873,7 +1953,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Legend />
                   <Bar dataKey="actual" fill={theme.palette.error.main} name="Actual" />
                   <Bar dataKey="budget" fill={theme.palette.grey[400]} name="Budget" />
@@ -1924,7 +2004,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="month" />
                   <YAxis />
-                  <RechartsTooltip formatter={(value: any) => [`KD ${value.toLocaleString()}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: any) => [value.toLocaleString(undefined, { style: 'currency', currency: 'KWD' }), 'Amount']} />
                   <Legend />
                   <Area type="monotone" dataKey="revenue" stackId="1" stroke={theme.palette.success.main} fill={theme.palette.success.light} name="Revenue" />
                   <Area type="monotone" dataKey="expenses" stackId="1" stroke={theme.palette.error.main} fill={theme.palette.error.light} name="Expenses" />
@@ -2014,7 +2094,7 @@ const PnLCharts: React.FC<{ data: any; loading: boolean }> = ({ data, loading })
       </Box>
     </Box>
   );
-};
+});
 
 
 // Manual PnL Entry Management Component
@@ -3318,7 +3398,7 @@ const PnLPage: React.FC = () => {
       console.log('Summary data structure:', integrationData.summary);
       setSummaryData(integrationData); // Pass full integration data instead of just summary
       setTableData(integrationData.table);
-      setChartsData(integrationData.charts);
+      setChartsData(integrationData); // Use the full integration data for charts
       setAnalysisData(integrationData.analysis);
     }
   }, [integrationData, integrationLoading]);
@@ -3576,15 +3656,21 @@ const PnLPage: React.FC = () => {
         >
           <Box>
             {activeTab === 0 && (
-              <PnLSummaryCards data={summaryData} loading={loading} />
+              <PnLErrorBoundary>
+                <PnLSummaryCards data={summaryData} loading={loading} />
+              </PnLErrorBoundary>
             )}
             
             {activeTab === 1 && (
-              <PnLTable data={tableData} loading={loading} onExport={handleExport} />
+              <PnLErrorBoundary>
+                <PnLTable data={tableData} loading={loading} onExport={handleExport} />
+              </PnLErrorBoundary>
             )}
             
             {activeTab === 2 && (
-              <PnLCharts data={chartsData} loading={loading} />
+              <ChartErrorBoundary>
+                <PnLCharts data={chartsData} loading={loading} />
+              </ChartErrorBoundary>
             )}
 
             {activeTab === 3 && (

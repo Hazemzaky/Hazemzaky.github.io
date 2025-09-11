@@ -709,10 +709,10 @@ const ProjectsPage: React.FC = () => {
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Project Management
+                      Orders Management
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Comprehensive project tracking and client management
+                      Comprehensive order tracking and client management
                     </Typography>
                   </Box>
                 </Box>
@@ -766,21 +766,21 @@ const ProjectsPage: React.FC = () => {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
             {[
               {
-                title: 'Total Projects',
+                title: 'Total Orders',
                 value: projects.length,
                 icon: <BusinessIcon />,
                 color: theme.palette.primary.main,
                 bgColor: alpha(theme.palette.primary.main, 0.1)
               },
               {
-                title: 'Active Projects',
+                title: 'Active Orders',
                 value: projects.filter(p => p.status === 'active' || p.status === 'in_progress').length,
                 icon: <TrendingUpIcon />,
                 color: theme.palette.success.main,
                 bgColor: alpha(theme.palette.success.main, 0.1)
               },
               {
-                title: 'Completed Projects',
+                title: 'Completed Orders',
                 value: projects.filter(p => p.status === 'completed').length,
                 icon: <CheckCircleIcon />,
                 color: theme.palette.info.main,
@@ -850,7 +850,7 @@ const ProjectsPage: React.FC = () => {
             }}
           >
             <Typography variant="h6" gutterBottom sx={{ color: theme.palette.text.primary, fontWeight: 600, mb: 3 }}>
-              📋 Project Overview
+              📋 Orders Overview
             </Typography>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>

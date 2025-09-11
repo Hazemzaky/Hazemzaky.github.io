@@ -44,7 +44,7 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.3",
     "react-scripts": "5.0.1",
-    "recharts": "^3.1.0",
+    "recharts": "^3.2.0",
     "styled-components": "^6.1.19",
     "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
@@ -55,7 +55,11 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "deploy": "gh-pages -d build",
+    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "analyze:size": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js --mode static",
+    "check-duplicates": "npx duplicate-package-checker-webpack-plugin",
+    "build:analyze": "GENERATE_SOURCEMAP=true npm run build && npm run analyze"
   },
   "homepage": ".",
   "eslintConfig": {
@@ -83,6 +87,8 @@
     "@types/react-dom": "^19.1.6",
     "@types/recharts": "^1.8.29",
     "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6"
+    "duplicate-package-checker-webpack-plugin": "^3.0.0",
+    "postcss": "^8.5.6",
+    "webpack-bundle-analyzer": "^4.10.2"
   }
 }

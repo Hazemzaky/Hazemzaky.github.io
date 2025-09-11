@@ -73,7 +73,7 @@ const AccountingDashboardPage: React.FC = () => {
                 <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}><MonetizationOnIcon /></Avatar>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">Cash Position</Typography>
-                  <Typography variant="h5" fontWeight={700} color="text.primary">${kpis?.netProfit?.toLocaleString() || 0}</Typography>
+                  <Typography variant="h5" fontWeight={700} color="text.primary">{(kpis?.netProfit || 0).toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
                 </Box>
               </Box>
             </Paper>
@@ -85,7 +85,7 @@ const AccountingDashboardPage: React.FC = () => {
                 <Avatar sx={{ bgcolor: 'info.main', width: 48, height: 48 }}><ReceiptLongIcon /></Avatar>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">AR/AP Aging</Typography>
-                  <Typography variant="h5" fontWeight={700} color="text.primary">${arapTotal.toLocaleString()}</Typography>
+                  <Typography variant="h5" fontWeight={700} color="text.primary">{arapTotal.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
                 </Box>
               </Box>
             </Paper>
@@ -97,7 +97,7 @@ const AccountingDashboardPage: React.FC = () => {
                 <Avatar sx={{ bgcolor: 'success.main', width: 48, height: 48 }}><TrendingUpIcon /></Avatar>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">Open Invoices</Typography>
-                  <Typography variant="h5" fontWeight={700} color="text.primary">${openInvoicesTotal.toLocaleString()}</Typography>
+                  <Typography variant="h5" fontWeight={700} color="text.primary">{openInvoicesTotal.toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}</Typography>
                 </Box>
               </Box>
             </Paper>

@@ -723,7 +723,7 @@ const PPETracking: React.FC = () => {
                 <TableRow key={item._id}>
                   <TableCell>{item.employee?.name || item.employee || '-'}</TableCell>
                   <TableCell>{item.issueDate ? new Date(item.issueDate).toLocaleDateString() : '-'}</TableCell>
-                  <TableCell>${item.totalValue?.toFixed(2) || '0.00'}</TableCell>
+                  <TableCell>{item.totalValue ? Number(item.totalValue).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '0.00'}</TableCell>
                   <TableCell>{item.ppeItems?.length || 0}</TableCell>
                   <TableCell>
                     <Chip 
@@ -1949,7 +1949,7 @@ const TrainingCertifications: React.FC = () => {
                     <TableCell>{training.startDate ? new Date(training.startDate).toLocaleDateString() : '-'}</TableCell>
                     <TableCell>{training.endDate ? new Date(training.endDate).toLocaleDateString() : '-'}</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: theme.palette.primary.main }}>{training.duration} hours</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: theme.palette.success.main }}>${training.cost?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: theme.palette.success.main }}>{training.cost ? Number(training.cost).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '0.00'}</TableCell>
                     <TableCell>{training.provider || '-'}</TableCell>
                     <TableCell>{training.amortization ? `${training.amortization} ${training.amortization === 1 ? 'Month' : 'Months'}` : '-'}</TableCell>
                     <TableCell>
@@ -2198,7 +2198,7 @@ const TrainingCertifications: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', p: 3 }}>
               <Typography variant="h4" sx={{ color: theme.palette.primary.main, fontWeight: 700, mb: 1 }}>
-                ${calculateDailyCost().toLocaleString()}
+                {calculateDailyCost().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Today's Training Cost
@@ -2230,7 +2230,7 @@ const TrainingCertifications: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', p: 3 }}>
               <Typography variant="h4" sx={{ color: theme.palette.success.main, fontWeight: 700, mb: 1 }}>
-                ${calculateWeeklyCost().toLocaleString()}
+                {calculateWeeklyCost().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 This Week's Training Cost
@@ -2257,7 +2257,7 @@ const TrainingCertifications: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', p: 3 }}>
               <Typography variant="h4" sx={{ color: theme.palette.warning.main, fontWeight: 700, mb: 1 }}>
-                ${calculateMonthlyCost().toLocaleString()}
+                {calculateMonthlyCost().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {getCurrentMonthName()} Training Cost
@@ -2284,7 +2284,7 @@ const TrainingCertifications: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', p: 3 }}>
               <Typography variant="h4" sx={{ color: theme.palette.info.main, fontWeight: 700, mb: 1 }}>
-                ${calculateQuarterlyCost().toLocaleString()}
+                {calculateQuarterlyCost().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {getCurrentQuarter()} Training Cost
@@ -2311,7 +2311,7 @@ const TrainingCertifications: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', p: 3 }}>
               <Typography variant="h4" sx={{ color: theme.palette.secondary.main, fontWeight: 700, mb: 1 }}>
-                ${calculateHalfYearCost().toLocaleString()}
+                {calculateHalfYearCost().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 {getCurrentHalfYear()} Training Cost
@@ -2338,7 +2338,7 @@ const TrainingCertifications: React.FC = () => {
           >
             <CardContent sx={{ textAlign: 'center', p: 3 }}>
               <Typography variant="h4" sx={{ color: theme.palette.error.main, fontWeight: 700, mb: 1 }}>
-                ${calculateAnnualCost().toLocaleString()}
+                {calculateAnnualCost().toLocaleString(undefined, { style: 'currency', currency: 'KWD' })}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                 Financial Year Training Cost
@@ -2389,7 +2389,7 @@ const TrainingCertifications: React.FC = () => {
                 </Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>Cost</Typography>
-                  <Typography>${selectedTraining.cost?.toFixed(2) || '0.00'}</Typography>
+                  <Typography>{selectedTraining.cost ? Number(selectedTraining.cost).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '0.00'}</Typography>
                 </Box>
               </Box>
               
@@ -2573,7 +2573,7 @@ const EnvironmentWaste: React.FC = () => {
                   <TableCell>{waste.type}</TableCell>
                   <TableCell>{waste.location}</TableCell>
                   <TableCell>{waste.date ? new Date(waste.date).toLocaleDateString() : '-'}</TableCell>
-                  <TableCell>${waste.cost?.toFixed(2) || '0.00'}</TableCell>
+                  <TableCell>{waste.cost ? Number(waste.cost).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '0.00'}</TableCell>
                   <TableCell>
                     <Chip 
                       label={waste.status} 
@@ -6041,7 +6041,7 @@ const HSEDocumentLibrary: React.FC = () => {
                           />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, color: theme.palette.success.main }}>
-                          ${doc.cost?.toFixed(2) || '0.00'}
+                          {doc.cost ? Number(doc.cost).toLocaleString(undefined, { style: 'currency', currency: 'KWD' }) : '0.00'}
                         </TableCell>
                         <TableCell>{doc.amortization} months</TableCell>
                         <TableCell>{doc.startDate ? new Date(doc.startDate).toLocaleDateString() : '-'}</TableCell>

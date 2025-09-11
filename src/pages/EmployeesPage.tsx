@@ -1667,6 +1667,12 @@ const EmployeesPage: React.FC = () => {
     }
   };
 
+  // Helper function to calculate readiness status
+  const calculateReadinessStatus = (readinessTracker: any) => {
+    const { licenseValid, safetyTraining, medicallyFit, vehicleAssigned } = readinessTracker;
+    return licenseValid && safetyTraining && medicallyFit && vehicleAssigned;
+  };
+
     return (
     <>
       <Box sx={{ 
@@ -3712,13 +3718,19 @@ const EmployeesPage: React.FC = () => {
                       control={
                         <Switch
                           checked={form.readinessTracker?.licenseValid ?? false}
-                          onChange={(e) => setForm(prev => ({
-                            ...prev,
-                            readinessTracker: {
-                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
+                          onChange={(e) => {
+                            const updatedReadinessTracker = {
+                              ...(form.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               licenseValid: e.target.checked
-                            }
-                          }))}
+                            };
+                            setForm(prev => ({
+                              ...prev,
+                              readinessTracker: {
+                                ...updatedReadinessTracker,
+                                readyForField: calculateReadinessStatus(updatedReadinessTracker)
+                              }
+                            }));
+                          }}
                           color="success"
                         />
                       }
@@ -3729,13 +3741,19 @@ const EmployeesPage: React.FC = () => {
                       control={
                         <Switch
                           checked={form.readinessTracker?.safetyTraining ?? false}
-                          onChange={(e) => setForm(prev => ({
-                            ...prev,
-                            readinessTracker: {
-                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
+                          onChange={(e) => {
+                            const updatedReadinessTracker = {
+                              ...(form.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               safetyTraining: e.target.checked
-                            }
-                          }))}
+                            };
+                            setForm(prev => ({
+                              ...prev,
+                              readinessTracker: {
+                                ...updatedReadinessTracker,
+                                readyForField: calculateReadinessStatus(updatedReadinessTracker)
+                              }
+                            }));
+                          }}
                           color="success"
                         />
                       }
@@ -3746,13 +3764,19 @@ const EmployeesPage: React.FC = () => {
                       control={
                         <Switch
                           checked={form.readinessTracker?.medicallyFit ?? false}
-                          onChange={(e) => setForm(prev => ({
-                            ...prev,
-                            readinessTracker: {
-                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
+                          onChange={(e) => {
+                            const updatedReadinessTracker = {
+                              ...(form.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               medicallyFit: e.target.checked
-                            }
-                          }))}
+                            };
+                            setForm(prev => ({
+                              ...prev,
+                              readinessTracker: {
+                                ...updatedReadinessTracker,
+                                readyForField: calculateReadinessStatus(updatedReadinessTracker)
+                              }
+                            }));
+                          }}
                           color="success"
                         />
                       }
@@ -3763,13 +3787,19 @@ const EmployeesPage: React.FC = () => {
                       control={
                         <Switch
                           checked={form.readinessTracker?.vehicleAssigned ?? false}
-                          onChange={(e) => setForm(prev => ({
-                            ...prev,
-                            readinessTracker: {
-                              ...(prev.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
+                          onChange={(e) => {
+                            const updatedReadinessTracker = {
+                              ...(form.readinessTracker ?? { licenseValid: false, safetyTraining: false, medicallyFit: false, vehicleAssigned: false, readyForField: false }),
                               vehicleAssigned: e.target.checked
-                            }
-                          }))}
+                            };
+                            setForm(prev => ({
+                              ...prev,
+                              readinessTracker: {
+                                ...updatedReadinessTracker,
+                                readyForField: calculateReadinessStatus(updatedReadinessTracker)
+                              }
+                            }));
+                          }}
                           color="success"
                         />
                       }

@@ -59,13 +59,23 @@ const BudgetRevenue: React.FC = () => {
   const fetchSalesBudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget-revenue');
+      const response = await api.get('/api/budget/revenue');
       const data = Array.isArray(response.data) ? response.data : [];
-      if (data.length > 0) {
-        setSalesBudgets(data);
+      // Add client-side id for compatibility with existing UI logic
+      const dataWithIds = data.map((item: any) => ({
+        ...item,
+        id: item._id || item.id || Date.now() + Math.random()
+      }));
+      if (dataWithIds.length > 0) {
+        setSalesBudgets(dataWithIds);
+      } else {
+        // If no data from server, keep the default empty row
+        setSalesBudgets([defaultSalesBudget()]);
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch sales budgets');
+      // On error, keep the default empty row
+      setSalesBudgets([defaultSalesBudget()]);
     } finally {
       setLoading(false);
     }
@@ -99,26 +109,51 @@ const BudgetRevenue: React.FC = () => {
     setOpenDialog(true);
   };
 
-  const handleDeleteSalesBudget = (id: number) => {
+  const handleDeleteSalesBudget = async (salesBudget: any) => {
     if (salesBudgets.length > 1) {
-      setSalesBudgets(salesBudgets.filter(salesBudget => salesBudget.id !== id));
+      try {
+        setLoading(true);
+        if (salesBudget._id) {
+          // Delete from server if it has an _id (saved to database)
+          await api.delete(`/api/budget/revenue/${salesBudget._id}`);
+        }
+        setSalesBudgets(salesBudgets.filter(budget => budget.id !== salesBudget.id));
+        setSuccess('Sales budget deleted successfully!');
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to delete sales budget');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleSaveSalesBudget = () => {
-    if (editingSalesBudget) {
-      // Edit existing sales budget
-      setSalesBudgets(salesBudgets.map(salesBudget => 
-        salesBudget.id === editingSalesBudget.id 
-          ? { ...salesBudget, ...formData }
-          : salesBudget
-      ));
-    } else {
-      // Add new sales budget
-      setSalesBudgets([...salesBudgets, { ...formData, id: Date.now() + Math.random() }]);
+  const handleSaveSalesBudget = async () => {
+    try {
+      setLoading(true);
+      if (editingSalesBudget) {
+        // Update existing sales budget
+        const response = await api.put(`/api/budget/revenue/${editingSalesBudget._id}`, formData);
+        const updatedData = response.data && typeof response.data === 'object' ? response.data : formData;
+        setSalesBudgets(salesBudgets.map(salesBudget => 
+          salesBudget.id === editingSalesBudget.id 
+            ? { ...salesBudget, ...updatedData, id: salesBudget.id } // Preserve the client-side id
+            : salesBudget
+        ));
+        setSuccess('Sales budget updated successfully!');
+      } else {
+        // Add new sales budget
+        const response = await api.post('/api/budget/revenue', formData);
+        const newData = response.data && typeof response.data === 'object' ? response.data : formData;
+        const newId = Date.now() + Math.random();
+        setSalesBudgets([...salesBudgets, { ...newData, id: newId }]);
+        setSuccess('Sales budget added successfully!');
+      }
+      setOpenDialog(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save sales budget');
+    } finally {
+      setLoading(false);
     }
-    setOpenDialog(false);
-    setSuccess(editingSalesBudget ? 'Sales budget updated successfully!' : 'Sales budget added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -340,7 +375,7 @@ const BudgetRevenue: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteSalesBudget(salesBudget.id)}
+                              onClick={() => handleDeleteSalesBudget(salesBudget)}
                               disabled={salesBudgets.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
