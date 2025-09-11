@@ -134,9 +134,10 @@ const BudgetRevenue: React.FC = () => {
         // Update existing sales budget
         const response = await api.put(`/api/budget/revenue/${editingSalesBudget._id}`, formData);
         // Use formData as base and only override with response.data if it has the required properties
-        const updatedData = response.data && typeof response.data === 'object' && 
-          response.data.no !== undefined && response.data.revenues !== undefined 
-          ? { ...formData, ...response.data } 
+        const responseData = response.data as any;
+        const updatedData = responseData && typeof responseData === 'object' && 
+          responseData.no !== undefined && responseData.revenues !== undefined 
+          ? { ...formData, ...responseData } 
           : formData;
         setSalesBudgets(salesBudgets.map(salesBudget => 
           salesBudget.id === editingSalesBudget.id 
@@ -149,9 +150,10 @@ const BudgetRevenue: React.FC = () => {
         const response = await api.post('/api/budget/revenue', formData);
         const newId = Date.now() + Math.random();
         // Use formData as base and only override with response.data if it has the required properties
-        const newData = response.data && typeof response.data === 'object' && 
-          response.data.no !== undefined && response.data.revenues !== undefined 
-          ? { ...formData, ...response.data } 
+        const responseData = response.data as any;
+        const newData = responseData && typeof responseData === 'object' && 
+          responseData.no !== undefined && responseData.revenues !== undefined 
+          ? { ...formData, ...responseData } 
           : formData;
         setSalesBudgets([...salesBudgets, { ...newData, id: newId }]);
         setSuccess('Sales budget added successfully!');
