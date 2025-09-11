@@ -35,7 +35,7 @@ const defaultAssumption = () => ({
   assumption: ''
 });
 
-const BudgetAssumptions: React.FC = () => {
+const BudgetAssumptionsDatabase: React.FC = () => {
   const { fiscalYear } = useFiscalYear();
   const theme = useTheme();
   const [assumptions, setAssumptions] = useState([defaultAssumption()]);
@@ -302,4 +302,4 @@ const BudgetAssumptions: React.FC = () => {
   );
 };
 
-export default BudgetAssumptions; 
+export default BudgetAssumptionsDatabase; 

@@ -22,7 +22,7 @@ const defaultLogistics = () => ({
   budgetTotal: ''
 });
 
-const BudgetLogistics: React.FC = () => {
+const BudgetLogisticsDatabase: React.FC = () => {
   const [logisticsBudgets, setLogisticsBudgets] = useState([defaultLogistics()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -400,4 +400,4 @@ const BudgetLogistics: React.FC = () => {
   );
 };
 
-export default BudgetLogistics;
+export default BudgetLogisticsDatabase;

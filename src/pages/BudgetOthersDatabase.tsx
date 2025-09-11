@@ -21,7 +21,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const defaultGABudget = () => ({
+const defaultOthersBudget = () => ({
   id: Date.now() + Math.random(),
   no: '',
   description: '',
@@ -32,13 +32,13 @@ const defaultGABudget = () => ({
   budgetTotal: ''
 });
 
-const BudgetGA: React.FC = () => {
-  const [gaBudgets, setGABudgets] = useState([defaultGABudget()]);
+const BudgetOthersDatabase: React.FC = () => {
+  const [othersBudgets, setOthersBudgets] = useState([defaultOthersBudget()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingGABudget, setEditingGABudget] = useState<any>(null);
+  const [editingOthersBudget, setEditingOthersBudget] = useState<any>(null);
   const [formData, setFormData] = useState({
     no: '',
     description: '',
@@ -50,29 +50,29 @@ const BudgetGA: React.FC = () => {
   });
 
   const theme = useTheme();
-  const pageColor = '#455a64';
+  const pageColor = '#795548';
 
   useEffect(() => {
-    fetchGABudgets();
+    fetchOthersBudgets();
   }, []);
 
-  const fetchGABudgets = async () => {
+  const fetchOthersBudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget/ga');
+      const response = await api.get('/budget/others');
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setGABudgets(data);
+        setOthersBudgets(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch G&A budgets');
+      setError(err.response?.data?.message || 'Failed to fetch others budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddGABudget = () => {
-    setEditingGABudget(null);
+  const handleAddOthersBudget = () => {
+    setEditingOthersBudget(null);
     setFormData({
       no: '',
       description: '',
@@ -85,40 +85,40 @@ const BudgetGA: React.FC = () => {
     setOpenDialog(true);
   };
 
-  const handleEditGABudget = (gaBudget: any) => {
-    setEditingGABudget(gaBudget);
+  const handleEditOthersBudget = (othersBudget: any) => {
+    setEditingOthersBudget(othersBudget);
     setFormData({
-      no: gaBudget.no,
-      description: gaBudget.description,
-      forecastedYearEnded: gaBudget.forecastedYearEnded,
-      budget1stQuarter: gaBudget.budget1stQuarter,
-      budget2ndQuarter: gaBudget.budget2ndQuarter,
-      budget3rdQuarter: gaBudget.budget3rdQuarter,
-      budgetTotal: gaBudget.budgetTotal
+      no: othersBudget.no,
+      description: othersBudget.description,
+      forecastedYearEnded: othersBudget.forecastedYearEnded,
+      budget1stQuarter: othersBudget.budget1stQuarter,
+      budget2ndQuarter: othersBudget.budget2ndQuarter,
+      budget3rdQuarter: othersBudget.budget3rdQuarter,
+      budgetTotal: othersBudget.budgetTotal
     });
     setOpenDialog(true);
   };
 
-  const handleDeleteGABudget = (id: number) => {
-    if (gaBudgets.length > 1) {
-      setGABudgets(gaBudgets.filter(gaBudget => gaBudget.id !== id));
+  const handleDeleteOthersBudget = (id: number) => {
+    if (othersBudgets.length > 1) {
+      setOthersBudgets(othersBudgets.filter(othersBudget => othersBudget.id !== id));
     }
   };
 
-  const handleSaveGABudget = () => {
-    if (editingGABudget) {
-      // Edit existing G&A budget
-      setGABudgets(gaBudgets.map(gaBudget => 
-        gaBudget.id === editingGABudget.id 
-          ? { ...gaBudget, ...formData }
-          : gaBudget
+  const handleSaveOthersBudget = () => {
+    if (editingOthersBudget) {
+      // Edit existing others budget
+      setOthersBudgets(othersBudgets.map(othersBudget => 
+        othersBudget.id === editingOthersBudget.id 
+          ? { ...othersBudget, ...formData }
+          : othersBudget
       ));
     } else {
-      // Add new G&A budget
-      setGABudgets([...gaBudgets, { ...formData, id: Date.now() + Math.random() }]);
+      // Add new others budget
+      setOthersBudgets([...othersBudgets, { ...formData, id: Date.now() + Math.random() }]);
     }
     setOpenDialog(false);
-    setSuccess(editingGABudget ? 'G&A budget updated successfully!' : 'G&A budget added successfully!');
+    setSuccess(editingOthersBudget ? 'Others budget updated successfully!' : 'Others budget added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -131,7 +131,7 @@ const BudgetGA: React.FC = () => {
   };
 
   const getTotalBudget = () => {
-    return gaBudgets.reduce((sum, budget) => {
+    return othersBudgets.reduce((sum, budget) => {
       const q1 = parseFloat(budget.budget1stQuarter) || 0;
       const q2 = parseFloat(budget.budget2ndQuarter) || 0;
       const q3 = parseFloat(budget.budget3rdQuarter) || 0;
@@ -168,29 +168,29 @@ const BudgetGA: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>👨‍💼</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>🔀</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      G&A Budget
+                      Others Budget
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and forecast general and administrative expenses by quarters
+                      Manage other budget categories and miscellaneous items
                     </Typography>
                   </Box>
                 </Box>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={handleAddGABudget}
-                  sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
+                  onClick={handleAddOthersBudget}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add G&A
+                  Add Others Budget
                 </Button>
               </Box>
             </Box>
@@ -219,7 +219,7 @@ const BudgetGA: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* G&A Budget Table */}
+        {/* Others Budget Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -236,7 +236,7 @@ const BudgetGA: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 G&A Budget Overview
+              📊 Others Budget Overview
             </Typography>
 
             {loading && (
@@ -281,9 +281,9 @@ const BudgetGA: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {gaBudgets.map((gaBudget, index) => (
+                    {othersBudgets.map((othersBudget, index) => (
                       <TableRow 
-                        key={gaBudget.id}
+                        key={othersBudget.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
@@ -292,43 +292,43 @@ const BudgetGA: React.FC = () => {
                       >
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {gaBudget.no || '-'}
+                            {othersBudget.no || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {gaBudget.description || '-'}
+                            {othersBudget.description || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(gaBudget.forecastedYearEnded)}
+                            {formatCurrency(othersBudget.forecastedYearEnded)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(gaBudget.budget1stQuarter)}
+                            {formatCurrency(othersBudget.budget1stQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(gaBudget.budget2ndQuarter)}
+                            {formatCurrency(othersBudget.budget2ndQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(gaBudget.budget3rdQuarter)}
+                            {formatCurrency(othersBudget.budget3rdQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(gaBudget.budgetTotal)}
+                            {formatCurrency(othersBudget.budgetTotal)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditGABudget(gaBudget)}
+                              onClick={() => handleEditOthersBudget(othersBudget)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -340,8 +340,8 @@ const BudgetGA: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteGABudget(gaBudget.id)}
-                              disabled={gaBudgets.length === 1}
+                              onClick={() => handleDeleteOthersBudget(othersBudget.id)}
+                              disabled={othersBudgets.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -366,22 +366,22 @@ const BudgetGA: React.FC = () => {
                       <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.forecastedYearEnded) || 0), 0).toString())}
+                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.forecastedYearEnded) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget1stQuarter) || 0), 0).toString())}
+                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget1stQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget2ndQuarter) || 0), 0).toString())}
+                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget2ndQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget3rdQuarter) || 0), 0).toString())}
+                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget3rdQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
@@ -398,7 +398,7 @@ const BudgetGA: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit G&A Budget Dialog */}
+        {/* Add/Edit Others Budget Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
@@ -406,7 +406,7 @@ const BudgetGA: React.FC = () => {
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingGABudget ? 'Edit G&A Budget' : 'Add G&A Budget'}
+            {editingOthersBudget ? 'Edit Others Budget' : 'Add Others Budget'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
@@ -538,7 +538,7 @@ const BudgetGA: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveGABudget}
+              onClick={handleSaveOthersBudget}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -547,7 +547,7 @@ const BudgetGA: React.FC = () => {
                 }
               }}
             >
-              {editingGABudget ? 'Update' : 'Add'} G&A Budget
+              {editingOthersBudget ? 'Update' : 'Add'} Others Budget
             </Button>
           </DialogActions>
         </Dialog>
@@ -560,4 +560,4 @@ const BudgetGA: React.FC = () => {
   );
 };
 
-export default BudgetGA;
+export default BudgetOthersDatabase;

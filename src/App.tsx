@@ -47,22 +47,23 @@ import './custom.css';
 // Add imports for new context and components
 import { FiscalYearProvider } from './context/FiscalYearContext';
 import FiscalYearSelector from './components/FiscalYearSelector';
-import BudgetAssumptions from './pages/BudgetAssumptions';
-import BudgetRevenue from './pages/BudgetRevenue';
-import BudgetOpex from './pages/BudgetOpex';
-import BudgetStaffing from './pages/BudgetStaffing';
-import BudgetLoans from './pages/BudgetLoans';
-import BudgetCapex from './pages/BudgetCapex';
-import BudgetVariance from './pages/BudgetVariance';
-import BudgetContracts from './pages/BudgetContracts';
+import BudgetDatabases from './pages/BudgetDatabases';
+import BudgetAssumptionsDatabase from './pages/BudgetAssumptionsDatabase';
+import BudgetRevenueDatabase from './pages/BudgetRevenueDatabase';
+import BudgetOpexDatabase from './pages/BudgetOpexDatabase';
+import BudgetStaffingDatabase from './pages/BudgetStaffingDatabase';
+import BudgetLoansDatabase from './pages/BudgetLoansDatabase';
+import BudgetCapexDatabase from './pages/BudgetCapexDatabase';
+import BudgetVarianceDatabase from './pages/BudgetVarianceDatabase';
+import BudgetContractsDatabase from './pages/BudgetContractsDatabase';
 import BudgetDashboard from './pages/BudgetDashboard';
-import BudgetOthers from './pages/BudgetOthers';
-import BudgetWater from './pages/BudgetWater';
-import BudgetRental from './pages/BudgetRental';
-import BudgetLogistics from './pages/BudgetLogistics';
-import BudgetManpower from './pages/BudgetManpower';
-import BudgetGA from './pages/BudgetGA';
-import BudgetITOpex from './pages/BudgetITOpex';
+import BudgetOthersDatabase from './pages/BudgetOthersDatabase';
+import BudgetWaterDatabase from './pages/BudgetWaterDatabase';
+import BudgetRentalDatabase from './pages/BudgetRentalDatabase';
+import BudgetLogisticsDatabase from './pages/BudgetLogisticsDatabase';
+import BudgetManpowerDatabase from './pages/BudgetManpowerDatabase';
+import BudgetGADatabase from './pages/BudgetGADatabase';
+import BudgetITOpexDatabase from './pages/BudgetITOpexDatabase';
 import BusinessTripPage from './pages/BusinessTripPage';
 import ViewTripPage from './pages/ViewTripPage';
 import VacationDashboard from './pages/VacationDashboard';
@@ -109,23 +110,23 @@ const App: React.FC = () => {
               <Route path="/invoices" element={<InvoicesPage />} />
               <Route path="/income" element={<IncomePage />} />
               <Route path="/budgets" element={<BudgetsPage />} />
-              <Route path="/budget/assumptions" element={<BudgetAssumptions />} />
+              <Route path="/budget-databases" element={<BudgetDatabases />} />
+              <Route path="/budget-revenue-database" element={<BudgetRevenueDatabase />} />
+              <Route path="/budget-opex-database" element={<BudgetOpexDatabase />} />
+              <Route path="/budget-manpower-database" element={<BudgetManpowerDatabase />} />
+              <Route path="/budget-staffing-database" element={<BudgetStaffingDatabase />} />
+              <Route path="/budget-ga-database" element={<BudgetGADatabase />} />
+              <Route path="/budget-assumptions-database" element={<BudgetAssumptionsDatabase />} />
+              <Route path="/budget-capex-database" element={<BudgetCapexDatabase />} />
+              <Route path="/budget-contracts-database" element={<BudgetContractsDatabase />} />
+              <Route path="/budget-it-opex-database" element={<BudgetITOpexDatabase />} />
+              <Route path="/budget-loans-database" element={<BudgetLoansDatabase />} />
+              <Route path="/budget-logistics-database" element={<BudgetLogisticsDatabase />} />
+              <Route path="/budget-others-database" element={<BudgetOthersDatabase />} />
+              <Route path="/budget-rental-database" element={<BudgetRentalDatabase />} />
+              <Route path="/budget-variance-database" element={<BudgetVarianceDatabase />} />
+              <Route path="/budget-water-database" element={<BudgetWaterDatabase />} />
               <Route path="/budget/summary" element={<BudgetDashboard />} />
-              <Route path="/budget/variance" element={<BudgetVariance />} />
-              <Route path="/budget/sales" element={<BudgetRevenue />} />
-              <Route path="/budget/logistics" element={<BudgetLogistics />} />
-              <Route path="/budget/water" element={<BudgetWater />} />
-              <Route path="/budget/rental" element={<BudgetRental />} />
-              <Route path="/budget/ga" element={<BudgetGA />} />
-              <Route path="/budget/opex" element={<BudgetOpex />} />
-              <Route path="/budget/it-opex" element={<BudgetITOpex />} />
-              <Route path="/budget/staffing" element={<BudgetStaffing />} />
-              <Route path="/budget/manpower" element={<BudgetManpower />} />
-              <Route path="/budget/capex" element={<BudgetCapex />} />
-              <Route path="/budget/others" element={<BudgetOthers />} />
-              <Route path="/budget/revenue" element={<BudgetRevenue />} />
-              <Route path="/budget/loans" element={<BudgetLoans />} />
-              <Route path="/budget/contracts" element={<BudgetContracts />} />
               <Route path="/budget/reports" element={<BudgetDashboard />} />
               <Route path="/accounts" element={<ChartOfAccountsPage />} />
               <Route path="/journal-entries" element={<JournalEntriesPage />} />

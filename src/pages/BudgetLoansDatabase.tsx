@@ -63,7 +63,7 @@ function getAmortization(loan: any) {
   return schedule;
 }
 
-const BudgetLoans: React.FC = () => {
+const BudgetLoansDatabase: React.FC = () => {
   const [loans, setLoans] = useState([defaultLoan()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -610,4 +610,4 @@ const BudgetLoans: React.FC = () => {
   );
 };
 
-export default BudgetLoans; 
+export default BudgetLoansDatabase; 

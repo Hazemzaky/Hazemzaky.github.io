@@ -4,7 +4,7 @@ import {
   Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  TrendingDown as TrendingDownIcon,
+  TrendingUp as TrendingUpIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
@@ -21,108 +21,104 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const defaultOPEX = () => ({
+const defaultGABudget = () => ({
   id: Date.now() + Math.random(),
-  sr: '',
-  serviceAnnualAgreement: '',
-  vendor: '',
-  agreementDescription: '',
-  paymentType: '',
-  typeOfCost: '',
-  annual: '',
-  quarter: ''
+  no: '',
+  description: '',
+  forecastedYearEnded: '',
+  budget1stQuarter: '',
+  budget2ndQuarter: '',
+  budget3rdQuarter: '',
+  budgetTotal: ''
 });
 
-const BudgetOpex: React.FC = () => {
-  const [opexBudgets, setOpexBudgets] = useState([defaultOPEX()]);
+const BudgetGADatabase: React.FC = () => {
+  const [gaBudgets, setGABudgets] = useState([defaultGABudget()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingOPEX, setEditingOPEX] = useState<any>(null);
+  const [editingGABudget, setEditingGABudget] = useState<any>(null);
   const [formData, setFormData] = useState({
-    sr: '',
-    serviceAnnualAgreement: '',
-    vendor: '',
-    agreementDescription: '',
-    paymentType: '',
-    typeOfCost: '',
-    annual: '',
-    quarter: ''
+    no: '',
+    description: '',
+    forecastedYearEnded: '',
+    budget1stQuarter: '',
+    budget2ndQuarter: '',
+    budget3rdQuarter: '',
+    budgetTotal: ''
   });
 
   const theme = useTheme();
-  const pageColor = '#e91e63';
+  const pageColor = '#455a64';
 
   useEffect(() => {
-    fetchOPEXBudgets();
+    fetchGABudgets();
   }, []);
 
-  const fetchOPEXBudgets = async () => {
+  const fetchGABudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget/opex');
+      const response = await api.get('/budget/ga');
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setOpexBudgets(data);
+        setGABudgets(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch OPEX budgets');
+      setError(err.response?.data?.message || 'Failed to fetch G&A budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddOPEX = () => {
-    setEditingOPEX(null);
+  const handleAddGABudget = () => {
+    setEditingGABudget(null);
     setFormData({
-      sr: '',
-      serviceAnnualAgreement: '',
-      vendor: '',
-      agreementDescription: '',
-      paymentType: '',
-      typeOfCost: '',
-      annual: '',
-      quarter: ''
+      no: '',
+      description: '',
+      forecastedYearEnded: '',
+      budget1stQuarter: '',
+      budget2ndQuarter: '',
+      budget3rdQuarter: '',
+      budgetTotal: ''
     });
     setOpenDialog(true);
   };
 
-  const handleEditOPEX = (opex: any) => {
-    setEditingOPEX(opex);
+  const handleEditGABudget = (gaBudget: any) => {
+    setEditingGABudget(gaBudget);
     setFormData({
-      sr: opex.sr,
-      serviceAnnualAgreement: opex.serviceAnnualAgreement,
-      vendor: opex.vendor,
-      agreementDescription: opex.agreementDescription,
-      paymentType: opex.paymentType,
-      typeOfCost: opex.typeOfCost,
-      annual: opex.annual,
-      quarter: opex.quarter
+      no: gaBudget.no,
+      description: gaBudget.description,
+      forecastedYearEnded: gaBudget.forecastedYearEnded,
+      budget1stQuarter: gaBudget.budget1stQuarter,
+      budget2ndQuarter: gaBudget.budget2ndQuarter,
+      budget3rdQuarter: gaBudget.budget3rdQuarter,
+      budgetTotal: gaBudget.budgetTotal
     });
     setOpenDialog(true);
   };
 
-  const handleDeleteOPEX = (id: number) => {
-    if (opexBudgets.length > 1) {
-      setOpexBudgets(opexBudgets.filter(opex => opex.id !== id));
+  const handleDeleteGABudget = (id: number) => {
+    if (gaBudgets.length > 1) {
+      setGABudgets(gaBudgets.filter(gaBudget => gaBudget.id !== id));
     }
   };
 
-  const handleSaveOPEX = () => {
-    if (editingOPEX) {
-      // Edit existing OPEX
-      setOpexBudgets(opexBudgets.map(opex => 
-        opex.id === editingOPEX.id 
-          ? { ...opex, ...formData }
-          : opex
+  const handleSaveGABudget = () => {
+    if (editingGABudget) {
+      // Edit existing G&A budget
+      setGABudgets(gaBudgets.map(gaBudget => 
+        gaBudget.id === editingGABudget.id 
+          ? { ...gaBudget, ...formData }
+          : gaBudget
       ));
     } else {
-      // Add new OPEX
-      setOpexBudgets([...opexBudgets, { ...formData, id: Date.now() + Math.random() }]);
+      // Add new G&A budget
+      setGABudgets([...gaBudgets, { ...formData, id: Date.now() + Math.random() }]);
     }
     setOpenDialog(false);
-    setSuccess(editingOPEX ? 'OPEX updated successfully!' : 'OPEX added successfully!');
+    setSuccess(editingGABudget ? 'G&A budget updated successfully!' : 'G&A budget added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -134,15 +130,12 @@ const BudgetOpex: React.FC = () => {
     return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
-  const getTotalAnnual = () => {
-    return opexBudgets.reduce((sum, opex) => {
-      return sum + (parseFloat(opex.annual) || 0);
-    }, 0);
-  };
-
-  const getTotalQuarter = () => {
-    return opexBudgets.reduce((sum, opex) => {
-      return sum + (parseFloat(opex.quarter) || 0);
+  const getTotalBudget = () => {
+    return gaBudgets.reduce((sum, budget) => {
+      const q1 = parseFloat(budget.budget1stQuarter) || 0;
+      const q2 = parseFloat(budget.budget2ndQuarter) || 0;
+      const q3 = parseFloat(budget.budget3rdQuarter) || 0;
+      return sum + q1 + q2 + q3;
     }, 0);
   };
 
@@ -175,21 +168,21 @@ const BudgetOpex: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>🏢</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>👨‍💼</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      OPEX
+                      G&A Budget
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and forecast operating expenses and service agreements
+                      Plan and forecast general and administrative expenses by quarters
                     </Typography>
                   </Box>
                 </Box>
                 <Button 
                   variant="contained" 
                   startIcon={<AddIcon />}
-                  onClick={handleAddOPEX}
+                  onClick={handleAddGABudget}
                   sx={{ 
                     bgcolor: 'rgba(255,255,255,0.2)', 
                     color: 'white',
@@ -197,7 +190,7 @@ const BudgetOpex: React.FC = () => {
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add OPEX
+                  Add G&A
                 </Button>
               </Box>
             </Box>
@@ -226,7 +219,7 @@ const BudgetOpex: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* OPEX Table */}
+        {/* G&A Budget Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -243,7 +236,7 @@ const BudgetOpex: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 OPEX Overview
+              📊 G&A Budget Overview
             </Typography>
 
             {loading && (
@@ -262,28 +255,25 @@ const BudgetOpex: React.FC = () => {
                   <TableHead>
                     <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
-                        SR.
+                        NO.
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
-                        Service Annual Agreement
+                        Description
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        Vendor
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Forecasted Year Ended
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
-                        Agreement Description
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 1st Quarter
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
-                        Payment Type
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 2nd Quarter
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
-                        Type of Cost
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 3rd Quarter
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
-                        Annual
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
-                        Quarter
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget Total
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
                         Actions
@@ -291,9 +281,9 @@ const BudgetOpex: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {opexBudgets.map((opex, index) => (
+                    {gaBudgets.map((gaBudget, index) => (
                       <TableRow 
-                        key={opex.id}
+                        key={gaBudget.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
@@ -302,48 +292,43 @@ const BudgetOpex: React.FC = () => {
                       >
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {opex.sr || '-'}
+                            {gaBudget.no || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {opex.serviceAnnualAgreement || '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {opex.vendor || '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {opex.agreementDescription || '-'}
+                            {gaBudget.description || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {opex.paymentType || '-'}
+                            {formatCurrency(gaBudget.forecastedYearEnded)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {opex.typeOfCost || '-'}
+                            {formatCurrency(gaBudget.budget1stQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(opex.annual)}
+                            {formatCurrency(gaBudget.budget2ndQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(opex.quarter)}
+                            {formatCurrency(gaBudget.budget3rdQuarter)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatCurrency(gaBudget.budgetTotal)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditOPEX(opex)}
+                              onClick={() => handleEditGABudget(gaBudget)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -355,8 +340,8 @@ const BudgetOpex: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteOPEX(opex.id)}
-                              disabled={opexBudgets.length === 1}
+                              onClick={() => handleDeleteGABudget(gaBudget.id)}
+                              disabled={gaBudgets.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -379,18 +364,29 @@ const BudgetOpex: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell />
-                      <TableCell />
-                      <TableCell />
-                      <TableCell />
-                      <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalAnnual().toString())}
+                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.forecastedYearEnded) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalQuarter().toString())}
+                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget1stQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget2ndQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(gaBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget3rdQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotalBudget().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell />
@@ -402,7 +398,7 @@ const BudgetOpex: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit OPEX Dialog */}
+        {/* Add/Edit G&A Budget Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
@@ -410,16 +406,16 @@ const BudgetOpex: React.FC = () => {
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingOPEX ? 'Edit OPEX' : 'Add OPEX'}
+            {editingGABudget ? 'Edit G&A Budget' : 'Add G&A Budget'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
               <TextField
-                label="SR."
-                value={formData.sr}
-                onChange={(e) => handleFormChange('sr', e.target.value)}
+                label="NO."
+                value={formData.no}
+                onChange={(e) => handleFormChange('no', e.target.value)}
                 fullWidth
-                placeholder="Enter SR number..."
+                placeholder="Enter number..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -432,47 +428,13 @@ const BudgetOpex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Service Annual Agreement"
-                value={formData.serviceAnnualAgreement}
-                onChange={(e) => handleFormChange('serviceAnnualAgreement', e.target.value)}
-                fullWidth
-                placeholder="Enter service annual agreement..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Vendor"
-                value={formData.vendor}
-                onChange={(e) => handleFormChange('vendor', e.target.value)}
-                fullWidth
-                placeholder="Enter vendor name..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Agreement Description"
-                value={formData.agreementDescription}
-                onChange={(e) => handleFormChange('agreementDescription', e.target.value)}
+                label="Description"
+                value={formData.description}
+                onChange={(e) => handleFormChange('description', e.target.value)}
                 multiline
                 rows={2}
                 fullWidth
-                placeholder="Enter agreement description..."
+                placeholder="Enter description..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -485,11 +447,11 @@ const BudgetOpex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Payment Type"
-                value={formData.paymentType}
-                onChange={(e) => handleFormChange('paymentType', e.target.value)}
+                label="Forecasted Year Ended"
+                value={formData.forecastedYearEnded}
+                onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
                 fullWidth
-                placeholder="Enter payment type..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -502,11 +464,11 @@ const BudgetOpex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Type of Cost"
-                value={formData.typeOfCost}
-                onChange={(e) => handleFormChange('typeOfCost', e.target.value)}
+                label="Budget 1st Quarter"
+                value={formData.budget1stQuarter}
+                onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter type of cost..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -519,11 +481,11 @@ const BudgetOpex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Annual"
-                value={formData.annual}
-                onChange={(e) => handleFormChange('annual', e.target.value)}
+                label="Budget 2nd Quarter"
+                value={formData.budget2ndQuarter}
+                onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter annual amount..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -536,11 +498,28 @@ const BudgetOpex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Quarter"
-                value={formData.quarter}
-                onChange={(e) => handleFormChange('quarter', e.target.value)}
+                label="Budget 3rd Quarter"
+                value={formData.budget3rdQuarter}
+                onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter quarter amount..."
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget Total"
+                value={formData.budgetTotal}
+                onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
+                fullWidth
+                placeholder="Enter total amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -559,7 +538,7 @@ const BudgetOpex: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveOPEX}
+              onClick={handleSaveGABudget}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -568,7 +547,7 @@ const BudgetOpex: React.FC = () => {
                 }
               }}
             >
-              {editingOPEX ? 'Update' : 'Add'} OPEX
+              {editingGABudget ? 'Update' : 'Add'} G&A Budget
             </Button>
           </DialogActions>
         </Dialog>
@@ -581,4 +560,4 @@ const BudgetOpex: React.FC = () => {
   );
 };
 
-export default BudgetOpex; 
+export default BudgetGADatabase;

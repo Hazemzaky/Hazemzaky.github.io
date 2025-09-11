@@ -1,126 +1,124 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Card,
-  CardContent,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Avatar,
-  IconButton,
-  Tooltip,
-  useTheme,
-  alpha,
-  CircularProgress,
-  Snackbar,
-  Alert
+  Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  Add as AddIcon,
+  TrendingUp as TrendingUpIcon,
   Save as SaveIcon,
+  Refresh as RefreshIcon,
+  Add as AddIcon,
   Delete as DeleteIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  MonetizationOn as MoneyIcon,
+  Business as BusinessIcon,
+  Assessment as AssessmentIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../apiBase';
 
-const defaultVariance = () => ({
+const defaultRentalEquipment = () => ({
   id: Date.now() + Math.random(),
+  no: '',
   description: '',
-  yearEnded: '',
-  actual9MonthsAmount: '',
-  actual9MonthsPercentage: '',
   forecastedYearEnded: '',
-  forecastedChangePercentage: '',
-  budgetYearEnded: '',
-  budgetChange: '',
-  budgetChangePercentage: ''
+  budget1stQuarter: '',
+  budget2ndQuarter: '',
+  budget3rdQuarter: '',
+  budgetTotal: ''
 });
 
-const BudgetVariance: React.FC = () => {
-  const theme = useTheme();
-  const [variances, setVariances] = useState([defaultVariance()]);
+const BudgetRentalDatabase: React.FC = () => {
+  const [rentalEquipments, setRentalEquipments] = useState([defaultRentalEquipment()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingVariance, setEditingVariance] = useState<any>(null);
+  const [editingRentalEquipment, setEditingRentalEquipment] = useState<any>(null);
   const [formData, setFormData] = useState({
+    no: '',
     description: '',
-    yearEnded: '',
-    actual9MonthsAmount: '',
-    actual9MonthsPercentage: '',
     forecastedYearEnded: '',
-    forecastedChangePercentage: '',
-    budgetYearEnded: '',
-    budgetChange: '',
-    budgetChangePercentage: ''
+    budget1stQuarter: '',
+    budget2ndQuarter: '',
+    budget3rdQuarter: '',
+    budgetTotal: ''
   });
-  
-  const pageColor = '#f57c00';
 
-  const handleAddVariance = () => {
-    setEditingVariance(null);
-    setFormData({
-      description: '',
-      yearEnded: '',
-      actual9MonthsAmount: '',
-      actual9MonthsPercentage: '',
-      forecastedYearEnded: '',
-      forecastedChangePercentage: '',
-      budgetYearEnded: '',
-      budgetChange: '',
-      budgetChangePercentage: ''
-    });
-    setOpenDialog(true);
-  };
+  const theme = useTheme();
+  const pageColor = '#5d4037';
 
-  const handleEditVariance = (variance: any) => {
-    setEditingVariance(variance);
-    setFormData({
-      description: variance.description,
-      yearEnded: variance.yearEnded,
-      actual9MonthsAmount: variance.actual9MonthsAmount,
-      actual9MonthsPercentage: variance.actual9MonthsPercentage,
-      forecastedYearEnded: variance.forecastedYearEnded,
-      forecastedChangePercentage: variance.forecastedChangePercentage,
-      budgetYearEnded: variance.budgetYearEnded,
-      budgetChange: variance.budgetChange,
-      budgetChangePercentage: variance.budgetChangePercentage
-    });
-    setOpenDialog(true);
-  };
+  useEffect(() => {
+    fetchRentalEquipments();
+  }, []);
 
-  const handleDeleteVariance = (id: number) => {
-    if (variances.length > 1) {
-      setVariances(variances.filter(variance => variance.id !== id));
+  const fetchRentalEquipments = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/budget/rental');
+      const data = Array.isArray(response.data) ? response.data : [];
+      if (data.length > 0) {
+        setRentalEquipments(data);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch rental equipment costs');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSaveVariance = () => {
-    if (editingVariance) {
-      // Edit existing variance
-      setVariances(variances.map(variance => 
-        variance.id === editingVariance.id 
-          ? { ...variance, ...formData }
-          : variance
+  const handleAddRentalEquipment = () => {
+    setEditingRentalEquipment(null);
+    setFormData({
+      no: '',
+      description: '',
+      forecastedYearEnded: '',
+      budget1stQuarter: '',
+      budget2ndQuarter: '',
+      budget3rdQuarter: '',
+      budgetTotal: ''
+    });
+    setOpenDialog(true);
+  };
+
+  const handleEditRentalEquipment = (rentalEquipment: any) => {
+    setEditingRentalEquipment(rentalEquipment);
+    setFormData({
+      no: rentalEquipment.no,
+      description: rentalEquipment.description,
+      forecastedYearEnded: rentalEquipment.forecastedYearEnded,
+      budget1stQuarter: rentalEquipment.budget1stQuarter,
+      budget2ndQuarter: rentalEquipment.budget2ndQuarter,
+      budget3rdQuarter: rentalEquipment.budget3rdQuarter,
+      budgetTotal: rentalEquipment.budgetTotal
+    });
+    setOpenDialog(true);
+  };
+
+  const handleDeleteRentalEquipment = (id: number) => {
+    if (rentalEquipments.length > 1) {
+      setRentalEquipments(rentalEquipments.filter(rentalEquipment => rentalEquipment.id !== id));
+    }
+  };
+
+  const handleSaveRentalEquipment = () => {
+    if (editingRentalEquipment) {
+      // Edit existing rental equipment
+      setRentalEquipments(rentalEquipments.map(rentalEquipment => 
+        rentalEquipment.id === editingRentalEquipment.id 
+          ? { ...rentalEquipment, ...formData }
+          : rentalEquipment
       ));
     } else {
-      // Add new variance
-      setVariances([...variances, { ...formData, id: Date.now() + Math.random() }]);
+      // Add new rental equipment
+      setRentalEquipments([...rentalEquipments, { ...formData, id: Date.now() + Math.random() }]);
     }
     setOpenDialog(false);
-    setSuccess(editingVariance ? 'Variance updated successfully!' : 'Variance added successfully!');
+    setSuccess(editingRentalEquipment ? 'Rental equipment cost updated successfully!' : 'Rental equipment cost added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -132,9 +130,13 @@ const BudgetVariance: React.FC = () => {
     return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
-  const formatPercentage = (value: string) => {
-    if (!value) return '-';
-    return `${value}%`;
+  const getTotalBudget = () => {
+    return rentalEquipments.reduce((sum, equipment) => {
+      const q1 = parseFloat(equipment.budget1stQuarter) || 0;
+      const q2 = parseFloat(equipment.budget2ndQuarter) || 0;
+      const q3 = parseFloat(equipment.budget3rdQuarter) || 0;
+      return sum + q1 + q2 + q3;
+    }, 0);
   };
 
   return (
@@ -166,21 +168,21 @@ const BudgetVariance: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>📊</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>🚗</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Budget Variance
+                      Rental Equipment
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Track and analyze budget variances across different periods
+                      Plan and forecast rental equipment costs by quarters and categories
                     </Typography>
                   </Box>
                 </Box>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={handleAddVariance}
+                  onClick={handleAddRentalEquipment}
                   sx={{
                     bgcolor: 'rgba(255,255,255,0.2)',
                     color: 'white',
@@ -188,7 +190,7 @@ const BudgetVariance: React.FC = () => {
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add Variance
+                  Add Cost of Rental Equipment
                 </Button>
               </Box>
             </Box>
@@ -217,7 +219,7 @@ const BudgetVariance: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Variance Table */}
+        {/* Rental Equipment Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -234,7 +236,7 @@ const BudgetVariance: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 Budget Variance Analysis
+              📊 Rental Equipment Cost Overview
             </Typography>
 
             {loading && (
@@ -252,32 +254,26 @@ const BudgetVariance: React.FC = () => {
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
+                        NO.
+                      </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
                         Description
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
-                        Year Ended
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Actual 9 Months Amount
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        % of Change
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
                         Forecasted Year Ended
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        Change % of Change
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 1st Quarter
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget Year Ended
+                        Budget 2nd Quarter
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
-                        Change
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 3rd Quarter
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        % of Change
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget Total
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
                         Actions
@@ -285,64 +281,54 @@ const BudgetVariance: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {variances.map((variance, index) => (
+                    {rentalEquipments.map((rentalEquipment, index) => (
                       <TableRow 
-                        key={variance.id}
+                        key={rentalEquipment.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
                           }
                         }}
                       >
+                        <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {rentalEquipment.no || '-'}
+                          </Typography>
+                        </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {variance.description || '-'}
+                            {rentalEquipment.description || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {variance.yearEnded || '-'}
+                            {formatCurrency(rentalEquipment.forecastedYearEnded)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(variance.actual9MonthsAmount)}
+                            {formatCurrency(rentalEquipment.budget1stQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatPercentage(variance.actual9MonthsPercentage)}
+                            {formatCurrency(rentalEquipment.budget2ndQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(variance.forecastedYearEnded)}
+                            {formatCurrency(rentalEquipment.budget3rdQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatPercentage(variance.forecastedChangePercentage)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(variance.budgetYearEnded)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(variance.budgetChange)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatPercentage(variance.budgetChangePercentage)}
+                            {formatCurrency(rentalEquipment.budgetTotal)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditVariance(variance)}
+                              onClick={() => handleEditRentalEquipment(rentalEquipment)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -354,8 +340,8 @@ const BudgetVariance: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteVariance(variance.id)}
-                              disabled={variances.length === 1}
+                              onClick={() => handleDeleteRentalEquipment(rentalEquipment.id)}
+                              disabled={rentalEquipments.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -370,6 +356,41 @@ const BudgetVariance: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ))}
+                    {/* Totals Row */}
+                    <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, textAlign: 'center' }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                          TOTAL
+                        </Typography>
+                      </TableCell>
+                      <TableCell />
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.forecastedYearEnded) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.budget1stQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.budget2ndQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.budget3rdQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotalBudget().toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -377,7 +398,7 @@ const BudgetVariance: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit Variance Dialog */}
+        {/* Add/Edit Rental Equipment Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
@@ -385,10 +406,27 @@ const BudgetVariance: React.FC = () => {
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingVariance ? 'Edit Variance' : 'Add Variance'}
+            {editingRentalEquipment ? 'Edit Rental Equipment Cost' : 'Add Cost of Rental Equipment'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
+              <TextField
+                label="NO."
+                value={formData.no}
+                onChange={(e) => handleFormChange('no', e.target.value)}
+                fullWidth
+                placeholder="Enter number..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
               <TextField
                 label="Description"
                 value={formData.description}
@@ -397,57 +435,6 @@ const BudgetVariance: React.FC = () => {
                 rows={2}
                 fullWidth
                 placeholder="Enter description..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Year Ended"
-                value={formData.yearEnded}
-                onChange={(e) => handleFormChange('yearEnded', e.target.value)}
-                fullWidth
-                placeholder="Enter year..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Actual 9 Months Amount"
-                value={formData.actual9MonthsAmount}
-                onChange={(e) => handleFormChange('actual9MonthsAmount', e.target.value)}
-                fullWidth
-                placeholder="Enter amount..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Percentage of Change"
-                value={formData.actual9MonthsPercentage}
-                onChange={(e) => handleFormChange('actual9MonthsPercentage', e.target.value)}
-                fullWidth
-                placeholder="Enter percentage..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -477,26 +464,9 @@ const BudgetVariance: React.FC = () => {
                 }}
               />
               <TextField
-                label="Change Percentage of Change"
-                value={formData.forecastedChangePercentage}
-                onChange={(e) => handleFormChange('forecastedChangePercentage', e.target.value)}
-                fullWidth
-                placeholder="Enter percentage..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Budget Year Ended"
-                value={formData.budgetYearEnded}
-                onChange={(e) => handleFormChange('budgetYearEnded', e.target.value)}
+                label="Budget 1st Quarter"
+                value={formData.budget1stQuarter}
+                onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
                 fullWidth
                 placeholder="Enter amount..."
                 sx={{
@@ -511,9 +481,9 @@ const BudgetVariance: React.FC = () => {
                 }}
               />
               <TextField
-                label="Change"
-                value={formData.budgetChange}
-                onChange={(e) => handleFormChange('budgetChange', e.target.value)}
+                label="Budget 2nd Quarter"
+                value={formData.budget2ndQuarter}
+                onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
                 fullWidth
                 placeholder="Enter amount..."
                 sx={{
@@ -528,11 +498,28 @@ const BudgetVariance: React.FC = () => {
                 }}
               />
               <TextField
-                label="Percentage of Change"
-                value={formData.budgetChangePercentage}
-                onChange={(e) => handleFormChange('budgetChangePercentage', e.target.value)}
+                label="Budget 3rd Quarter"
+                value={formData.budget3rdQuarter}
+                onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter percentage..."
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget Total"
+                value={formData.budgetTotal}
+                onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
+                fullWidth
+                placeholder="Enter total amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -551,7 +538,7 @@ const BudgetVariance: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveVariance}
+              onClick={handleSaveRentalEquipment}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -560,7 +547,7 @@ const BudgetVariance: React.FC = () => {
                 }
               }}
             >
-              {editingVariance ? 'Update' : 'Add'} Variance
+              {editingRentalEquipment ? 'Update' : 'Add'} Rental Equipment Cost
             </Button>
           </DialogActions>
         </Dialog>
@@ -573,4 +560,4 @@ const BudgetVariance: React.FC = () => {
   );
 };
 
-export default BudgetVariance;
+export default BudgetRentalDatabase;

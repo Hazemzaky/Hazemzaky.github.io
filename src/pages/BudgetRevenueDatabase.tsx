@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
-  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  Build as BuildIcon,
+  TrendingUp as TrendingUpIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
@@ -16,140 +16,154 @@ import {
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Error as ErrorIcon,
-  Info as InfoIcon,
-  TrendingUp as TrendingUpIcon
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const defaultCapex = () => ({
+const defaultSalesBudget = () => ({
   id: Date.now() + Math.random(),
   no: '',
-  assetType: '',
-  year: '',
-  qty: '',
-  details: '',
-  expectedCostKWD: '',
-  annualDepreciation: '',
-  quarterlyDepreciation: '',
-  expectedDateOfPurchase: ''
+  revenues: '',
+  forecastedYearEnded: '',
+  budget1stQuarter: '',
+  budget2ndQuarter: '',
+  budget3rdQuarter: '',
+  budgetTotal: ''
 });
 
-function getMonthIdx(m: string) {
-  return months.indexOf(m);
-}
-
-function getDepreciationSchedule(item: any) {
-  const amount = parseFloat(item.amount) || 0;
-  const salvage = parseFloat(item.salvageValue) || 0;
-  const years = parseInt(item.depreciationYears) || 5;
-  const monthlyDepreciation = (amount - salvage) / (years * 12);
-  
-  const schedule = Array(12).fill(0);
-  const startMonth = getMonthIdx(item.purchaseMonth);
-  
-  for (let i = startMonth; i < 12; i++) {
-    schedule[i] = monthlyDepreciation;
-  }
-  
-  return schedule;
-}
-
-const BudgetCapex: React.FC = () => {
-  const [capexBudgets, setCapexBudgets] = useState([defaultCapex()]);
+const BudgetRevenueDatabase: React.FC = () => {
+  const [salesBudgets, setSalesBudgets] = useState([defaultSalesBudget()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingCapex, setEditingCapex] = useState<any>(null);
+  const [editingSalesBudget, setEditingSalesBudget] = useState<any>(null);
   const [formData, setFormData] = useState({
     no: '',
-    assetType: '',
-    year: '',
-    qty: '',
-    details: '',
-    expectedCostKWD: '',
-    annualDepreciation: '',
-    quarterlyDepreciation: '',
-    expectedDateOfPurchase: ''
+    revenues: '',
+    forecastedYearEnded: '',
+    budget1stQuarter: '',
+    budget2ndQuarter: '',
+    budget3rdQuarter: '',
+    budgetTotal: ''
   });
 
   const theme = useTheme();
-  const pageColor = '#607d8b';
+  const pageColor = '#7b1fa2';
 
   useEffect(() => {
-    fetchBudgetCapex();
+    fetchSalesBudgets();
   }, []);
 
-  const fetchBudgetCapex = async () => {
+  const fetchSalesBudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget/capex');
+      const response = await api.get('/api/budget/revenue');
       const data = Array.isArray(response.data) ? response.data : [];
-      if (data.length > 0) {
-        setCapexBudgets(data);
+      // Add client-side id for compatibility with existing UI logic
+      const dataWithIds = data.map((item: any) => ({
+        ...item,
+        id: item._id || item.id || Date.now() + Math.random()
+      }));
+      if (dataWithIds.length > 0) {
+        setSalesBudgets(dataWithIds);
+      } else {
+        // If no data from server, keep the default empty row
+        setSalesBudgets([defaultSalesBudget()]);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch CAPEX budgets');
+      setError(err.response?.data?.message || 'Failed to fetch sales budgets');
+      // On error, keep the default empty row
+      setSalesBudgets([defaultSalesBudget()]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddCapex = () => {
-    setEditingCapex(null);
+  const handleAddSalesBudget = () => {
+    setEditingSalesBudget(null);
     setFormData({
       no: '',
-      assetType: '',
-      year: '',
-      qty: '',
-      details: '',
-      expectedCostKWD: '',
-      annualDepreciation: '',
-      quarterlyDepreciation: '',
-      expectedDateOfPurchase: ''
+      revenues: '',
+      forecastedYearEnded: '',
+      budget1stQuarter: '',
+      budget2ndQuarter: '',
+      budget3rdQuarter: '',
+      budgetTotal: ''
     });
     setOpenDialog(true);
   };
 
-  const handleEditCapex = (capex: any) => {
-    setEditingCapex(capex);
+  const handleEditSalesBudget = (salesBudget: any) => {
+    setEditingSalesBudget(salesBudget);
     setFormData({
-      no: capex.no,
-      assetType: capex.assetType,
-      year: capex.year,
-      qty: capex.qty,
-      details: capex.details,
-      expectedCostKWD: capex.expectedCostKWD,
-      annualDepreciation: capex.annualDepreciation,
-      quarterlyDepreciation: capex.quarterlyDepreciation,
-      expectedDateOfPurchase: capex.expectedDateOfPurchase
+      no: salesBudget.no,
+      revenues: salesBudget.revenues,
+      forecastedYearEnded: salesBudget.forecastedYearEnded,
+      budget1stQuarter: salesBudget.budget1stQuarter,
+      budget2ndQuarter: salesBudget.budget2ndQuarter,
+      budget3rdQuarter: salesBudget.budget3rdQuarter,
+      budgetTotal: salesBudget.budgetTotal
     });
     setOpenDialog(true);
   };
 
-  const handleDeleteCapex = (id: number) => {
-    if (capexBudgets.length > 1) {
-      setCapexBudgets(capexBudgets.filter(capex => capex.id !== id));
+  const handleDeleteSalesBudget = async (salesBudget: any) => {
+    if (salesBudgets.length > 1) {
+      try {
+        setLoading(true);
+        if (salesBudget._id) {
+          // Delete from server if it has an _id (saved to database)
+          await api.delete(`/api/budget/revenue/${salesBudget._id}`);
+        }
+        setSalesBudgets(salesBudgets.filter(budget => budget.id !== salesBudget.id));
+        setSuccess('Sales budget deleted successfully!');
+      } catch (err: any) {
+        setError(err.response?.data?.message || 'Failed to delete sales budget');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleSaveCapex = () => {
-    if (editingCapex) {
-      // Edit existing CAPEX
-      setCapexBudgets(capexBudgets.map(capex => 
-        capex.id === editingCapex.id 
-          ? { ...capex, ...formData }
-          : capex
-      ));
-    } else {
-      // Add new CAPEX
-      setCapexBudgets([...capexBudgets, { ...formData, id: Date.now() + Math.random() }]);
+  const handleSaveSalesBudget = async () => {
+    try {
+      setLoading(true);
+      if (editingSalesBudget) {
+        // Update existing sales budget
+        const response = await api.put(`/api/budget/revenue/${editingSalesBudget._id}`, formData);
+        // Use formData as base and only override with response.data if it has the required properties
+        const responseData = response.data as any;
+        const updatedData = responseData && typeof responseData === 'object' && 
+          responseData.no !== undefined && responseData.revenues !== undefined 
+          ? { ...formData, ...responseData } 
+          : formData;
+        setSalesBudgets(salesBudgets.map(salesBudget => 
+          salesBudget.id === editingSalesBudget.id 
+            ? { ...salesBudget, ...updatedData, id: salesBudget.id } // Preserve the client-side id
+            : salesBudget
+        ));
+        setSuccess('Sales budget updated successfully!');
+      } else {
+        // Add new sales budget
+        const response = await api.post('/api/budget/revenue', formData);
+        const newId = Date.now() + Math.random();
+        // Use formData as base and only override with response.data if it has the required properties
+        const responseData = response.data as any;
+        const newData = responseData && typeof responseData === 'object' && 
+          responseData.no !== undefined && responseData.revenues !== undefined 
+          ? { ...formData, ...responseData } 
+          : formData;
+        setSalesBudgets([...salesBudgets, { ...newData, id: newId }]);
+        setSuccess('Sales budget added successfully!');
+      }
+      setOpenDialog(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to save sales budget');
+    } finally {
+      setLoading(false);
     }
-    setOpenDialog(false);
-    setSuccess(editingCapex ? 'CAPEX updated successfully!' : 'CAPEX added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -161,26 +175,12 @@ const BudgetCapex: React.FC = () => {
     return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
-  const formatDate = (value: string) => {
-    if (!value) return '-';
-    return new Date(value).toLocaleDateString();
-  };
-
-  const getTotalCost = () => {
-    return capexBudgets.reduce((sum, capex) => {
-      return sum + (parseFloat(capex.expectedCostKWD) || 0);
-    }, 0);
-  };
-
-  const getTotalAnnualDepreciation = () => {
-    return capexBudgets.reduce((sum, capex) => {
-      return sum + (parseFloat(capex.annualDepreciation) || 0);
-    }, 0);
-  };
-
-  const getTotalQuarterlyDepreciation = () => {
-    return capexBudgets.reduce((sum, capex) => {
-      return sum + (parseFloat(capex.quarterlyDepreciation) || 0);
+  const getTotalBudget = () => {
+    return salesBudgets.reduce((sum, budget) => {
+      const q1 = parseFloat(budget.budget1stQuarter) || 0;
+      const q2 = parseFloat(budget.budget2ndQuarter) || 0;
+      const q3 = parseFloat(budget.budget3rdQuarter) || 0;
+      return sum + q1 + q2 + q3;
     }, 0);
   };
 
@@ -188,7 +188,7 @@ const BudgetCapex: React.FC = () => {
     <Box sx={{ 
       p: 3, 
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+      background: `linear-gradient(135deg, ${alpha(pageColor, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
       <AnimatePresence>
         {/* Header Section */}
@@ -202,7 +202,7 @@ const BudgetCapex: React.FC = () => {
             sx={{ 
               p: 3, 
               mb: 3, 
-              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+              background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
               color: 'white',
               borderRadius: theme.shape.borderRadius,
               position: 'relative',
@@ -213,29 +213,29 @@ const BudgetCapex: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>📊</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>🏠</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      CAPEX Budget
+                      Sales Budget
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and manage capital expenditures and asset acquisitions
+                      Plan and forecast sales budgets by quarters and revenue streams
                     </Typography>
                   </Box>
                 </Box>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={handleAddCapex}
-                  sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
+                  onClick={handleAddSalesBudget}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add CAPEX
+                  Add Sales Budget
                 </Button>
               </Box>
             </Box>
@@ -264,87 +264,11 @@ const BudgetCapex: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Summary Cards */}
+        {/* Sales Budget Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
-            {[
-              {
-                title: 'Total Cost',
-                value: `KWD ${getTotalCost().toLocaleString()}`,
-                icon: <MoneyIcon />,
-                color: pageColor,
-                bgColor: alpha(pageColor, 0.1)
-              },
-              {
-                title: 'Annual Depreciation',
-                value: `KWD ${getTotalAnnualDepreciation().toLocaleString()}`,
-                icon: <TrendingUpIcon />,
-                color: theme.palette.info.main,
-                bgColor: alpha(theme.palette.info.main, 0.1)
-              },
-              {
-                title: 'Quarterly Depreciation',
-                value: `KWD ${getTotalQuarterlyDepreciation().toLocaleString()}`,
-                icon: <AssessmentIcon />,
-                color: theme.palette.success.main,
-                bgColor: alpha(theme.palette.success.main, 0.1)
-              },
-              {
-                title: 'Assets',
-                value: capexBudgets.length,
-                icon: <BusinessIcon />,
-                color: theme.palette.warning.main,
-                bgColor: alpha(theme.palette.warning.main, 0.1)
-              }
-            ].map((card, index) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-              >
-                <Card 
-                  sx={{ 
-                    flex: '1 1 200px', 
-                    minWidth: 200,
-                    background: card.bgColor,
-                    border: `1px solid ${alpha(card.color, 0.3)}`,
-                    borderRadius: theme.shape.borderRadius,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
-                    }
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
-                        {card.icon}
-                      </Avatar>
-                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
-                        {card.title}
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
-                      {card.value}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </Box>
-        </motion.div>
-
-        {/* CAPEX Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
         >
           <Paper 
             elevation={0}
@@ -357,7 +281,7 @@ const BudgetCapex: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 CAPEX Overview
+              📊 Sales Budget Overview
             </Typography>
 
             {loading && (
@@ -378,29 +302,23 @@ const BudgetCapex: React.FC = () => {
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
                         NO.
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        Asset Type
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
-                        Year
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80 }}>
-                        Qty.
-                      </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
-                        Details
+                        Revenues
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        Expected Cost KWD
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Forecasted Year Ended
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        Annual Depreciation
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 1st Quarter
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        Quarterly Depreciation
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 2nd Quarter
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
-                        Expected Date of Purchase
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget 3rd Quarter
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
+                        Budget Total
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
                         Actions
@@ -408,9 +326,9 @@ const BudgetCapex: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {capexBudgets.map((capex, index) => (
+                    {salesBudgets.map((salesBudget, index) => (
                       <TableRow 
-                        key={capex.id}
+                        key={salesBudget.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
@@ -419,53 +337,43 @@ const BudgetCapex: React.FC = () => {
                       >
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {capex.no || '-'}
+                            {salesBudget.no || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {capex.assetType || '-'}
+                            {salesBudget.revenues || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {capex.year || '-'}
+                            {formatCurrency(salesBudget.forecastedYearEnded)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {capex.qty || '-'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {capex.details || '-'}
+                            {formatCurrency(salesBudget.budget1stQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(capex.expectedCostKWD)}
+                            {formatCurrency(salesBudget.budget2ndQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(capex.annualDepreciation)}
+                            {formatCurrency(salesBudget.budget3rdQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(capex.quarterlyDepreciation)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatDate(capex.expectedDateOfPurchase)}
+                            {formatCurrency(salesBudget.budgetTotal)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditCapex(capex)}
+                              onClick={() => handleEditSalesBudget(salesBudget)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -477,8 +385,8 @@ const BudgetCapex: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteCapex(capex.id)}
-                              disabled={capexBudgets.length === 1}
+                              onClick={() => handleDeleteSalesBudget(salesBudget)}
+                              disabled={salesBudgets.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -501,25 +409,31 @@ const BudgetCapex: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell />
-                      <TableCell />
-                      <TableCell />
-                      <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalCost().toString())}
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.forecastedYearEnded) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalAnnualDepreciation().toString())}
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget1stQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalQuarterlyDepreciation().toString())}
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget2ndQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
-                      <TableCell />
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(salesBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget3rdQuarter) || 0), 0).toString())}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                          {formatCurrency(getTotalBudget().toString())}
+                        </Typography>
+                      </TableCell>
                       <TableCell />
                     </TableRow>
                   </TableBody>
@@ -529,7 +443,7 @@ const BudgetCapex: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit CAPEX Dialog */}
+        {/* Add/Edit Sales Budget Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
@@ -537,7 +451,7 @@ const BudgetCapex: React.FC = () => {
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingCapex ? 'Edit CAPEX' : 'Add CAPEX'}
+            {editingSalesBudget ? 'Edit Sales Budget' : 'Add Sales Budget'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
@@ -559,64 +473,13 @@ const BudgetCapex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Asset Type"
-                value={formData.assetType}
-                onChange={(e) => handleFormChange('assetType', e.target.value)}
-                fullWidth
-                placeholder="Enter asset type..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Year"
-                value={formData.year}
-                onChange={(e) => handleFormChange('year', e.target.value)}
-                fullWidth
-                placeholder="Enter year..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Qty."
-                value={formData.qty}
-                onChange={(e) => handleFormChange('qty', e.target.value)}
-                fullWidth
-                placeholder="Enter quantity..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Details"
-                value={formData.details}
-                onChange={(e) => handleFormChange('details', e.target.value)}
+                label="Revenues"
+                value={formData.revenues}
+                onChange={(e) => handleFormChange('revenues', e.target.value)}
                 multiline
                 rows={2}
                 fullWidth
-                placeholder="Enter details..."
+                placeholder="Enter revenue description..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -629,11 +492,11 @@ const BudgetCapex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Expected Cost KWD"
-                value={formData.expectedCostKWD}
-                onChange={(e) => handleFormChange('expectedCostKWD', e.target.value)}
+                label="Forecasted Year Ended"
+                value={formData.forecastedYearEnded}
+                onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
                 fullWidth
-                placeholder="Enter expected cost..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -646,11 +509,11 @@ const BudgetCapex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Annual Depreciation"
-                value={formData.annualDepreciation}
-                onChange={(e) => handleFormChange('annualDepreciation', e.target.value)}
+                label="Budget 1st Quarter"
+                value={formData.budget1stQuarter}
+                onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter annual depreciation..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -663,11 +526,11 @@ const BudgetCapex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Quarterly Depreciation"
-                value={formData.quarterlyDepreciation}
-                onChange={(e) => handleFormChange('quarterlyDepreciation', e.target.value)}
+                label="Budget 2nd Quarter"
+                value={formData.budget2ndQuarter}
+                onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter quarterly depreciation..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -680,12 +543,28 @@ const BudgetCapex: React.FC = () => {
                 }}
               />
               <TextField
-                label="Expected Date of Purchase"
-                type="date"
-                value={formData.expectedDateOfPurchase}
-                onChange={(e) => handleFormChange('expectedDateOfPurchase', e.target.value)}
+                label="Budget 3rd Quarter"
+                value={formData.budget3rdQuarter}
+                onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                placeholder="Enter amount..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Budget Total"
+                value={formData.budgetTotal}
+                onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
+                fullWidth
+                placeholder="Enter total amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -704,7 +583,7 @@ const BudgetCapex: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveCapex}
+              onClick={handleSaveSalesBudget}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -713,7 +592,7 @@ const BudgetCapex: React.FC = () => {
                 }
               }}
             >
-              {editingCapex ? 'Update' : 'Add'} CAPEX
+              {editingSalesBudget ? 'Update' : 'Add'} Sales Budget
             </Button>
           </DialogActions>
         </Dialog>
@@ -726,4 +605,4 @@ const BudgetCapex: React.FC = () => {
   );
 };
 
-export default BudgetCapex; 
+export default BudgetRevenueDatabase; 

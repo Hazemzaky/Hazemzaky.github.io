@@ -30,7 +30,7 @@ function getMonthIdx(m: string) {
   return months.indexOf(m);
 }
 
-const BudgetContracts: React.FC = () => {
+const BudgetContractsDatabase: React.FC = () => {
   const { fiscalYear } = useFiscalYear();
   const [contracts, setContracts] = useState<any[]>([defaultContract()]);
   const [success, setSuccess] = useState('');
@@ -169,4 +169,4 @@ const BudgetContracts: React.FC = () => {
   );
 };
 
-export default BudgetContracts; 
+export default BudgetContractsDatabase; 

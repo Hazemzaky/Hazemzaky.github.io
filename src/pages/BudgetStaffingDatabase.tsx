@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
-  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -21,7 +21,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const defaultOthersBudget = () => ({
+const defaultStaff = () => ({
   id: Date.now() + Math.random(),
   no: '',
   description: '',
@@ -32,13 +32,13 @@ const defaultOthersBudget = () => ({
   budgetTotal: ''
 });
 
-const BudgetOthers: React.FC = () => {
-  const [othersBudgets, setOthersBudgets] = useState([defaultOthersBudget()]);
+const BudgetStaffingDatabase: React.FC = () => {
+  const [staffBudgets, setStaffBudgets] = useState([defaultStaff()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingOthersBudget, setEditingOthersBudget] = useState<any>(null);
+  const [editingStaff, setEditingStaff] = useState<any>(null);
   const [formData, setFormData] = useState({
     no: '',
     description: '',
@@ -50,29 +50,29 @@ const BudgetOthers: React.FC = () => {
   });
 
   const theme = useTheme();
-  const pageColor = '#795548';
+  const pageColor = '#ff9800';
 
   useEffect(() => {
-    fetchOthersBudgets();
+    fetchStaffBudgets();
   }, []);
 
-  const fetchOthersBudgets = async () => {
+  const fetchStaffBudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget/others');
+      const response = await api.get('/budget/staff');
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setOthersBudgets(data);
+        setStaffBudgets(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch others budgets');
+      setError(err.response?.data?.message || 'Failed to fetch Staff budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddOthersBudget = () => {
-    setEditingOthersBudget(null);
+  const handleAddStaff = () => {
+    setEditingStaff(null);
     setFormData({
       no: '',
       description: '',
@@ -85,40 +85,40 @@ const BudgetOthers: React.FC = () => {
     setOpenDialog(true);
   };
 
-  const handleEditOthersBudget = (othersBudget: any) => {
-    setEditingOthersBudget(othersBudget);
+  const handleEditStaff = (staff: any) => {
+    setEditingStaff(staff);
     setFormData({
-      no: othersBudget.no,
-      description: othersBudget.description,
-      forecastedYearEnded: othersBudget.forecastedYearEnded,
-      budget1stQuarter: othersBudget.budget1stQuarter,
-      budget2ndQuarter: othersBudget.budget2ndQuarter,
-      budget3rdQuarter: othersBudget.budget3rdQuarter,
-      budgetTotal: othersBudget.budgetTotal
+      no: staff.no,
+      description: staff.description,
+      forecastedYearEnded: staff.forecastedYearEnded,
+      budget1stQuarter: staff.budget1stQuarter,
+      budget2ndQuarter: staff.budget2ndQuarter,
+      budget3rdQuarter: staff.budget3rdQuarter,
+      budgetTotal: staff.budgetTotal
     });
     setOpenDialog(true);
   };
 
-  const handleDeleteOthersBudget = (id: number) => {
-    if (othersBudgets.length > 1) {
-      setOthersBudgets(othersBudgets.filter(othersBudget => othersBudget.id !== id));
+  const handleDeleteStaff = (id: number) => {
+    if (staffBudgets.length > 1) {
+      setStaffBudgets(staffBudgets.filter(staff => staff.id !== id));
     }
   };
 
-  const handleSaveOthersBudget = () => {
-    if (editingOthersBudget) {
-      // Edit existing others budget
-      setOthersBudgets(othersBudgets.map(othersBudget => 
-        othersBudget.id === editingOthersBudget.id 
-          ? { ...othersBudget, ...formData }
-          : othersBudget
+  const handleSaveStaff = () => {
+    if (editingStaff) {
+      // Edit existing Staff
+      setStaffBudgets(staffBudgets.map(staff => 
+        staff.id === editingStaff.id 
+          ? { ...staff, ...formData }
+          : staff
       ));
     } else {
-      // Add new others budget
-      setOthersBudgets([...othersBudgets, { ...formData, id: Date.now() + Math.random() }]);
+      // Add new Staff
+      setStaffBudgets([...staffBudgets, { ...formData, id: Date.now() + Math.random() }]);
     }
     setOpenDialog(false);
-    setSuccess(editingOthersBudget ? 'Others budget updated successfully!' : 'Others budget added successfully!');
+    setSuccess(editingStaff ? 'Staff Cost updated successfully!' : 'Staff Cost added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -130,12 +130,33 @@ const BudgetOthers: React.FC = () => {
     return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
+  const getTotalForecasted = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.forecastedYearEnded) || 0);
+    }, 0);
+  };
+
+  const getTotal1stQuarter = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budget1stQuarter) || 0);
+    }, 0);
+  };
+
+  const getTotal2ndQuarter = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budget2ndQuarter) || 0);
+    }, 0);
+  };
+
+  const getTotal3rdQuarter = () => {
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budget3rdQuarter) || 0);
+    }, 0);
+  };
+
   const getTotalBudget = () => {
-    return othersBudgets.reduce((sum, budget) => {
-      const q1 = parseFloat(budget.budget1stQuarter) || 0;
-      const q2 = parseFloat(budget.budget2ndQuarter) || 0;
-      const q3 = parseFloat(budget.budget3rdQuarter) || 0;
-      return sum + q1 + q2 + q3;
+    return staffBudgets.reduce((sum, staff) => {
+      return sum + (parseFloat(staff.budgetTotal) || 0);
     }, 0);
   };
 
@@ -168,29 +189,29 @@ const BudgetOthers: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>🔀</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>🎖️</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Others Budget
+                      Staff Cost
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Manage other budget categories and miscellaneous items
+                      Plan and manage staff costs and quarterly budgets
                     </Typography>
                   </Box>
                 </Box>
-                <Button
-                  variant="contained"
+                <Button 
+                  variant="contained" 
                   startIcon={<AddIcon />}
-                  onClick={handleAddOthersBudget}
-                  sx={{
-                    bgcolor: 'rgba(255,255,255,0.2)',
+                  onClick={handleAddStaff}
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add Others Budget
+                  Add Staff Cost
                 </Button>
               </Box>
             </Box>
@@ -219,11 +240,94 @@ const BudgetOthers: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Others Budget Table */}
+        {/* Summary Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+            {[
+              {
+                title: 'Total Forecasted',
+                value: `KWD ${getTotalForecasted().toLocaleString()}`,
+                icon: <MoneyIcon />,
+                color: pageColor,
+                bgColor: alpha(pageColor, 0.1)
+              },
+              {
+                title: '1st Quarter',
+                value: `KWD ${getTotal1stQuarter().toLocaleString()}`,
+                icon: <TrendingUpIcon />,
+                color: theme.palette.info.main,
+                bgColor: alpha(theme.palette.info.main, 0.1)
+              },
+              {
+                title: '2nd Quarter',
+                value: `KWD ${getTotal2ndQuarter().toLocaleString()}`,
+                icon: <AssessmentIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              },
+              {
+                title: '3rd Quarter',
+                value: `KWD ${getTotal3rdQuarter().toLocaleString()}`,
+                icon: <BusinessIcon />,
+                color: theme.palette.warning.main,
+                bgColor: alpha(theme.palette.warning.main, 0.1)
+              },
+              {
+                title: 'Total Budget',
+                value: `KWD ${getTotalBudget().toLocaleString()}`,
+                icon: <CheckCircleIcon />,
+                color: theme.palette.error.main,
+                bgColor: alpha(theme.palette.error.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 200px', 
+                    minWidth: 200,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+        </motion.div>
+
+        {/* Staff Cost Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
         >
           <Paper 
             elevation={0}
@@ -236,7 +340,7 @@ const BudgetOthers: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 Others Budget Overview
+              📊 Staff Cost Overview
             </Typography>
 
             {loading && (
@@ -281,9 +385,9 @@ const BudgetOthers: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {othersBudgets.map((othersBudget, index) => (
+                    {staffBudgets.map((staff, index) => (
                       <TableRow 
-                        key={othersBudget.id}
+                        key={staff.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
@@ -292,43 +396,43 @@ const BudgetOthers: React.FC = () => {
                       >
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {othersBudget.no || '-'}
+                            {staff.no || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {othersBudget.description || '-'}
+                            {staff.description || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(othersBudget.forecastedYearEnded)}
+                            {formatCurrency(staff.forecastedYearEnded)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(othersBudget.budget1stQuarter)}
+                            {formatCurrency(staff.budget1stQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(othersBudget.budget2ndQuarter)}
+                            {formatCurrency(staff.budget2ndQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(othersBudget.budget3rdQuarter)}
+                            {formatCurrency(staff.budget3rdQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(othersBudget.budgetTotal)}
+                            {formatCurrency(staff.budgetTotal)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditOthersBudget(othersBudget)}
+                              onClick={() => handleEditStaff(staff)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -340,8 +444,8 @@ const BudgetOthers: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteOthersBudget(othersBudget.id)}
-                              disabled={othersBudgets.length === 1}
+                              onClick={() => handleDeleteStaff(staff.id)}
+                              disabled={staffBudgets.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -366,26 +470,26 @@ const BudgetOthers: React.FC = () => {
                       <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.forecastedYearEnded) || 0), 0).toString())}
+                          {formatCurrency(getTotalForecasted().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget1stQuarter) || 0), 0).toString())}
+                          {formatCurrency(getTotal1stQuarter().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget2ndQuarter) || 0), 0).toString())}
+                          {formatCurrency(getTotal2ndQuarter().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(othersBudgets.reduce((sum, budget) => sum + (parseFloat(budget.budget3rdQuarter) || 0), 0).toString())}
+                          {formatCurrency(getTotal3rdQuarter().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
                           {formatCurrency(getTotalBudget().toString())}
                         </Typography>
                       </TableCell>
@@ -398,15 +502,15 @@ const BudgetOthers: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit Others Budget Dialog */}
+        {/* Add/Edit Staff Cost Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
-          maxWidth="lg"
+          maxWidth="md"
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingOthersBudget ? 'Edit Others Budget' : 'Add Others Budget'}
+            {editingStaff ? 'Edit Staff Cost' : 'Add Staff Cost'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
@@ -431,8 +535,6 @@ const BudgetOthers: React.FC = () => {
                 label="Description"
                 value={formData.description}
                 onChange={(e) => handleFormChange('description', e.target.value)}
-                multiline
-                rows={2}
                 fullWidth
                 placeholder="Enter description..."
                 sx={{
@@ -451,7 +553,7 @@ const BudgetOthers: React.FC = () => {
                 value={formData.forecastedYearEnded}
                 onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter forecasted year ended amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -468,7 +570,7 @@ const BudgetOthers: React.FC = () => {
                 value={formData.budget1stQuarter}
                 onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter budget 1st quarter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -485,7 +587,7 @@ const BudgetOthers: React.FC = () => {
                 value={formData.budget2ndQuarter}
                 onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter budget 2nd quarter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -502,7 +604,7 @@ const BudgetOthers: React.FC = () => {
                 value={formData.budget3rdQuarter}
                 onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter budget 3rd quarter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -519,7 +621,7 @@ const BudgetOthers: React.FC = () => {
                 value={formData.budgetTotal}
                 onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
                 fullWidth
-                placeholder="Enter total amount..."
+                placeholder="Enter budget total amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -538,7 +640,7 @@ const BudgetOthers: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveOthersBudget}
+              onClick={handleSaveStaff}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -547,7 +649,7 @@ const BudgetOthers: React.FC = () => {
                 }
               }}
             >
-              {editingOthersBudget ? 'Update' : 'Add'} Others Budget
+              {editingStaff ? 'Update' : 'Add'} Staff Cost
             </Button>
           </DialogActions>
         </Dialog>
@@ -560,4 +662,4 @@ const BudgetOthers: React.FC = () => {
   );
 };
 
-export default BudgetOthers;
+export default BudgetStaffingDatabase;

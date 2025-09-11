@@ -43,8 +43,8 @@ const navigationItems = [
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   { 
-    label: 'Budget', 
-    path: '/budgets', 
+    label: 'Budget Databases', 
+    path: '/budget-databases', 
     icon: AttachMoneyIcon,
     gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
   },

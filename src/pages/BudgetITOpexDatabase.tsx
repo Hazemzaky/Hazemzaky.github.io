@@ -32,7 +32,7 @@ const defaultITOpex = () => ({
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const BudgetITOpex: React.FC = () => {
+const BudgetITOpexDatabase: React.FC = () => {
   const [itOpexBudgets, setITOpexBudgets] = useState([defaultITOpex()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -482,4 +482,4 @@ const BudgetITOpex: React.FC = () => {
   );
 };
 
-export default BudgetITOpex;
+export default BudgetITOpexDatabase;

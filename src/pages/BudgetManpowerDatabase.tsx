@@ -61,7 +61,7 @@ const defaultManpower = () => ({
   totalYearCost: ''
 });
 
-const BudgetManpower: React.FC = () => {
+const BudgetManpowerDatabase: React.FC = () => {
   const [manpowerList, setManpowerList] = useState([defaultManpower()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -936,4 +936,4 @@ const BudgetManpower: React.FC = () => {
   );
 };
 
-export default BudgetManpower;
+export default BudgetManpowerDatabase;

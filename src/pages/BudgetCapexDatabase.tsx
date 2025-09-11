@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
-  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, FormControl, InputLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  TrendingUp as TrendingUpIcon,
+  Build as BuildIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
@@ -16,109 +16,140 @@ import {
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Error as ErrorIcon,
-  Info as InfoIcon
+  Info as InfoIcon,
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const defaultWaterCost = () => ({
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const defaultCapex = () => ({
   id: Date.now() + Math.random(),
   no: '',
-  description: '',
-  forecastedYearEnded: '',
-  budget1stQuarter: '',
-  budget2ndQuarter: '',
-  budget3rdQuarter: '',
-  budgetTotal: ''
+  assetType: '',
+  year: '',
+  qty: '',
+  details: '',
+  expectedCostKWD: '',
+  annualDepreciation: '',
+  quarterlyDepreciation: '',
+  expectedDateOfPurchase: ''
 });
 
-const BudgetWater: React.FC = () => {
-  const [waterCosts, setWaterCosts] = useState([defaultWaterCost()]);
+function getMonthIdx(m: string) {
+  return months.indexOf(m);
+}
+
+function getDepreciationSchedule(item: any) {
+  const amount = parseFloat(item.amount) || 0;
+  const salvage = parseFloat(item.salvageValue) || 0;
+  const years = parseInt(item.depreciationYears) || 5;
+  const monthlyDepreciation = (amount - salvage) / (years * 12);
+  
+  const schedule = Array(12).fill(0);
+  const startMonth = getMonthIdx(item.purchaseMonth);
+  
+  for (let i = startMonth; i < 12; i++) {
+    schedule[i] = monthlyDepreciation;
+  }
+  
+  return schedule;
+}
+
+const BudgetCapexDatabase: React.FC = () => {
+  const [capexBudgets, setCapexBudgets] = useState([defaultCapex()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingWaterCost, setEditingWaterCost] = useState<any>(null);
+  const [editingCapex, setEditingCapex] = useState<any>(null);
   const [formData, setFormData] = useState({
     no: '',
-    description: '',
-    forecastedYearEnded: '',
-    budget1stQuarter: '',
-    budget2ndQuarter: '',
-    budget3rdQuarter: '',
-    budgetTotal: ''
+    assetType: '',
+    year: '',
+    qty: '',
+    details: '',
+    expectedCostKWD: '',
+    annualDepreciation: '',
+    quarterlyDepreciation: '',
+    expectedDateOfPurchase: ''
   });
 
   const theme = useTheme();
-  const pageColor = '#0288d1';
+  const pageColor = '#607d8b';
 
   useEffect(() => {
-    fetchWaterCosts();
+    fetchBudgetCapex();
   }, []);
 
-  const fetchWaterCosts = async () => {
+  const fetchBudgetCapex = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget/water');
+      const response = await api.get('/budget/capex');
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setWaterCosts(data);
+        setCapexBudgets(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch water costs');
+      setError(err.response?.data?.message || 'Failed to fetch CAPEX budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddWaterCost = () => {
-    setEditingWaterCost(null);
+  const handleAddCapex = () => {
+    setEditingCapex(null);
     setFormData({
       no: '',
-      description: '',
-      forecastedYearEnded: '',
-      budget1stQuarter: '',
-      budget2ndQuarter: '',
-      budget3rdQuarter: '',
-      budgetTotal: ''
+      assetType: '',
+      year: '',
+      qty: '',
+      details: '',
+      expectedCostKWD: '',
+      annualDepreciation: '',
+      quarterlyDepreciation: '',
+      expectedDateOfPurchase: ''
     });
     setOpenDialog(true);
   };
 
-  const handleEditWaterCost = (waterCost: any) => {
-    setEditingWaterCost(waterCost);
+  const handleEditCapex = (capex: any) => {
+    setEditingCapex(capex);
     setFormData({
-      no: waterCost.no,
-      description: waterCost.description,
-      forecastedYearEnded: waterCost.forecastedYearEnded,
-      budget1stQuarter: waterCost.budget1stQuarter,
-      budget2ndQuarter: waterCost.budget2ndQuarter,
-      budget3rdQuarter: waterCost.budget3rdQuarter,
-      budgetTotal: waterCost.budgetTotal
+      no: capex.no,
+      assetType: capex.assetType,
+      year: capex.year,
+      qty: capex.qty,
+      details: capex.details,
+      expectedCostKWD: capex.expectedCostKWD,
+      annualDepreciation: capex.annualDepreciation,
+      quarterlyDepreciation: capex.quarterlyDepreciation,
+      expectedDateOfPurchase: capex.expectedDateOfPurchase
     });
     setOpenDialog(true);
   };
 
-  const handleDeleteWaterCost = (id: number) => {
-    if (waterCosts.length > 1) {
-      setWaterCosts(waterCosts.filter(waterCost => waterCost.id !== id));
+  const handleDeleteCapex = (id: number) => {
+    if (capexBudgets.length > 1) {
+      setCapexBudgets(capexBudgets.filter(capex => capex.id !== id));
     }
   };
 
-  const handleSaveWaterCost = () => {
-    if (editingWaterCost) {
-      // Edit existing water cost
-      setWaterCosts(waterCosts.map(waterCost => 
-        waterCost.id === editingWaterCost.id 
-          ? { ...waterCost, ...formData }
-          : waterCost
+  const handleSaveCapex = () => {
+    if (editingCapex) {
+      // Edit existing CAPEX
+      setCapexBudgets(capexBudgets.map(capex => 
+        capex.id === editingCapex.id 
+          ? { ...capex, ...formData }
+          : capex
       ));
     } else {
-      // Add new water cost
-      setWaterCosts([...waterCosts, { ...formData, id: Date.now() + Math.random() }]);
+      // Add new CAPEX
+      setCapexBudgets([...capexBudgets, { ...formData, id: Date.now() + Math.random() }]);
     }
     setOpenDialog(false);
-    setSuccess(editingWaterCost ? 'Water cost updated successfully!' : 'Water cost added successfully!');
+    setSuccess(editingCapex ? 'CAPEX updated successfully!' : 'CAPEX added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -130,12 +161,26 @@ const BudgetWater: React.FC = () => {
     return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
-  const getTotalBudget = () => {
-    return waterCosts.reduce((sum, cost) => {
-      const q1 = parseFloat(cost.budget1stQuarter) || 0;
-      const q2 = parseFloat(cost.budget2ndQuarter) || 0;
-      const q3 = parseFloat(cost.budget3rdQuarter) || 0;
-      return sum + q1 + q2 + q3;
+  const formatDate = (value: string) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString();
+  };
+
+  const getTotalCost = () => {
+    return capexBudgets.reduce((sum, capex) => {
+      return sum + (parseFloat(capex.expectedCostKWD) || 0);
+    }, 0);
+  };
+
+  const getTotalAnnualDepreciation = () => {
+    return capexBudgets.reduce((sum, capex) => {
+      return sum + (parseFloat(capex.annualDepreciation) || 0);
+    }, 0);
+  };
+
+  const getTotalQuarterlyDepreciation = () => {
+    return capexBudgets.reduce((sum, capex) => {
+      return sum + (parseFloat(capex.quarterlyDepreciation) || 0);
     }, 0);
   };
 
@@ -143,7 +188,7 @@ const BudgetWater: React.FC = () => {
     <Box sx={{ 
       p: 3, 
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${alpha(pageColor, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
+      background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.secondary.main, 0.05)} 100%)`
     }}>
       <AnimatePresence>
         {/* Header Section */}
@@ -157,7 +202,7 @@ const BudgetWater: React.FC = () => {
             sx={{ 
               p: 3, 
               mb: 3, 
-              background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
+              background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
               color: 'white',
               borderRadius: theme.shape.borderRadius,
               position: 'relative',
@@ -168,29 +213,29 @@ const BudgetWater: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>💧</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>📊</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Water Cost Sale
+                      CAPEX Budget
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and forecast water sales costs by quarters and categories
+                      Plan and manage capital expenditures and asset acquisitions
                     </Typography>
                   </Box>
                 </Box>
-                <Button
-                  variant="contained"
+                <Button 
+                  variant="contained" 
                   startIcon={<AddIcon />}
-                  onClick={handleAddWaterCost}
-                  sx={{
-                    bgcolor: 'rgba(255,255,255,0.2)',
+                  onClick={handleAddCapex}
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add Water Cost Sale
+                  Add CAPEX
                 </Button>
               </Box>
             </Box>
@@ -219,11 +264,87 @@ const BudgetWater: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Water Cost Table */}
+        {/* Summary Cards */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
+            {[
+              {
+                title: 'Total Cost',
+                value: `KWD ${getTotalCost().toLocaleString()}`,
+                icon: <MoneyIcon />,
+                color: pageColor,
+                bgColor: alpha(pageColor, 0.1)
+              },
+              {
+                title: 'Annual Depreciation',
+                value: `KWD ${getTotalAnnualDepreciation().toLocaleString()}`,
+                icon: <TrendingUpIcon />,
+                color: theme.palette.info.main,
+                bgColor: alpha(theme.palette.info.main, 0.1)
+              },
+              {
+                title: 'Quarterly Depreciation',
+                value: `KWD ${getTotalQuarterlyDepreciation().toLocaleString()}`,
+                icon: <AssessmentIcon />,
+                color: theme.palette.success.main,
+                bgColor: alpha(theme.palette.success.main, 0.1)
+              },
+              {
+                title: 'Assets',
+                value: capexBudgets.length,
+                icon: <BusinessIcon />,
+                color: theme.palette.warning.main,
+                bgColor: alpha(theme.palette.warning.main, 0.1)
+              }
+            ].map((card, index) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
+              >
+                <Card 
+                  sx={{ 
+                    flex: '1 1 200px', 
+                    minWidth: 200,
+                    background: card.bgColor,
+                    border: `1px solid ${alpha(card.color, 0.3)}`,
+                    borderRadius: theme.shape.borderRadius,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
+                    }
+                  }}
+                >
+                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
+                        {card.icon}
+                      </Avatar>
+                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
+                      {card.value}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </Box>
+        </motion.div>
+
+        {/* CAPEX Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
         >
           <Paper 
             elevation={0}
@@ -236,7 +357,7 @@ const BudgetWater: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 Water Cost Sale Overview
+              📊 CAPEX Overview
             </Typography>
 
             {loading && (
@@ -257,23 +378,29 @@ const BudgetWater: React.FC = () => {
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
                         NO.
                       </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Asset Type
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
+                        Year
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80 }}>
+                        Qty.
+                      </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
-                        Description
+                        Details
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Forecasted Year Ended
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Expected Cost KWD
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget 1st Quarter
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Annual Depreciation
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget 2nd Quarter
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Quarterly Depreciation
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget 3rd Quarter
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget Total
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Expected Date of Purchase
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
                         Actions
@@ -281,9 +408,9 @@ const BudgetWater: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {waterCosts.map((waterCost, index) => (
+                    {capexBudgets.map((capex, index) => (
                       <TableRow 
-                        key={waterCost.id}
+                        key={capex.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
@@ -292,43 +419,53 @@ const BudgetWater: React.FC = () => {
                       >
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {waterCost.no || '-'}
+                            {capex.no || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {waterCost.description || '-'}
+                            {capex.assetType || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(waterCost.forecastedYearEnded)}
+                            {capex.year || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(waterCost.budget1stQuarter)}
+                            {capex.qty || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {capex.details || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(waterCost.budget2ndQuarter)}
+                            {formatCurrency(capex.expectedCostKWD)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(waterCost.budget3rdQuarter)}
+                            {formatCurrency(capex.annualDepreciation)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(waterCost.budgetTotal)}
+                            {formatCurrency(capex.quarterlyDepreciation)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
+                            {formatDate(capex.expectedDateOfPurchase)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditWaterCost(waterCost)}
+                              onClick={() => handleEditCapex(capex)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -340,8 +477,8 @@ const BudgetWater: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteWaterCost(waterCost.id)}
-                              disabled={waterCosts.length === 1}
+                              onClick={() => handleDeleteCapex(capex.id)}
+                              disabled={capexBudgets.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -364,31 +501,25 @@ const BudgetWater: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell />
+                      <TableCell />
+                      <TableCell />
+                      <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.forecastedYearEnded) || 0), 0).toString())}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.budget1stQuarter) || 0), 0).toString())}
+                          {formatCurrency(getTotalCost().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.budget2ndQuarter) || 0), 0).toString())}
+                          {formatCurrency(getTotalAnnualDepreciation().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.budget3rdQuarter) || 0), 0).toString())}
+                          {formatCurrency(getTotalQuarterlyDepreciation().toString())}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalBudget().toString())}
-                        </Typography>
-                      </TableCell>
+                      <TableCell />
                       <TableCell />
                     </TableRow>
                   </TableBody>
@@ -398,7 +529,7 @@ const BudgetWater: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit Water Cost Dialog */}
+        {/* Add/Edit CAPEX Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
@@ -406,7 +537,7 @@ const BudgetWater: React.FC = () => {
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingWaterCost ? 'Edit Water Cost Sale' : 'Add Water Cost Sale'}
+            {editingCapex ? 'Edit CAPEX' : 'Add CAPEX'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
@@ -428,13 +559,64 @@ const BudgetWater: React.FC = () => {
                 }}
               />
               <TextField
-                label="Description"
-                value={formData.description}
-                onChange={(e) => handleFormChange('description', e.target.value)}
+                label="Asset Type"
+                value={formData.assetType}
+                onChange={(e) => handleFormChange('assetType', e.target.value)}
+                fullWidth
+                placeholder="Enter asset type..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Year"
+                value={formData.year}
+                onChange={(e) => handleFormChange('year', e.target.value)}
+                fullWidth
+                placeholder="Enter year..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Qty."
+                value={formData.qty}
+                onChange={(e) => handleFormChange('qty', e.target.value)}
+                fullWidth
+                placeholder="Enter quantity..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Details"
+                value={formData.details}
+                onChange={(e) => handleFormChange('details', e.target.value)}
                 multiline
                 rows={2}
                 fullWidth
-                placeholder="Enter description..."
+                placeholder="Enter details..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -447,11 +629,11 @@ const BudgetWater: React.FC = () => {
                 }}
               />
               <TextField
-                label="Forecasted Year Ended"
-                value={formData.forecastedYearEnded}
-                onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
+                label="Expected Cost KWD"
+                value={formData.expectedCostKWD}
+                onChange={(e) => handleFormChange('expectedCostKWD', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter expected cost..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -464,11 +646,11 @@ const BudgetWater: React.FC = () => {
                 }}
               />
               <TextField
-                label="Budget 1st Quarter"
-                value={formData.budget1stQuarter}
-                onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
+                label="Annual Depreciation"
+                value={formData.annualDepreciation}
+                onChange={(e) => handleFormChange('annualDepreciation', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter annual depreciation..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -481,11 +663,11 @@ const BudgetWater: React.FC = () => {
                 }}
               />
               <TextField
-                label="Budget 2nd Quarter"
-                value={formData.budget2ndQuarter}
-                onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
+                label="Quarterly Depreciation"
+                value={formData.quarterlyDepreciation}
+                onChange={(e) => handleFormChange('quarterlyDepreciation', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter quarterly depreciation..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -498,28 +680,12 @@ const BudgetWater: React.FC = () => {
                 }}
               />
               <TextField
-                label="Budget 3rd Quarter"
-                value={formData.budget3rdQuarter}
-                onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
+                label="Expected Date of Purchase"
+                type="date"
+                value={formData.expectedDateOfPurchase}
+                onChange={(e) => handleFormChange('expectedDateOfPurchase', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Budget Total"
-                value={formData.budgetTotal}
-                onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
-                fullWidth
-                placeholder="Enter total amount..."
+                InputLabelProps={{ shrink: true }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -538,7 +704,7 @@ const BudgetWater: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveWaterCost}
+              onClick={handleSaveCapex}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -547,7 +713,7 @@ const BudgetWater: React.FC = () => {
                 }
               }}
             >
-              {editingWaterCost ? 'Update' : 'Add'} Water Cost Sale
+              {editingCapex ? 'Update' : 'Add'} CAPEX
             </Button>
           </DialogActions>
         </Dialog>
@@ -560,4 +726,4 @@ const BudgetWater: React.FC = () => {
   );
 };
 
-export default BudgetWater;
+export default BudgetCapexDatabase; 

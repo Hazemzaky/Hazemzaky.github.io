@@ -4,7 +4,7 @@ import {
   Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
-  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
@@ -21,104 +21,108 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const defaultRentalEquipment = () => ({
+const defaultOPEX = () => ({
   id: Date.now() + Math.random(),
-  no: '',
-  description: '',
-  forecastedYearEnded: '',
-  budget1stQuarter: '',
-  budget2ndQuarter: '',
-  budget3rdQuarter: '',
-  budgetTotal: ''
+  sr: '',
+  serviceAnnualAgreement: '',
+  vendor: '',
+  agreementDescription: '',
+  paymentType: '',
+  typeOfCost: '',
+  annual: '',
+  quarter: ''
 });
 
-const BudgetRental: React.FC = () => {
-  const [rentalEquipments, setRentalEquipments] = useState([defaultRentalEquipment()]);
+const BudgetOpexDatabase: React.FC = () => {
+  const [opexBudgets, setOpexBudgets] = useState([defaultOPEX()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingRentalEquipment, setEditingRentalEquipment] = useState<any>(null);
+  const [editingOPEX, setEditingOPEX] = useState<any>(null);
   const [formData, setFormData] = useState({
-    no: '',
-    description: '',
-    forecastedYearEnded: '',
-    budget1stQuarter: '',
-    budget2ndQuarter: '',
-    budget3rdQuarter: '',
-    budgetTotal: ''
+    sr: '',
+    serviceAnnualAgreement: '',
+    vendor: '',
+    agreementDescription: '',
+    paymentType: '',
+    typeOfCost: '',
+    annual: '',
+    quarter: ''
   });
 
   const theme = useTheme();
-  const pageColor = '#5d4037';
+  const pageColor = '#e91e63';
 
   useEffect(() => {
-    fetchRentalEquipments();
+    fetchOPEXBudgets();
   }, []);
 
-  const fetchRentalEquipments = async () => {
+  const fetchOPEXBudgets = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget/rental');
+      const response = await api.get('/budget/opex');
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setRentalEquipments(data);
+        setOpexBudgets(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch rental equipment costs');
+      setError(err.response?.data?.message || 'Failed to fetch OPEX budgets');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddRentalEquipment = () => {
-    setEditingRentalEquipment(null);
+  const handleAddOPEX = () => {
+    setEditingOPEX(null);
     setFormData({
-      no: '',
-      description: '',
-      forecastedYearEnded: '',
-      budget1stQuarter: '',
-      budget2ndQuarter: '',
-      budget3rdQuarter: '',
-      budgetTotal: ''
+      sr: '',
+      serviceAnnualAgreement: '',
+      vendor: '',
+      agreementDescription: '',
+      paymentType: '',
+      typeOfCost: '',
+      annual: '',
+      quarter: ''
     });
     setOpenDialog(true);
   };
 
-  const handleEditRentalEquipment = (rentalEquipment: any) => {
-    setEditingRentalEquipment(rentalEquipment);
+  const handleEditOPEX = (opex: any) => {
+    setEditingOPEX(opex);
     setFormData({
-      no: rentalEquipment.no,
-      description: rentalEquipment.description,
-      forecastedYearEnded: rentalEquipment.forecastedYearEnded,
-      budget1stQuarter: rentalEquipment.budget1stQuarter,
-      budget2ndQuarter: rentalEquipment.budget2ndQuarter,
-      budget3rdQuarter: rentalEquipment.budget3rdQuarter,
-      budgetTotal: rentalEquipment.budgetTotal
+      sr: opex.sr,
+      serviceAnnualAgreement: opex.serviceAnnualAgreement,
+      vendor: opex.vendor,
+      agreementDescription: opex.agreementDescription,
+      paymentType: opex.paymentType,
+      typeOfCost: opex.typeOfCost,
+      annual: opex.annual,
+      quarter: opex.quarter
     });
     setOpenDialog(true);
   };
 
-  const handleDeleteRentalEquipment = (id: number) => {
-    if (rentalEquipments.length > 1) {
-      setRentalEquipments(rentalEquipments.filter(rentalEquipment => rentalEquipment.id !== id));
+  const handleDeleteOPEX = (id: number) => {
+    if (opexBudgets.length > 1) {
+      setOpexBudgets(opexBudgets.filter(opex => opex.id !== id));
     }
   };
 
-  const handleSaveRentalEquipment = () => {
-    if (editingRentalEquipment) {
-      // Edit existing rental equipment
-      setRentalEquipments(rentalEquipments.map(rentalEquipment => 
-        rentalEquipment.id === editingRentalEquipment.id 
-          ? { ...rentalEquipment, ...formData }
-          : rentalEquipment
+  const handleSaveOPEX = () => {
+    if (editingOPEX) {
+      // Edit existing OPEX
+      setOpexBudgets(opexBudgets.map(opex => 
+        opex.id === editingOPEX.id 
+          ? { ...opex, ...formData }
+          : opex
       ));
     } else {
-      // Add new rental equipment
-      setRentalEquipments([...rentalEquipments, { ...formData, id: Date.now() + Math.random() }]);
+      // Add new OPEX
+      setOpexBudgets([...opexBudgets, { ...formData, id: Date.now() + Math.random() }]);
     }
     setOpenDialog(false);
-    setSuccess(editingRentalEquipment ? 'Rental equipment cost updated successfully!' : 'Rental equipment cost added successfully!');
+    setSuccess(editingOPEX ? 'OPEX updated successfully!' : 'OPEX added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -130,12 +134,15 @@ const BudgetRental: React.FC = () => {
     return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
-  const getTotalBudget = () => {
-    return rentalEquipments.reduce((sum, equipment) => {
-      const q1 = parseFloat(equipment.budget1stQuarter) || 0;
-      const q2 = parseFloat(equipment.budget2ndQuarter) || 0;
-      const q3 = parseFloat(equipment.budget3rdQuarter) || 0;
-      return sum + q1 + q2 + q3;
+  const getTotalAnnual = () => {
+    return opexBudgets.reduce((sum, opex) => {
+      return sum + (parseFloat(opex.annual) || 0);
+    }, 0);
+  };
+
+  const getTotalQuarter = () => {
+    return opexBudgets.reduce((sum, opex) => {
+      return sum + (parseFloat(opex.quarter) || 0);
     }, 0);
   };
 
@@ -168,29 +175,29 @@ const BudgetRental: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>🚗</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>🏢</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Rental Equipment
+                      OPEX
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and forecast rental equipment costs by quarters and categories
+                      Plan and forecast operating expenses and service agreements
                     </Typography>
                   </Box>
                 </Box>
-                <Button
-                  variant="contained"
+                <Button 
+                  variant="contained" 
                   startIcon={<AddIcon />}
-                  onClick={handleAddRentalEquipment}
-                  sx={{
-                    bgcolor: 'rgba(255,255,255,0.2)',
+                  onClick={handleAddOPEX}
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add Cost of Rental Equipment
+                  Add OPEX
                 </Button>
               </Box>
             </Box>
@@ -219,7 +226,7 @@ const BudgetRental: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Rental Equipment Table */}
+        {/* OPEX Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -236,7 +243,7 @@ const BudgetRental: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 Rental Equipment Cost Overview
+              📊 OPEX Overview
             </Typography>
 
             {loading && (
@@ -255,25 +262,28 @@ const BudgetRental: React.FC = () => {
                   <TableHead>
                     <TableRow sx={{ background: alpha(pageColor, 0.05) }}>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 80, textAlign: 'center' }}>
-                        NO.
+                        SR.
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
-                        Description
+                        Service Annual Agreement
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Forecasted Year Ended
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 150 }}>
+                        Vendor
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget 1st Quarter
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 200 }}>
+                        Agreement Description
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget 2nd Quarter
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
+                        Payment Type
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget 3rd Quarter
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 120 }}>
+                        Type of Cost
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 180 }}>
-                        Budget Total
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
+                        Annual
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100 }}>
+                        Quarter
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor, minWidth: 100, textAlign: 'center' }}>
                         Actions
@@ -281,9 +291,9 @@ const BudgetRental: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {rentalEquipments.map((rentalEquipment, index) => (
+                    {opexBudgets.map((opex, index) => (
                       <TableRow 
-                        key={rentalEquipment.id}
+                        key={opex.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
@@ -292,43 +302,48 @@ const BudgetRental: React.FC = () => {
                       >
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {rentalEquipment.no || '-'}
+                            {opex.sr || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {rentalEquipment.description || '-'}
+                            {opex.serviceAnnualAgreement || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {opex.vendor || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ verticalAlign: 'top' }}>
+                          <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
+                            {opex.agreementDescription || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(rentalEquipment.forecastedYearEnded)}
+                            {opex.paymentType || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(rentalEquipment.budget1stQuarter)}
+                            {opex.typeOfCost || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(rentalEquipment.budget2ndQuarter)}
+                            {formatCurrency(opex.annual)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(rentalEquipment.budget3rdQuarter)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ verticalAlign: 'top' }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(rentalEquipment.budgetTotal)}
+                            {formatCurrency(opex.quarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditRentalEquipment(rentalEquipment)}
+                              onClick={() => handleEditOPEX(opex)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -340,8 +355,8 @@ const BudgetRental: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteRentalEquipment(rentalEquipment.id)}
-                              disabled={rentalEquipments.length === 1}
+                              onClick={() => handleDeleteOPEX(opex.id)}
+                              disabled={opexBudgets.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -364,29 +379,18 @@ const BudgetRental: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell />
+                      <TableCell />
+                      <TableCell />
+                      <TableCell />
+                      <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.forecastedYearEnded) || 0), 0).toString())}
+                          {formatCurrency(getTotalAnnual().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.budget1stQuarter) || 0), 0).toString())}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.budget2ndQuarter) || 0), 0).toString())}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(rentalEquipments.reduce((sum, equipment) => sum + (parseFloat(equipment.budget3rdQuarter) || 0), 0).toString())}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, color: pageColor }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalBudget().toString())}
+                          {formatCurrency(getTotalQuarter().toString())}
                         </Typography>
                       </TableCell>
                       <TableCell />
@@ -398,7 +402,7 @@ const BudgetRental: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit Rental Equipment Dialog */}
+        {/* Add/Edit OPEX Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
@@ -406,16 +410,16 @@ const BudgetRental: React.FC = () => {
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingRentalEquipment ? 'Edit Rental Equipment Cost' : 'Add Cost of Rental Equipment'}
+            {editingOPEX ? 'Edit OPEX' : 'Add OPEX'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
               <TextField
-                label="NO."
-                value={formData.no}
-                onChange={(e) => handleFormChange('no', e.target.value)}
+                label="SR."
+                value={formData.sr}
+                onChange={(e) => handleFormChange('sr', e.target.value)}
                 fullWidth
-                placeholder="Enter number..."
+                placeholder="Enter SR number..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -428,13 +432,47 @@ const BudgetRental: React.FC = () => {
                 }}
               />
               <TextField
-                label="Description"
-                value={formData.description}
-                onChange={(e) => handleFormChange('description', e.target.value)}
+                label="Service Annual Agreement"
+                value={formData.serviceAnnualAgreement}
+                onChange={(e) => handleFormChange('serviceAnnualAgreement', e.target.value)}
+                fullWidth
+                placeholder="Enter service annual agreement..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Vendor"
+                value={formData.vendor}
+                onChange={(e) => handleFormChange('vendor', e.target.value)}
+                fullWidth
+                placeholder="Enter vendor name..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&:hover fieldset': {
+                      borderColor: pageColor,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: pageColor,
+                    },
+                  },
+                }}
+              />
+              <TextField
+                label="Agreement Description"
+                value={formData.agreementDescription}
+                onChange={(e) => handleFormChange('agreementDescription', e.target.value)}
                 multiline
                 rows={2}
                 fullWidth
-                placeholder="Enter description..."
+                placeholder="Enter agreement description..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -447,11 +485,11 @@ const BudgetRental: React.FC = () => {
                 }}
               />
               <TextField
-                label="Forecasted Year Ended"
-                value={formData.forecastedYearEnded}
-                onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
+                label="Payment Type"
+                value={formData.paymentType}
+                onChange={(e) => handleFormChange('paymentType', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter payment type..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -464,11 +502,11 @@ const BudgetRental: React.FC = () => {
                 }}
               />
               <TextField
-                label="Budget 1st Quarter"
-                value={formData.budget1stQuarter}
-                onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
+                label="Type of Cost"
+                value={formData.typeOfCost}
+                onChange={(e) => handleFormChange('typeOfCost', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter type of cost..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -481,11 +519,11 @@ const BudgetRental: React.FC = () => {
                 }}
               />
               <TextField
-                label="Budget 2nd Quarter"
-                value={formData.budget2ndQuarter}
-                onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
+                label="Annual"
+                value={formData.annual}
+                onChange={(e) => handleFormChange('annual', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
+                placeholder="Enter annual amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -498,28 +536,11 @@ const BudgetRental: React.FC = () => {
                 }}
               />
               <TextField
-                label="Budget 3rd Quarter"
-                value={formData.budget3rdQuarter}
-                onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
+                label="Quarter"
+                value={formData.quarter}
+                onChange={(e) => handleFormChange('quarter', e.target.value)}
                 fullWidth
-                placeholder="Enter amount..."
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    '&:hover fieldset': {
-                      borderColor: pageColor,
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: pageColor,
-                    },
-                  },
-                }}
-              />
-              <TextField
-                label="Budget Total"
-                value={formData.budgetTotal}
-                onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
-                fullWidth
-                placeholder="Enter total amount..."
+                placeholder="Enter quarter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -538,7 +559,7 @@ const BudgetRental: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveRentalEquipment}
+              onClick={handleSaveOPEX}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -547,7 +568,7 @@ const BudgetRental: React.FC = () => {
                 }
               }}
             >
-              {editingRentalEquipment ? 'Update' : 'Add'} Rental Equipment Cost
+              {editingOPEX ? 'Update' : 'Add'} OPEX
             </Button>
           </DialogActions>
         </Dialog>
@@ -560,4 +581,4 @@ const BudgetRental: React.FC = () => {
   );
 };
 
-export default BudgetRental;
+export default BudgetOpexDatabase; 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Button, Card, CardContent, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert, CircularProgress, Snackbar,
-  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem
+  Avatar, Tooltip, useTheme, alpha, IconButton, Chip, Divider, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -21,7 +21,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../apiBase';
 
-const defaultStaff = () => ({
+const defaultWaterCost = () => ({
   id: Date.now() + Math.random(),
   no: '',
   description: '',
@@ -32,13 +32,13 @@ const defaultStaff = () => ({
   budgetTotal: ''
 });
 
-const BudgetStaffing: React.FC = () => {
-  const [staffBudgets, setStaffBudgets] = useState([defaultStaff()]);
+const BudgetWaterDatabase: React.FC = () => {
+  const [waterCosts, setWaterCosts] = useState([defaultWaterCost()]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingStaff, setEditingStaff] = useState<any>(null);
+  const [editingWaterCost, setEditingWaterCost] = useState<any>(null);
   const [formData, setFormData] = useState({
     no: '',
     description: '',
@@ -50,29 +50,29 @@ const BudgetStaffing: React.FC = () => {
   });
 
   const theme = useTheme();
-  const pageColor = '#ff9800';
+  const pageColor = '#0288d1';
 
   useEffect(() => {
-    fetchStaffBudgets();
+    fetchWaterCosts();
   }, []);
 
-  const fetchStaffBudgets = async () => {
+  const fetchWaterCosts = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/budget/staff');
+      const response = await api.get('/budget/water');
       const data = Array.isArray(response.data) ? response.data : [];
       if (data.length > 0) {
-        setStaffBudgets(data);
+        setWaterCosts(data);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to fetch Staff budgets');
+      setError(err.response?.data?.message || 'Failed to fetch water costs');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddStaff = () => {
-    setEditingStaff(null);
+  const handleAddWaterCost = () => {
+    setEditingWaterCost(null);
     setFormData({
       no: '',
       description: '',
@@ -85,40 +85,40 @@ const BudgetStaffing: React.FC = () => {
     setOpenDialog(true);
   };
 
-  const handleEditStaff = (staff: any) => {
-    setEditingStaff(staff);
+  const handleEditWaterCost = (waterCost: any) => {
+    setEditingWaterCost(waterCost);
     setFormData({
-      no: staff.no,
-      description: staff.description,
-      forecastedYearEnded: staff.forecastedYearEnded,
-      budget1stQuarter: staff.budget1stQuarter,
-      budget2ndQuarter: staff.budget2ndQuarter,
-      budget3rdQuarter: staff.budget3rdQuarter,
-      budgetTotal: staff.budgetTotal
+      no: waterCost.no,
+      description: waterCost.description,
+      forecastedYearEnded: waterCost.forecastedYearEnded,
+      budget1stQuarter: waterCost.budget1stQuarter,
+      budget2ndQuarter: waterCost.budget2ndQuarter,
+      budget3rdQuarter: waterCost.budget3rdQuarter,
+      budgetTotal: waterCost.budgetTotal
     });
     setOpenDialog(true);
   };
 
-  const handleDeleteStaff = (id: number) => {
-    if (staffBudgets.length > 1) {
-      setStaffBudgets(staffBudgets.filter(staff => staff.id !== id));
+  const handleDeleteWaterCost = (id: number) => {
+    if (waterCosts.length > 1) {
+      setWaterCosts(waterCosts.filter(waterCost => waterCost.id !== id));
     }
   };
 
-  const handleSaveStaff = () => {
-    if (editingStaff) {
-      // Edit existing Staff
-      setStaffBudgets(staffBudgets.map(staff => 
-        staff.id === editingStaff.id 
-          ? { ...staff, ...formData }
-          : staff
+  const handleSaveWaterCost = () => {
+    if (editingWaterCost) {
+      // Edit existing water cost
+      setWaterCosts(waterCosts.map(waterCost => 
+        waterCost.id === editingWaterCost.id 
+          ? { ...waterCost, ...formData }
+          : waterCost
       ));
     } else {
-      // Add new Staff
-      setStaffBudgets([...staffBudgets, { ...formData, id: Date.now() + Math.random() }]);
+      // Add new water cost
+      setWaterCosts([...waterCosts, { ...formData, id: Date.now() + Math.random() }]);
     }
     setOpenDialog(false);
-    setSuccess(editingStaff ? 'Staff Cost updated successfully!' : 'Staff Cost added successfully!');
+    setSuccess(editingWaterCost ? 'Water cost updated successfully!' : 'Water cost added successfully!');
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -130,33 +130,12 @@ const BudgetStaffing: React.FC = () => {
     return `${parseFloat(value).toLocaleString()} KWD`;
   };
 
-  const getTotalForecasted = () => {
-    return staffBudgets.reduce((sum, staff) => {
-      return sum + (parseFloat(staff.forecastedYearEnded) || 0);
-    }, 0);
-  };
-
-  const getTotal1stQuarter = () => {
-    return staffBudgets.reduce((sum, staff) => {
-      return sum + (parseFloat(staff.budget1stQuarter) || 0);
-    }, 0);
-  };
-
-  const getTotal2ndQuarter = () => {
-    return staffBudgets.reduce((sum, staff) => {
-      return sum + (parseFloat(staff.budget2ndQuarter) || 0);
-    }, 0);
-  };
-
-  const getTotal3rdQuarter = () => {
-    return staffBudgets.reduce((sum, staff) => {
-      return sum + (parseFloat(staff.budget3rdQuarter) || 0);
-    }, 0);
-  };
-
   const getTotalBudget = () => {
-    return staffBudgets.reduce((sum, staff) => {
-      return sum + (parseFloat(staff.budgetTotal) || 0);
+    return waterCosts.reduce((sum, cost) => {
+      const q1 = parseFloat(cost.budget1stQuarter) || 0;
+      const q2 = parseFloat(cost.budget2ndQuarter) || 0;
+      const q3 = parseFloat(cost.budget3rdQuarter) || 0;
+      return sum + q1 + q2 + q3;
     }, 0);
   };
 
@@ -189,29 +168,29 @@ const BudgetStaffing: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 56, height: 56 }}>
-                    <Typography sx={{ fontSize: '2rem' }}>🎖️</Typography>
+                    <Typography sx={{ fontSize: '2rem' }}>💧</Typography>
                   </Avatar>
                   <Box>
                     <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.5 }}>
-                      Staff Cost
+                      Water Cost Sale
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                      Plan and manage staff costs and quarterly budgets
+                      Plan and forecast water sales costs by quarters and categories
                     </Typography>
                   </Box>
                 </Box>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={handleAddStaff}
-                  sx={{ 
-                    bgcolor: 'rgba(255,255,255,0.2)', 
+                  onClick={handleAddWaterCost}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
                     color: 'white',
                     border: '1px solid rgba(255,255,255,0.3)',
                     '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                   }}
                 >
-                  Add Staff Cost
+                  Add Water Cost Sale
                 </Button>
               </Box>
             </Box>
@@ -240,94 +219,11 @@ const BudgetStaffing: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Summary Cards */}
+        {/* Water Cost Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 3 }}>
-            {[
-              {
-                title: 'Total Forecasted',
-                value: `KWD ${getTotalForecasted().toLocaleString()}`,
-                icon: <MoneyIcon />,
-                color: pageColor,
-                bgColor: alpha(pageColor, 0.1)
-              },
-              {
-                title: '1st Quarter',
-                value: `KWD ${getTotal1stQuarter().toLocaleString()}`,
-                icon: <TrendingUpIcon />,
-                color: theme.palette.info.main,
-                bgColor: alpha(theme.palette.info.main, 0.1)
-              },
-              {
-                title: '2nd Quarter',
-                value: `KWD ${getTotal2ndQuarter().toLocaleString()}`,
-                icon: <AssessmentIcon />,
-                color: theme.palette.success.main,
-                bgColor: alpha(theme.palette.success.main, 0.1)
-              },
-              {
-                title: '3rd Quarter',
-                value: `KWD ${getTotal3rdQuarter().toLocaleString()}`,
-                icon: <BusinessIcon />,
-                color: theme.palette.warning.main,
-                bgColor: alpha(theme.palette.warning.main, 0.1)
-              },
-              {
-                title: 'Total Budget',
-                value: `KWD ${getTotalBudget().toLocaleString()}`,
-                icon: <CheckCircleIcon />,
-                color: theme.palette.error.main,
-                bgColor: alpha(theme.palette.error.main, 0.1)
-              }
-            ].map((card, index) => (
-              <motion.div
-                key={card.title}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.4 + index * 0.1 }}
-              >
-                <Card 
-                  sx={{ 
-                    flex: '1 1 200px', 
-                    minWidth: 200,
-                    background: card.bgColor,
-                    border: `1px solid ${alpha(card.color, 0.3)}`,
-                    borderRadius: theme.shape.borderRadius,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: `0 8px 25px ${alpha(card.color, 0.3)}`
-                    }
-                  }}
-                >
-                  <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-                      <Avatar sx={{ bgcolor: card.color, width: 40, height: 40, mr: 1 }}>
-                        {card.icon}
-                      </Avatar>
-                      <Typography variant="h6" sx={{ color: card.color, fontWeight: 600 }}>
-                        {card.title}
-                      </Typography>
-                    </Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: card.color }}>
-                      {card.value}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </Box>
-        </motion.div>
-
-        {/* Staff Cost Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
         >
           <Paper 
             elevation={0}
@@ -340,7 +236,7 @@ const BudgetStaffing: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: pageColor, fontWeight: 600, mb: 3 }}>
-              📊 Staff Cost Overview
+              📊 Water Cost Sale Overview
             </Typography>
 
             {loading && (
@@ -385,9 +281,9 @@ const BudgetStaffing: React.FC = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {staffBudgets.map((staff, index) => (
+                    {waterCosts.map((waterCost, index) => (
                       <TableRow 
-                        key={staff.id}
+                        key={waterCost.id}
                         sx={{ 
                           '&:hover': {
                             background: alpha(pageColor, 0.02)
@@ -396,43 +292,43 @@ const BudgetStaffing: React.FC = () => {
                       >
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {staff.no || '-'}
+                            {waterCost.no || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
-                            {staff.description || '-'}
+                            {waterCost.description || '-'}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(staff.forecastedYearEnded)}
+                            {formatCurrency(waterCost.forecastedYearEnded)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(staff.budget1stQuarter)}
+                            {formatCurrency(waterCost.budget1stQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(staff.budget2ndQuarter)}
+                            {formatCurrency(waterCost.budget2ndQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(staff.budget3rdQuarter)}
+                            {formatCurrency(waterCost.budget3rdQuarter)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ verticalAlign: 'top' }}>
                           <Typography variant="body2" sx={{ fontWeight: 600, color: pageColor }}>
-                            {formatCurrency(staff.budgetTotal)}
+                            {formatCurrency(waterCost.budgetTotal)}
                           </Typography>
                         </TableCell>
                         <TableCell sx={{ textAlign: 'center', verticalAlign: 'top' }}>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <IconButton
-                              onClick={() => handleEditStaff(staff)}
+                              onClick={() => handleEditWaterCost(waterCost)}
                               sx={{ 
                                 color: pageColor,
                                 '&:hover': { 
@@ -444,8 +340,8 @@ const BudgetStaffing: React.FC = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDeleteStaff(staff.id)}
-                              disabled={staffBudgets.length === 1}
+                              onClick={() => handleDeleteWaterCost(waterCost.id)}
+                              disabled={waterCosts.length === 1}
                               sx={{ 
                                 color: theme.palette.error.main,
                                 '&:hover': { 
@@ -470,26 +366,26 @@ const BudgetStaffing: React.FC = () => {
                       <TableCell />
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotalForecasted().toString())}
+                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.forecastedYearEnded) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotal1stQuarter().toString())}
+                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.budget1stQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotal2ndQuarter().toString())}
+                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.budget2ndQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {formatCurrency(getTotal3rdQuarter().toString())}
+                          {formatCurrency(waterCosts.reduce((sum, cost) => sum + (parseFloat(cost.budget3rdQuarter) || 0), 0).toString())}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600, color: pageColor }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700 }}>
                           {formatCurrency(getTotalBudget().toString())}
                         </Typography>
                       </TableCell>
@@ -502,15 +398,15 @@ const BudgetStaffing: React.FC = () => {
           </Paper>
         </motion.div>
 
-        {/* Add/Edit Staff Cost Dialog */}
+        {/* Add/Edit Water Cost Dialog */}
         <Dialog 
           open={openDialog} 
           onClose={() => setOpenDialog(false)}
-          maxWidth="md"
+          maxWidth="lg"
           fullWidth
         >
           <DialogTitle sx={{ color: pageColor, fontWeight: 600 }}>
-            {editingStaff ? 'Edit Staff Cost' : 'Add Staff Cost'}
+            {editingWaterCost ? 'Edit Water Cost Sale' : 'Add Water Cost Sale'}
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 2 }}>
@@ -535,6 +431,8 @@ const BudgetStaffing: React.FC = () => {
                 label="Description"
                 value={formData.description}
                 onChange={(e) => handleFormChange('description', e.target.value)}
+                multiline
+                rows={2}
                 fullWidth
                 placeholder="Enter description..."
                 sx={{
@@ -553,7 +451,7 @@ const BudgetStaffing: React.FC = () => {
                 value={formData.forecastedYearEnded}
                 onChange={(e) => handleFormChange('forecastedYearEnded', e.target.value)}
                 fullWidth
-                placeholder="Enter forecasted year ended amount..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -570,7 +468,7 @@ const BudgetStaffing: React.FC = () => {
                 value={formData.budget1stQuarter}
                 onChange={(e) => handleFormChange('budget1stQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter budget 1st quarter amount..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -587,7 +485,7 @@ const BudgetStaffing: React.FC = () => {
                 value={formData.budget2ndQuarter}
                 onChange={(e) => handleFormChange('budget2ndQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter budget 2nd quarter amount..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -604,7 +502,7 @@ const BudgetStaffing: React.FC = () => {
                 value={formData.budget3rdQuarter}
                 onChange={(e) => handleFormChange('budget3rdQuarter', e.target.value)}
                 fullWidth
-                placeholder="Enter budget 3rd quarter amount..."
+                placeholder="Enter amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -621,7 +519,7 @@ const BudgetStaffing: React.FC = () => {
                 value={formData.budgetTotal}
                 onChange={(e) => handleFormChange('budgetTotal', e.target.value)}
                 fullWidth
-                placeholder="Enter budget total amount..."
+                placeholder="Enter total amount..."
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     '&:hover fieldset': {
@@ -640,7 +538,7 @@ const BudgetStaffing: React.FC = () => {
               Cancel
             </Button>
             <Button 
-              onClick={handleSaveStaff}
+              onClick={handleSaveWaterCost}
               variant="contained"
               sx={{
                 background: `linear-gradient(135deg, ${pageColor} 0%, ${theme.palette.secondary.main} 100%)`,
@@ -649,7 +547,7 @@ const BudgetStaffing: React.FC = () => {
                 }
               }}
             >
-              {editingStaff ? 'Update' : 'Add'} Staff Cost
+              {editingWaterCost ? 'Update' : 'Add'} Water Cost Sale
             </Button>
           </DialogActions>
         </Dialog>
@@ -662,4 +560,4 @@ const BudgetStaffing: React.FC = () => {
   );
 };
 
-export default BudgetStaffing;
+export default BudgetWaterDatabase;
